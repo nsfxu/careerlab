@@ -87,6 +87,7 @@ async function openSave(path) {
     state.clubs = await call("clubs");
     renderClubs();
     updateStaged();
+    $("#btn-league").disabled = false;
     if (me && me.block != null) await openClub(me.block);
   });
 }
@@ -480,6 +481,95 @@ async function stageSync() {
   toast(`${ops.length} sync edits staged — review and apply when ready`);
 }
 
+// ------------------------------------------------------------------ league sync
+
+const KINDS = { release: "Releases", move: "Moves", add: "Free players", create: "New players",
+  numbers: "Shirt numbers", captain: "Captains" };
+let leaguePlan = null;
+const leagueKinds = Object.fromEntries(Object.keys(KINDS).map((k) => [k, true]));
+
+async function openLeagues() {
+  const pick = $("#league-picker");
+  $("#league-body").innerHTML = "<p class='muted'>Reading efootballdb's league list…</p>";
+  if (!$("#dlg-league").open) $("#dlg-league").showModal();
+  const leagues = await guarded(() => call("leagues"));
+  if (!leagues) return;
+  pick.innerHTML = "";
+  for (const lg of leagues)
+    pick.append(el("option", { value: lg.id, textContent: `${lg.name} (${lg.clubs}/${lg.total} clubs)${lg.mine ? " — your league" : ""}` }));
+  const kinds = $("#league-kinds");
+  kinds.innerHTML = "";
+  for (const [k, label] of Object.entries(KINDS)) {
+    const cb = el("input", { type: "checkbox", checked: leagueKinds[k] });
+    cb.onchange = () => { leagueKinds[k] = cb.checked; renderLeague(); };
+    kinds.append(el("label", { className: "k-" + k }, cb, label));
+  }
+  if (leagues.length) loadLeague(false);
+  else $("#league-body").innerHTML = "<p class='muted'>No efootballdb league matches this career's clubs.</p>";
+}
+
+async function loadLeague(refresh) {
+  const id = Number($("#league-picker").value);
+  $("#league-body").innerHTML = `<p class='muted'>Fetching every squad${refresh ? " again" : ""} (one request per club, cached for a day)…</p>`;
+  leaguePlan = await guarded(() => call("league_plan", { comp_id: id, refresh }));
+  if (!leaguePlan) { $("#league-body").innerHTML = ""; return; }
+  for (const cl of leaguePlan.clubs) cl._on = true;
+  renderLeague();
+}
+
+function leagueOps() {
+  const ops = [];
+  for (const cl of leaguePlan?.clubs || [])
+    if (cl._on) for (const op of cl.ops) if (leagueKinds[op.kind]) ops.push(op);
+  return ops;
+}
+
+function renderLeague() {
+  const body = $("#league-body");
+  if (!leaguePlan) return;
+  body.innerHTML = "";
+  for (const cl of leaguePlan.clubs) {
+    const cb = el("input", { type: "checkbox", checked: cl._on });
+    cb.onclick = (ev) => ev.stopPropagation();
+    cb.onchange = () => { cl._on = cb.checked; renderLeague(); };
+    const ops = cl.ops.filter((o) => leagueKinds[o.kind]);
+    const n = (k) => ops.filter((o) => o.kind === k).length;
+    const counts = el("span", { className: "counts" });
+    for (const [k, t] of [["move", "→ in"], ["add", "+ free"], ["create", "+ new"], ["release", "− out"]])
+      if (n(k)) counts.append(el("span", { className: "k-" + k, textContent: `${t} ${n(k)}` }));
+    if (!ops.length) counts.append(el("span", { className: "muted", textContent: "nothing to change" }));
+    body.append(el("details", { className: "league-club" + (cl._on ? "" : " off") },
+      el("summary", {}, cb,
+        el("span", {}, el("b", { textContent: cl.name }), el("span", { className: "muted", textContent: `  ${cl.keep} already match` })),
+        counts),
+      el("div", { className: "ops" }, ...ops.map((o) => el("div", { className: "k-" + o.kind, textContent: o.label })),
+        ...(cl.kept?.length ? [el("div", { className: "muted", textContent: `Kept so the squad stays at ${leaguePlan.minSquad}+: ${cl.kept.join(", ")}` })] : []))));
+  }
+  if (leaguePlan.madeUp?.length)
+    body.append(el("p", { className: "muted", textContent: `Left as they are: ${leaguePlan.madeUp.join(", ")}. eFootball has no player licence there (invented names), so FL26's own squad is kept.` }));
+  if (leaguePlan.skipped?.length)
+    body.append(el("p", { className: "muted", textContent: "Skipped: " + leaguePlan.skipped.join("; ") }));
+  body.append(el("p", { className: "muted", textContent: "Players FL26 lacks borrow a little-known player's ID and the face of a player of the same nationality. Coaches and set-piece takers are not synced." }));
+  const total = leagueOps().length;
+  $("#league-total").textContent = `${total} edits selected`;
+  $("#btn-league-stage").disabled = total === 0;
+}
+
+async function stageLeague() {
+  const ops = leagueOps();
+  if (!ops.length) return;
+  await guarded(async () => {
+    const r = await call("stage_many", { ops });
+    state.labels = state.labels || [];
+    const start = r.staged.length - r.order.length;
+    r.order.forEach((o, i) => { state.labels[start + i] = o.label; });
+    state.staged = r.staged;
+    updateStaged();
+    $("#dlg-league").close();
+    toast(`${ops.length} league edits staged — review and apply when ready`);
+  });
+}
+
 // ------------------------------------------------------------------ backups / game state
 
 async function openBackups() {
@@ -527,6 +617,11 @@ $("#btn-sync").onclick = () => openSync(false);
 $("#btn-sync-refresh").onclick = () => openSync(true);
 $("#btn-close-sync").onclick = () => $("#dlg-sync").close();
 $("#btn-sync-stage").onclick = stageSync;
+$("#btn-league").onclick = openLeagues;
+$("#league-picker").onchange = () => loadLeague(false);
+$("#btn-league-refresh").onclick = () => loadLeague(true);
+$("#btn-close-league").onclick = () => $("#dlg-league").close();
+$("#btn-league-stage").onclick = stageLeague;
 loadSaves();
 pollGame();
 setInterval(pollGame, 4000);

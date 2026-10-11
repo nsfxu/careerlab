@@ -33,7 +33,8 @@ undecoded · **Later** = needs more research first.
 | **Add a player the career has never known** (added to the database after the career began) | **Done** (app, from efootballdb) |
 | New players get their real profile (position, abilities, style, age, nationality) from a donor career | Ready |
 | Squads up to 40 players (the old "starting size" cap was wrong) | Ready |
-| **Sync the whole league** to an option file: plan → review screen → apply | Ready |
+| **Sync a whole league** to efootballdb: every club in one plan, moves inside the league, review → apply | **Done** (skips clubs with invented squads, keeps squads at 23+) |
+| Sync the whole league to an option file | Ready |
 | **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / captain in one go | **Done** |
 | **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | **Done** (app; lookalike face) |
 | Repair the game's own duplicates (a player listed twice in one squad) | Ready |

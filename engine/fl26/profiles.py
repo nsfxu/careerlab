@@ -57,9 +57,8 @@ def block_from_efdb(p, template_rec, gap=0):
         A.set(rec, sk, 1 if p.get(src) else 0)
     if isinstance(p.get("main_position"), int):
         A.set(rec, "registered_position", clamp(p["main_position"], 0, 12))
-    style = A.STYLE_FROM_EFOOTBALLDB.get(p.get("playing_style"))
-    if style is not None:
-        A.set(rec, "playing_style", style)
+    A.set(rec, "playing_style", A.style_from_efootballdb(p.get("playing_style"),
+                                                         p.get("main_position") == 0))
     if p.get("age"):
         A.set(rec, "age", clamp(p["age"] + gap, 15, 63))
     for f in ("weak_foot_usage", "weak_foot_accuracy"):
@@ -104,11 +103,21 @@ def pick_spare(career, registry, db, edit_pids, exclude=()):
     return best[1], best[2]
 
 
-def adopt_spare(career, registry, spare_index, block, efdb_player, gap):
+def mate_index(career, registry, block):
+    """Registry index of a player in `block` whose record carries that club's context."""
+    return next((h & 0xFFFF for h, q in career.club(block).members
+                 if (h & 0xFFFF) < registry.count and registry.pid(h & 0xFFFF) == q
+                 and q < 0x100000), None)
+
+
+def adopt_spare(career, registry, spare_index, block, efdb_player, gap, mate=None):
     """Turn the spare's own registry record into the new player (profile from efdb, club
-    context from a teammate at `block`). Returns his handle. Caller commits."""
-    mates = [h & 0xFFFF for h, q in career.club(block).members
-             if (h & 0xFFFF) < registry.count and registry.pid(h & 0xFFFF) == q and q < 0x100000]
+    context from a teammate at `block`, or `mate` when the squad is empty right now).
+    Returns his handle. Caller commits."""
+    m = mate_index(career, registry, block)
+    mates = [m if m is not None else mate]
+    if mates[0] is None:
+        raise ValueError("destination squad has no usable teammate record")
     i = spare_index
     old = registry.record(i)
     rec = bytearray(record_from_efdb(efdb_player, registry.record(mates[0]), gap))
@@ -117,11 +126,11 @@ def adopt_spare(career, registry, spare_index, block, efdb_player, gap):
     return registry.handle(i)
 
 
-def build_new_player(career, registry, pid, block, efdb_player, gap, tag=None):
+def build_new_player(career, registry, pid, block, efdb_player, gap, tag=None, mate=None):
     """Append a registry record for `pid` built from efootballdb, using a teammate at
-    `block` as template. Returns the new handle. Caller commits the registry."""
-    mates = [h & 0xFFFF for h, q in career.club(block).members
-             if (h & 0xFFFF) < registry.count and registry.pid(h & 0xFFFF) == q and q < 0x100000]
+    `block` (or `mate`) as template. Returns the new handle. Caller commits the registry."""
+    m = mate_index(career, registry, block)
+    mates = [x for x in (m if m is not None else mate,) if x is not None]
     if not mates:
         raise ValueError("destination squad has no usable teammate record")
     template = registry.record(mates[0])
@@ -133,3 +142,17 @@ def build_new_player(career, registry, pid, block, efdb_player, gap, tag=None):
     struct.pack_into("<I", rec, 0x24, pid)
     registry.blob[i * REC:(i + 1) * REC] = rec
     return h
+
+
+def db_nationality(db_record):
+    """Nationality of a database (Sider dump) player record: 9 bits at bit 233."""
+    return int.from_bytes(db_record[29:32], "little") >> 1 & 0x1FF
+
+
+def face_donor(players, faces, db, nationality, seed, exclude=(), fallback=169270):
+    """A face for a player FL26 lacks: an obscure (clubless) database player of the same
+    nationality, chosen by `seed` so new players don't all share one face."""
+    pool = sorted(pid for pid, r in players.items()
+                  if pid in faces and pid not in db.player_teams and pid not in exclude
+                  and pid < 0x100000 and db_nationality(r) == nationality)
+    return pool[seed % len(pool)] if pool else fallback

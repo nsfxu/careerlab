@@ -72,9 +72,21 @@ SKILLS = {
 }
 FIELDS.update({k: (b, 1, 0) for k, b in SKILLS.items()})
 
-# efootballdb playing_style -> FL26 playing_style, majority mapping from the same 285 players.
-STYLE_FROM_EFOOTBALLDB = {13: 4, 14: 5, 4: 6, 18: 7, 6: 10, 7: 11, 0: 12, 20: 13, 8: 14,
-                          11: 15, 21: 16, 12: 17, 15: 18, 10: 19}
+# efootballdb playing_style -> FL26 playing_style, majority mapping over 447 players present
+# in both (re-solved 2026-10-11 from 25 clubs; 75-100% agreement per style). efootballdb's 0
+# is two styles in FL26: goalkeepers -> 20 (STYLE_GK), everyone else -> 12.
+STYLE_FROM_EFOOTBALLDB = {0: 12, 1: 1, 2: 2, 3: 3, 4: 6, 5: 9, 6: 10, 7: 11, 8: 14, 10: 19,
+                          11: 15, 12: 17, 13: 4, 14: 5, 15: 18, 18: 7, 19: 8, 20: 13, 21: 16,
+                          22: 4}
+STYLE_GK = 20
+
+
+def style_from_efootballdb(efdb_style, is_gk):
+    """FL26 style for an efootballdb player; unknown styles become 0 (none) rather than
+    inheriting a template's (a striker once got his goalkeeper teammate's style)."""
+    if is_gk:
+        return STYLE_GK if efdb_style in (0, None) else STYLE_FROM_EFOOTBALLDB.get(efdb_style, STYLE_GK)
+    return STYLE_FROM_EFOOTBALLDB.get(efdb_style, 0)
 
 ABILITIES = [k for k, (_, w, base) in FIELDS.items() if w == 6 and base == 40]
 

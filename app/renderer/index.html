@@ -13,6 +13,7 @@
     <div id="career-info" class="career-info"></div>
     <div class="spacer"></div>
     <span id="game-state" class="pill"></span>
+    <button id="btn-league" class="ghost" disabled title="Sync every club of a league with efootballdb.com">Sync league</button>
     <button id="btn-backups" class="ghost">Backups</button>
     <button id="btn-review" class="primary" disabled>Review &amp; apply <span id="staged-count" class="count">0</span></button>
   </header>
@@ -78,6 +79,23 @@
       <button id="btn-sync-refresh" class="ghost">Refresh from efootballdb</button>
       <button id="btn-close-sync" class="ghost">Cancel</button>
       <button id="btn-sync-stage" class="primary">Stage selected</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-league" class="dialog wide">
+    <h2>Sync a whole league</h2>
+    <p class="muted">Every club's real squad from efootballdb.com in one go. Players changing clubs inside the league are moved, never lost.
+      Your own player is never touched. Untick a club to leave it as it is.</p>
+    <div class="league-head">
+      <select id="league-picker"></select>
+      <div id="league-kinds" class="league-kinds"></div>
+    </div>
+    <div id="league-body" class="sync-body"></div>
+    <div class="dialog-actions">
+      <span id="league-total" class="muted league-total"></span>
+      <button id="btn-league-refresh" class="ghost">Refresh from efootballdb</button>
+      <button id="btn-close-league" class="ghost">Cancel</button>
+      <button id="btn-league-stage" class="primary">Stage selected</button>
     </div>
   </dialog>
 

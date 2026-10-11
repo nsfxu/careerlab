@@ -74,6 +74,15 @@ class Server:
     def sync_plan(self, block, refresh=False):
         return self._session().sync_plan(int(block), refresh)
 
+    def leagues(self):
+        return self._session().leagues()
+
+    def league_plan(self, comp_id, refresh=False):
+        return self._session().league_plan(comp_id, refresh)
+
+    def stage_many(self, ops):
+        return self._session().stage_many(ops)
+
     def efdb_player(self, pid):
         from . import efdb
         p = efdb.player(int(pid))

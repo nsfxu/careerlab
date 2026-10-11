@@ -132,3 +132,21 @@ button.small { padding: 3px 10px; font-size: 12px; }
 .tag { font-size: 11px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
 .tag.new { color: #7fd38b; border-color: #2f6a38; }
 .tag.absent { color: #f2b247; border-color: #6a4f1d; }
+
+/* league sync */
+.league-head { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.league-head select { min-width: 260px; }
+.league-kinds { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; }
+.league-kinds label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+.league-club { border: 1px solid var(--line); border-radius: 4px; margin: 6px 0; }
+.league-club > summary { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center;
+  padding: 6px 10px; cursor: pointer; list-style: none; }
+.league-club > summary::-webkit-details-marker { display: none; }
+.league-club[open] > summary { border-bottom: 1px solid var(--line); }
+.league-club .counts { display: flex; gap: 8px; font-size: 12px; }
+.league-club .ops { padding: 4px 10px 8px 42px; font-size: 12px; }
+.league-club .ops div { padding: 2px 0; }
+.league-club.off { opacity: .45; }
+.k-release { color: #e08a8a; } .k-move { color: #8ab4e0; } .k-add, .k-create { color: #7fd38b; }
+.k-numbers, .k-captain { color: var(--muted); }
+.league-total { margin-right: auto; }

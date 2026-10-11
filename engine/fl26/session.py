@@ -24,7 +24,7 @@ CLUB_CONTEXT = [(0x28, 0x74), (0x80, 0x84)]      # competitions, current club
 CREATED_SKILL_ALIASES = {"dipping_shot": "dipping_shots"}
 
 SPARES = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "spares.json"
-FACE_DONOR = 169270          # young Brazilian whose face new players borrow (FL26 has none)
+FACE_DONOR = 169270          # fallback face (young Brazilian) when no same-nationality donor
 
 
 def load_spares():
@@ -216,6 +216,9 @@ class Session:
         tid = self.ids.get(block, (None,))[0]
         if not tid:
             raise EditError("this squad is not identified as a club, so it cannot be synced")
+        if efdb.made_up(tid, refresh=refresh):
+            raise EditError("eFootball has no player licence for this club (its squad is invented "
+                            "names), so efootballdb cannot sync it: FL26's own squad is kept")
         rows = efdb.squad(tid, refresh=refresh)
         squad_pids = set(self.c.club(block).pids)
         where = {}
@@ -259,12 +262,175 @@ class Session:
                 plan["release"].append({"pid": pid, "name": self.name(pid)})
         return plan
 
+    def _is_club(self, k):
+        return (self.ids.get(k, (None,))[0] or 0) >= 100      # national teams are < 100
+
+    def leagues(self):
+        """efootballdb leagues whose clubs this career holds (at least half of them)."""
+        by_tid = {}
+        for k, (tid, conf) in sorted(self.ids.items(), key=lambda kv: -kv[1][1]):
+            if tid and self._is_club(k):
+                by_tid.setdefault(tid, k)
+        mine = self.my_block()
+        out = []
+        for comp in efdb.competitions():
+            if comp["national"]:
+                continue
+            blocks = [by_tid[t] for t in comp["teams"] if t in by_tid]
+            if len(blocks) >= 2 and len(blocks) * 2 >= len(comp["teams"]):
+                out.append({"id": comp["id"], "name": comp["name"], "blocks": blocks,
+                            "clubs": len(blocks), "total": len(comp["teams"]),
+                            "mine": mine in blocks})
+        out.sort(key=lambda x: (not x["mine"], x["name"]))
+        return out
+
+    def rating(self, pid):
+        """Rough strength from the registry abilities (the game's overall is computed)."""
+        i = self.rec_of.get(pid)
+        if i is None:
+            return 0
+        rec = self.reg.record(i)
+        gk = A.get(rec, "registered_position") == 0
+        vals = [A.get(rec, k) for k in A.ABILITIES if k.startswith("gk_") == gk]
+        return sum(vals) / len(vals)
+
+    MIN_SQUAD = 23
+
+    def league_plan(self, comp_id, refresh=False, min_squad=MIN_SQUAD):
+        """Sync every club of a league at once. Players changing clubs inside the league
+        become one move (not a release here and an add there), so nobody is lost.
+
+        Returns {"league", "clubs": [{block, name, keep, ops}], "skipped"}; each op is a
+        stageable edit carrying a `label` and a `kind` (release/move/add/create/numbers/
+        captain), listed under its destination club."""
+        lg = next((x for x in self.leagues() if x["id"] == int(comp_id)), None)
+        if lg is None:
+            raise EditError("this league is not part of the career")
+        names = {k: self.club_name(k) for k in lg["blocks"]}
+        made_up = [k for k in lg["blocks"] if efdb.made_up(self.ids[k][0], refresh=refresh)]
+        blocks = [k for k in lg["blocks"] if k not in made_up]
+        members = {k: [p for _, p in self.c.club(k).members] for k in blocks}
+        where = {}
+        for cl in self.c.clubs():
+            if self._is_club(cl.index):
+                for _, p in cl.members:
+                    where.setdefault(p, []).append(cl.index)
+        target, target_of, info, skipped = {}, {}, {}, []
+        clubs = {k: {"block": k, "name": names[k], "teamId": self.ids[k][0], "keep": 0,
+                     "ops": [], "numbers": {}, "captain": None} for k in blocks}
+        for k in blocks:
+            target[k] = []
+            for real, shirt, order, p, a in efdb.squad(self.ids[k][0], refresh=refresh):
+                pid = self.career_pid(real)
+                name = p.get("player_name") or f"#{real}"
+                if pid in target_of:              # listed by two clubs (loan): first wins
+                    skipped.append(f"{name}: listed by {names[target_of[pid]]} and {names[k]}")
+                    continue
+                target_of[pid] = k
+                target[k].append(pid)
+                info[pid] = {"real": real, "name": name, "shirt": shirt,
+                             "position": p.get("main_position_text"), "age": p.get("age")}
+                if isinstance(shirt, int) and 1 <= shirt <= 99:
+                    clubs[k]["numbers"][str(real)] = shirt
+                if a.get("captain"):
+                    clubs[k]["captain"] = {"pid": real, "name": name}
+        size = {k: len(self.c.club(k).members) for k in blocks}
+        releases, moves, adds, creates = [], [], [], []
+        for k in blocks:
+            for pid in members[k]:
+                if pid < CREATED_ID_MIN and target_of.get(pid) is None:
+                    releases.append({"op": "release", "pid": pid, "block": k, "kind": "release",
+                                     "name": self.name(pid),
+                                     "label": f"Release {self.name(pid)} from {names[k]}"})
+                    size[k] -= 1
+        for k in blocks:
+            for pid in target[k]:
+                if pid in members[k]:
+                    clubs[k]["keep"] += 1
+                    continue
+                it = info[pid]
+                src = [b for b in where.get(pid, []) if b != k]
+                if src:
+                    frm = src[0]
+                    op = {"op": "move", "pid": pid, "from": frm, "to": k, "kind": "move",
+                          "fromName": self.club_name(frm),
+                          "label": f"Move {it['name']}: {self.club_name(frm)} → {names[k]}"}
+                    if frm in size:
+                        size[frm] -= 1
+                elif self.status(it["real"]) == "record":
+                    op = {"op": "add", "pid": pid, "block": k, "kind": "add",
+                          "label": f"Add {it['name']} to {names[k]}"}
+                else:
+                    absent = self.status(it["real"]) != "db"
+                    op = {"op": "new", "pid": it["real"], "block": k, "shirt": it["shirt"],
+                          "kind": "create", "absent": absent,
+                          "label": f"Create {it['name']} at {names[k]}" + (" (new to FL26)" if absent else "")}
+                op.update(name=it["name"], position=it["position"], age=it["age"])
+                size[k] += 1
+                (moves if op["op"] == "move" else adds if op["op"] == "add" else creates).append(op)
+        # efootballdb squads can be thin (16-18 players): below `min_squad` a club keeps its
+        # best players that were to be released, so AI clubs still field a full bench
+        for k in blocks:
+            if size[k] >= min_squad:
+                continue
+            mine = sorted((o for o in releases if o["block"] == k), key=lambda o: -self.rating(o["pid"]))
+            for o in mine[:min_squad - size[k]]:
+                releases.remove(o)
+                clubs[k].setdefault("kept", []).append(o["name"])
+                size[k] += 1
+        # 40-player cap: drop the last arrivals (lowest in efootballdb's order) that do not fit
+        for k in blocks:
+            while size[k] > 40:
+                for lst in (creates, adds, moves):
+                    cut = next((o for o in reversed(lst) if o.get("to", o.get("block")) == k), None)
+                    if cut:
+                        lst.remove(cut)
+                        skipped.append(f"{cut['name']}: {names[k]} would exceed 40 players")
+                        if cut["op"] == "move" and cut["from"] in size:
+                            size[cut["from"]] += 1
+                        break
+                size[k] -= 1
+        for op in releases:
+            clubs[op["block"]]["ops"].append(op)
+        for op in moves + adds + creates:
+            clubs[op.get("to", op.get("block"))]["ops"].append(op)
+        for k in blocks:
+            cl = clubs[k]
+            if cl["numbers"]:
+                cl["ops"].append({"op": "renumber", "block": k, "numbers": cl["numbers"],
+                                  "kind": "numbers", "label": f"{names[k]}: real shirt numbers"})
+            if cl["captain"]:
+                cl["ops"].append({"op": "captain", "block": k, "pid": cl["captain"]["pid"],
+                                  "kind": "captain",
+                                  "label": f"{names[k]} captain: {cl['captain']['name']}"})
+            del cl["numbers"]
+        return {"league": lg["name"], "id": lg["id"], "clubs": [clubs[k] for k in blocks],
+                "skipped": skipped, "madeUp": [names[k] for k in made_up], "minSquad": min_squad}
+
     # ------------------------------------------------------------------ staging
 
     def stage(self, op):
         self._check(op)
         self.staged.append(op)
         return self.staged
+
+    ORDER = {"release": 0, "move": 1, "add": 2, "new": 2, "renumber": 3, "captain": 4}
+    UI_ONLY = ("label", "kind", "name", "position", "age", "absent", "fromName")
+
+    def stage_many(self, ops):
+        """Stage a batch (a league sync) in a safe order: releases, moves, arrivals, then
+        numbers and captains. All or nothing. Returns the ops in staged order."""
+        ops = sorted(ops, key=lambda o: self.ORDER.get(o.get("op"), 5))
+        n = len(self.staged)
+        try:
+            for op in ops:
+                op = {k: v for k, v in op.items() if k not in self.UI_ONLY}
+                self._check(op)
+                self.staged.append(op)
+        except Exception:
+            del self.staged[n:]
+            raise
+        return {"staged": self.staged, "order": ops}
 
     def unstage(self, index):
         del self.staged[index]
@@ -348,7 +514,10 @@ class Session:
         new_spares = {}
         gap = None
         db_tables = None
-        for op in self.staged:
+        # each destination club's context donor, taken before releases can empty a squad
+        donor = {k: profiles.mate_index(c, reg, k)
+                for k in {o["block"] for o in self.staged if o["op"] == "new"}}
+        for op in self._expand_moves(self.staged):
             kind = op["op"]
             if kind == "new":
                 real = int(op["pid"])
@@ -358,7 +527,8 @@ class Session:
                 if pid is None and real in self.db.player_names:
                     if real in rec_of:
                         raise EditError(f"{p.get('player_name')} already has a career record")
-                    h = profiles.build_new_player(c, reg, real, op["block"], p, gap)
+                    h = profiles.build_new_player(c, reg, real, op["block"], p, gap,
+                                                  mate=donor[op["block"]])
                     rec_of[real] = h & 0xFFFF
                     self._add(c, mgr, op["block"], real, op.get("shirt"), h)
                     continue
@@ -372,9 +542,12 @@ class Session:
                     if db_tables is None:
                         db_tables = load_db_tables(DEFAULT_DUMP)
                     players, faces = db_tables
+                    nat = (p.get("nationality_a") or {}).get("country_id")
+                    face = profiles.face_donor(players, faces, self.db, nat, real,
+                                               exclude={pid}) if nat else FACE_DONOR
                     edit.add_player(pid, p.get("player_name", f"#{real}"),
                                     (p.get("shirt_name") or p.get("player_name", "")).upper(),
-                                    players[pid], faces.get(FACE_DONOR, faces[pid]),
+                                    players[pid], faces.get(face, faces[pid]),
                                     p.get("height"), p.get("weight"),
                                     (p.get("nationality_a") or {}).get("country_id"))
                     new_spares[real] = pid
@@ -384,14 +557,16 @@ class Session:
                         raise EditError(f"the spare ID {pid} for {real} has no career record")
                     for k in c.club_of(pid):
                         self._release(c, mgr, k, pid)
-                h = profiles.adopt_spare(c, reg, si, op["block"], p, gap)
+                h = profiles.adopt_spare(c, reg, si, op["block"], p, gap, mate=donor[op["block"]])
                 self._add(c, mgr, op["block"], pid, op.get("shirt"), h)
             elif kind == "release":
                 self._release(c, mgr, op["block"], op["pid"])
-            elif kind in ("add", "move"):
+            elif kind == "_out":
+                self._release(c, mgr, op["from"], op["pid"])
+            elif kind in ("add", "move", "_in"):
                 if kind == "move":
                     self._release(c, mgr, op["from"], op["pid"])
-                to = op["to"] if kind == "move" else op["block"]
+                to = op["block"] if kind == "add" else op["to"]
                 i = rec_of[op["pid"]]
                 self._add(c, mgr, to, op["pid"], op.get("shirt"), reg.handle(i))
                 # keep the record's club in step with the squad it now sits in
@@ -424,6 +599,26 @@ class Session:
                     mgr.set_captain(op["block"], cl.pids.index(pid))
         reg.commit()
         return new_spares
+
+    @staticmethod
+    def _expand_moves(ops):
+        """A run of moves (a league sync) is applied as all departures, then all arrivals,
+        so a full squad can let a player go before it receives one."""
+        out, i = [], 0
+        while i < len(ops):
+            j = i
+            while j < len(ops) and ops[j]["op"] == "move":
+                j += 1
+            run = ops[i:j]
+            if len(run) > 1 and len({o["pid"] for o in run}) == len(run):
+                out += [{**o, "op": "_out"} for o in run] + [{**o, "op": "_in"} for o in run]
+            elif run:
+                out += run
+            else:
+                out.append(ops[i])
+                j = i + 1
+            i = j
+        return out
 
     def _edit_file(self):
         p = self.path.parent / "EDIT00000000"

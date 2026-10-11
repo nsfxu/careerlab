@@ -140,6 +140,31 @@ the natural source for "hire this manager". [game]
 - **Slot remapping**: role bytes and the stored lineup (+0x220) hold squad slots, so a release
   shifts them; the engine now renumbers them on every release/add.
 
+## League sync (2026-10-11, Brasileirão from the app UI)
+
+- **Whole league in one apply**: 19 Brasileirão clubs synced to efootballdb (307 edits: 15
+  moves inside the league, ~40 free players added, 103 created incl. 64 new to FL26, ~110
+  releases, real numbers + captains). Validator clean; a second plan right after is empty.
+  In game: Atlético Mineiro and Vasco squads exactly as planned, new players named. [game]
+- **Moves inside the league** are one edit, applied as all departures then all arrivals, so
+  a full squad can let a player go before receiving one.
+- **Context donor snapshot**: a squad emptied by releases (Remo, 30 out) still gives new
+  players their club context — the donor is taken before any edit runs.
+- **Invented squads**: eFootball lacks some clubs' player licence and lists made-up names
+  (Clube do Remo: "Batatinha Delfim"…; efootballdb `has_licensed_names: 0`, players
+  `fake_version`). FL26 has the real squad there → such clubs are skipped, and an invented
+  player is never imported.
+- **Thin squads**: efootballdb lists 16-18 players for some clubs (Mirassol 16). A club never
+  drops below 23: it keeps its best-rated would-be releases.
+- **Playing style mapping re-solved** over 447 players (efootballdb styles 1, 2, 3, 5, 19,
+  22 were unmapped and a created striker inherited his goalkeeper teammate's
+  "Goleiro ofensivo"). efootballdb 0 = goalkeeper style (FL26 20) for keepers, 12 otherwise;
+  unknown → none. Rebuilt profiles match FL26's own: style 89%, position 94%. [game: Spinelli
+  "Pivô", Phillipe Gabriel "Goleiro ofensivo", Bruno André "O destruidor"]
+- **Faces for players FL26 lacks** come from an obscure (clubless) database player of the same
+  nationality, picked by player ID (623 Brazilian donors) — three Vasco arrivals, three
+  different plausible faces. Database nationality = 9 bits at bit 233 of the dump record. [game]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -198,4 +223,5 @@ the second copy. Impact in game unknown.
 | sync | Cruzeiro synced from the app UI (15 edits) | all 29 in game, 5 new to FL26 |
 | E21 | roles = bench players; shirts Kaio 99, Cássio 13 | captain Cássio + shirt 13 shown; other roles auto |
 | E22 | roles = XI players only | no effect except captain → takers are AI-picked |
+| league | Brasileirão synced from the app UI (307 edits) | squads as planned; styles + faces OK after fixes |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

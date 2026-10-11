@@ -121,3 +121,25 @@ def test_profile_rebuild_matches_career(bl0):
     assert A.get(built, "registered_position") == 1 and A.get(built, "pos_cb") == 2
     assert A.get(built, "heading_skill") == 1 and A.get(built, "fighting_spirit") == 1
     assert A.get(built, "age") == 30
+
+
+def test_style_never_inherited_from_template():
+    # a striker once got his goalkeeper teammate's style: unknown styles map to "none"
+    assert A.style_from_efootballdb(22, is_gk=False) == 4
+    assert A.style_from_efootballdb(99, is_gk=False) == 0
+    assert A.style_from_efootballdb(0, is_gk=True) == A.STYLE_GK
+    assert A.style_from_efootballdb(0, is_gk=False) == 12
+
+
+def test_league_moves_leave_before_they_arrive():
+    from fl26.session import Session
+    ops = [{"op": "release", "pid": 1, "block": 0},
+           {"op": "move", "pid": 2, "from": 0, "to": 1},
+           {"op": "move", "pid": 3, "from": 1, "to": 0},
+           {"op": "add", "pid": 4, "block": 1}]
+    kinds = [(o["op"], o["pid"]) for o in Session._expand_moves(ops)]
+    assert kinds == [("release", 1), ("_out", 2), ("_out", 3), ("_in", 2), ("_in", 3), ("add", 4)]
+    # a single move, or a run that moves one player twice, stays as written
+    assert [o["op"] for o in Session._expand_moves(ops[1:2])] == ["move"]
+    twice = [{"op": "move", "pid": 2, "from": 0, "to": 1}, {"op": "move", "pid": 2, "from": 1, "to": 2}]
+    assert [o["op"] for o in Session._expand_moves(twice)] == ["move", "move"]
