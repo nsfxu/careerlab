@@ -119,6 +119,15 @@ undecoded · **Later** = needs more research first.
 | **Windows installer** (per-user, no Python/Node needed): `python build.py` → `dist/CareerLab-Setup-<version>.exe` | **Done** (unsigned) |
 | First-run setup: finds the game and saves folders, installs the database reader (DBDump.lua) if missing | **Done** |
 
+## 11. Next steps (agreed 2026-10-11)
+
+| Step | Notes |
+|---|---|
+| **GitHub workflow with tags and releases** | Pushing a tag `v*` runs Actions on a Windows runner: tests, then PyInstaller, then electron-builder; the installer and `latest.yml` go to a GitHub Release. The version comes from the tag. |
+| **Auto-update from GitHub Releases** | `electron-updater` checks on start, downloads in the background and offers "Restart to update". **Decision needed:** the repo is private, and updating from a private repo needs a token shipped inside the app. Options: keep the code private and publish releases to a separate public repo (e.g. `careerlab-releases`), or make the repo public later. |
+| **Docs review for AI contributors** | A `CLAUDE.md` / `docs/` set: architecture (engine to RPC to Electron), save format map (pointers to LIMITS.md), safety rules (backups, game-running check, never touch the user's career), how to test (unit tests, CDP UI tests, in-game harness), build and release, and the mistakes not to repeat. |
+| **README review with screenshots** | What CareerLab does, install, first-run setup, each feature with a screenshot (squad view, player panel, club sync, league sync, review and backups), plus limits and FAQ. Screenshots are captured automatically over CDP so they stay up to date. |
+
 ## Known limits (shown in the app, not hidden)
 
 - **Registry capacity**: about 2,500 more new players per career.
