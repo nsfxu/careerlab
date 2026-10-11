@@ -129,7 +129,7 @@ function renderSquad() {
   for (const p of s.players) {
     const tr = el("tr", { className: (p.created ? "created " : "") + (state.player?.pid === p.pid ? "active" : "") });
     tr.append(el("td", { textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
-      el("td", { textContent: p.name }), el("td", { textContent: p.age ?? "" }),
+      el("td", { textContent: p.name + (p.captain ? "  (C)" : "") }), el("td", { textContent: p.age ?? "" }),
       el("td", { textContent: p.speed ?? "" }));
     tr.onclick = () => openPlayer(p.pid);
     body.append(tr);
@@ -198,6 +198,27 @@ function renderPlayer() {
     add.onclick = () => pickSkill(p);
     chips.append(add);
     box.append(chips);
+  }
+  const inSquad = state.squad?.players.find((x) => x.pid === p.pid);
+  if (inSquad) {
+    const club = el("div", { className: "actions" });
+    const shirt = el("input", { type: "number", min: 1, max: 99, value: inSquad.shirt ?? "", title: "Shirt number" });
+    shirt.style.width = "70px";
+    shirt.onchange = () => {
+      const n = Number(shirt.value);
+      if (!(n >= 1 && n <= 99)) return toast("Shirt numbers go from 1 to 99", true);
+      const owner = state.squad.players.find((x) => x.shirt === n && x.pid !== p.pid);
+      stage({ op: "shirt", pid: p.pid, block: state.block, shirt: n,
+        label: `${p.name}: shirt ${inSquad.shirt} → ${n}` + (owner ? ` (${owner.name} gets a free number)` : "") }, true);
+    };
+    club.append(el("span", { className: "muted", textContent: "Shirt" }), shirt);
+    if (!inSquad.captain) {
+      const cap = el("button", { className: "ghost", textContent: "Make captain" });
+      cap.onclick = () => stage({ op: "captain", pid: p.pid, block: state.block, label: `${state.squad.name} captain: ${p.name}` }, true);
+      club.append(cap);
+    } else club.append(el("span", { className: "tag new", textContent: "Captain" }));
+    club.title = "The captain wears the armband when he is in the starting XI the manager picks";
+    box.append(club);
   }
   if (p.kind !== "created" && p.blocks.length) {
     const actions = el("div", { className: "actions" });
@@ -424,6 +445,16 @@ async function openSync(refresh = false) {
       it.kind === "absent" ? tag("not in FL26: lookalike face", "absent") : tag("in FL26 database", "new")]);
   group("Release", "not in the real squad any more", syncPlan.release,
     (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: "becomes a free agent" })]);
+  group("Shirt numbers", "players already here who change number", syncPlan.renumber,
+    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: `${it.from ?? "–"} → ${it.to}` })]);
+  syncPlan._numbersCb = el("input", { type: "checkbox", checked: true });
+  body.append(el("label", { className: "pick-option" }, syncPlan._numbersCb,
+    " Give every player his real shirt number (new arrivals included)"));
+  if (syncPlan.captain) {
+    syncPlan._captainCb = el("input", { type: "checkbox", checked: true });
+    body.append(el("label", { className: "pick-option" }, syncPlan._captainCb, ` Make ${syncPlan.captain.name} captain (real captain; wears the armband when he starts)`));
+  }
+  body.append(el("p", { className: "muted", textContent: "Set-piece takers are chosen by the AI manager in Become a Legend, so they are not synced." }));
   if (syncPlan.keep.length)
     body.append(el("p", { className: "muted", textContent: `${syncPlan.keep.length} players already match.` }));
   if (syncPlan.coach?.name && syncPlan.coach.name !== state.squad.manager?.name)
@@ -440,6 +471,10 @@ async function stageSync() {
   for (const it of p.add) if (it._cb.checked) ops.push({ op: "add", pid: it.careerPid, block: p.block, label: `Add ${it.name} to ${team}` });
   for (const it of p.create) if (it._cb.checked) ops.push({ op: "new", pid: it.pid, block: p.block, shirt: it.shirt,
     label: `Create ${it.name} at ${team}` + (it.kind === "absent" ? " (new to FL26)" : "") });
+  if (p._numbersCb?.checked && Object.keys(p.numbers).length)
+    ops.push({ op: "renumber", block: p.block, numbers: p.numbers, label: `${team}: real shirt numbers` });
+  if (p._captainCb?.checked && p.captain)
+    ops.push({ op: "captain", block: p.block, pid: p.captain.pid, label: `${team} captain: ${p.captain.name}` });
   $("#dlg-sync").close();
   for (const op of ops) await stage(op);
   toast(`${ops.length} sync edits staged — review and apply when ready`);

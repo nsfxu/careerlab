@@ -62,6 +62,37 @@ class Managers:
         self.c.d[o + NAME_OFF:o + NAME_OFF + NAME_LEN] = raw + bytes(NAME_LEN - len(raw))
         struct.pack_into("<I", self.c.d, self.c.club(k).offset + 0x144, coach_id)
 
+    # Squad-slot references in the record: the stored lineup (+0x220, 40 slots, 0xFF
+    # padded) and the role bytes (+0x248..+0x251). Captain is +0x24E -- the one role the
+    # game honours in Become a Legend (E21/E22); set-piece takers are re-picked by the AI.
+    LINEUP, ROLES, CAPTAIN = 0x220, range(0x248, 0x252), 0x24E
+
+    def captain(self, k):
+        v = self.c.d[self._o(k) + self.CAPTAIN]
+        return None if v == 0xFF else v
+
+    def set_captain(self, k, slot):
+        self.c.d[self._o(k) + self.CAPTAIN] = slot
+
+    def slot_removed(self, k, slot):
+        """Keep slot references valid after squad slot `slot` was compacted away."""
+        o, d = self._o(k), self.c.d
+        lineup = [x for x in d[o + self.LINEUP:o + self.LINEUP + 40] if x != 0xFF]
+        lineup = [x - 1 if x > slot else x for x in lineup if x != slot]
+        d[o + self.LINEUP:o + self.LINEUP + 40] = bytes(lineup + [0xFF] * (40 - len(lineup)))
+        for r in self.ROLES:
+            v = d[o + r]
+            if v != 0xFF and v < 40:
+                d[o + r] = 0xFF if v == slot else (v - 1 if v > slot else v)
+
+    def slot_added(self, k, slot):
+        """List a newly appended squad slot at the end of the stored lineup."""
+        o, d = self._o(k), self.c.d
+        lineup = [x for x in d[o + self.LINEUP:o + self.LINEUP + 40] if x != 0xFF]
+        if slot not in lineup and len(lineup) < 40:
+            lineup.append(slot)
+        d[o + self.LINEUP:o + self.LINEUP + 40] = bytes(lineup + [0xFF] * (40 - len(lineup)))
+
     def swap(self, a, b):
         oa, ob = self._o(a), self._o(b)
         ra, rb = bytes(self.c.d[oa + 4:oa + STRIDE]), bytes(self.c.d[ob + 4:ob + STRIDE])

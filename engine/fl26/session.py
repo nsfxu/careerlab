@@ -55,6 +55,7 @@ class Session:
     # ------------------------------------------------------------------ loading
 
     def reload(self):
+        self._check_spares()
         self.c = Career.load(self.path)
         self.reg = Registry(self.c)
         self.mgr = Managers(self.c)
@@ -64,6 +65,23 @@ class Session:
             self.created_base = created.locate(self.c)
         except LookupError:
             self.created_base = None
+
+    def _check_spares(self):
+        """Drop spare mappings the option file no longer backs (e.g. it was restored)."""
+        m = load_spares()
+        if not m:
+            return
+        e = self._edit_file()
+        if e is None:
+            return
+        renamed = {}
+        for k in range(e.count):
+            o = 0x7C + k * 0x138
+            if e.d[o + 0x1F] & 0x80:
+                renamed[struct.unpack_from("<I", e.d, o)[0]] = True
+        good = {real: spare for real, spare in m.items() if spare in renamed}
+        if good != m:
+            save_spares(good)
 
     # -------------------------------------------------------------------- views
 
@@ -127,9 +145,15 @@ class Session:
             coach = self.mgr.get(k)
         except LookupError:
             coach = (None, "")
+        try:
+            cap = self.mgr.captain(k)
+        except LookupError:
+            cap = None
+        rows = [self._player_row(p, h, s) for (h, p), s in zip(cl.members, cl.shirts)]
+        for i, r in enumerate(rows):
+            r["captain"] = (i == cap)
         return {"block": k, "name": self.club_name(k), "teamId": self.ids.get(k, (None,))[0],
-                "manager": {"id": coach[0], "name": coach[1]},
-                "players": [self._player_row(p, h, s) for (h, p), s in zip(cl.members, cl.shirts)]}
+                "manager": {"id": coach[0], "name": coach[1]}, "players": rows}
 
     def player(self, pid):
         row = self._player_row(pid)
@@ -199,13 +223,22 @@ class Session:
             for _, p in cl.members:
                 where.setdefault(p, []).append(cl.index)
         plan = {"block": block, "team": self.club_name(block), "coach": efdb.coach(tid),
-                "keep": [], "moveIn": [], "add": [], "create": [], "release": []}
+                "keep": [], "moveIn": [], "add": [], "create": [], "release": [],
+                "numbers": {}, "renumber": [], "captain": None}
+        current_shirt = dict(zip(self.c.club(block).pids, self.c.club(block).shirts))
         target = set()
         for real, shirt, order, p, a in rows:
             pid = self.career_pid(real)
             target.add(pid)
             item = {"pid": real, "careerPid": pid, "name": p.get("player_name"), "shirt": shirt,
                     "position": p.get("main_position_text"), "age": p.get("age")}
+            if isinstance(shirt, int) and 1 <= shirt <= 99:
+                plan["numbers"][str(real)] = shirt
+                if pid in squad_pids and current_shirt.get(pid) != shirt:
+                    plan["renumber"].append({"pid": real, "name": item["name"],
+                                             "from": current_shirt.get(pid), "to": shirt})
+            if a.get("captain"):
+                plan["captain"] = {"pid": real, "name": item["name"]}
             st = self.status(real)
             if pid in squad_pids:
                 plan["keep"].append(item)
@@ -241,7 +274,7 @@ class Session:
         kind = op.get("op")
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
-                        "manager_set", "shirt", "new"):
+                        "manager_set", "shirt", "new", "renumber", "captain"):
             raise EditError(f"unknown edit {kind}")
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
             raise EditError("the created character is not moved by squad tools")
@@ -266,6 +299,48 @@ class Session:
             return 0
         return profiles.season_gap(reg, rec_of, [x for *_, x, _ in efdb.squad(tid)])
 
+    @staticmethod
+    def _release(c, mgr, k, pid):
+        slot = c.club(k).pids.index(pid)
+        c.release(k, pid)
+        try:
+            mgr.slot_removed(k, slot)
+        except LookupError:
+            pass
+
+    @staticmethod
+    def _add(c, mgr, k, pid, shirt, handle):
+        c.add(k, pid, shirt=shirt, handle=handle)
+        try:
+            mgr.slot_added(k, len(c.club(k).members) - 1)
+        except LookupError:
+            pass
+
+    @staticmethod
+    def _renumber(c, k, numbers):
+        """Set shirt numbers {pid: shirt} in one go; others keep theirs unless clashing."""
+        cl = c.club(k)
+        want = {int(p): int(n) for p, n in numbers.items() if int(p) in cl.pids and 1 <= int(n) <= 99}
+        # the created character keeps his own number (his "preferred number" in BAL);
+        # whoever was meant to take it gets a free one instead
+        mine = {p: n for p, n in zip(cl.pids, cl.shirts) if p >= CREATED_ID_MIN and n}
+        want = {p: n for p, n in want.items() if p not in mine and n not in mine.values()}
+        want.update(mine)
+        taken = set(want.values())
+        out = []
+        for p, cur in zip(cl.pids, cl.shirts):
+            if p in want:
+                out.append(want[p])
+            elif cur in taken or cur == 0:
+                free = next(n for n in range(1, 100) if n not in taken)
+                taken.add(free)
+                out.append(free)
+            else:
+                taken.add(cur)
+                out.append(cur)
+        for i, n in enumerate(out):
+            struct.pack_into("<H", c.d, cl.offset + 0x14E + i * 2, n)
+
     def _apply_ops(self, c, reg, mgr, edit=None):
         """Replay staged edits on (c, reg, mgr). Returns {real ID: spare ID} newly lent."""
         rec_of = {reg.pid(i): i for i in range(reg.count)}
@@ -278,15 +353,14 @@ class Session:
             if kind == "new":
                 real = int(op["pid"])
                 p = efdb.player(real)
-                if gap is None:
-                    gap = self._gap(reg, rec_of)
+                gap = 0       # real ages: a created player arrives as old as he really is
                 pid = spares.get(real) or new_spares.get(real)
                 if pid is None and real in self.db.player_names:
                     if real in rec_of:
                         raise EditError(f"{p.get('player_name')} already has a career record")
                     h = profiles.build_new_player(c, reg, real, op["block"], p, gap)
                     rec_of[real] = h & 0xFFFF
-                    c.add(op["block"], real, shirt=op.get("shirt"), handle=h)
+                    self._add(c, mgr, op["block"], real, op.get("shirt"), h)
                     continue
                 if pid is None:                       # FL26 lacks him: lend a spare ID
                     if edit is None:
@@ -309,17 +383,17 @@ class Session:
                     if si is None:
                         raise EditError(f"the spare ID {pid} for {real} has no career record")
                     for k in c.club_of(pid):
-                        c.release(k, pid)
+                        self._release(c, mgr, k, pid)
                 h = profiles.adopt_spare(c, reg, si, op["block"], p, gap)
-                c.add(op["block"], pid, shirt=op.get("shirt"), handle=h)
+                self._add(c, mgr, op["block"], pid, op.get("shirt"), h)
             elif kind == "release":
-                c.release(op["block"], op["pid"])
+                self._release(c, mgr, op["block"], op["pid"])
             elif kind in ("add", "move"):
                 if kind == "move":
-                    c.release(op["from"], op["pid"])
+                    self._release(c, mgr, op["from"], op["pid"])
                 to = op["to"] if kind == "move" else op["block"]
                 i = rec_of[op["pid"]]
-                c.add(to, op["pid"], shirt=op.get("shirt"), handle=reg.handle(i))
+                self._add(c, mgr, to, op["pid"], op.get("shirt"), reg.handle(i))
                 # keep the record's club in step with the squad it now sits in
                 mate = next((h & 0xFFFF for h, p in c.club(to).members
                              if p != op["pid"] and p < CREATED_ID_MIN
@@ -339,9 +413,15 @@ class Session:
             elif kind == "manager_set":
                 mgr.set(op["block"], int(op["coachId"]), op["name"])
             elif kind == "shirt":
+                self._renumber(c, op["block"], {op["pid"]: op["shirt"]})
+            elif kind == "renumber":
+                pid_map = {**{str(k): v for k, v in spares.items()}, **{str(k): v for k, v in new_spares.items()}}
+                self._renumber(c, op["block"], {pid_map.get(str(p), p): n for p, n in op["numbers"].items()})
+            elif kind == "captain":
+                pid = (spares.get(int(op["pid"])) or new_spares.get(int(op["pid"])) or int(op["pid"]))
                 cl = c.club(op["block"])
-                idx = cl.pids.index(op["pid"])
-                struct.pack_into("<H", c.d, cl.offset + 0x14E + idx * 2, int(op["shirt"]))
+                if pid in cl.pids:
+                    mgr.set_captain(op["block"], cl.pids.index(pid))
         reg.commit()
         return new_spares
 

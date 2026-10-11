@@ -128,6 +128,18 @@ the natural source for "hire this manager". [game]
   6 created incl. 5 new to FL26, 7 released) — all 29 listed by name in game. [game]
 - Note: created players get age + season gap but today's ratings (no growth applied).
 
+## Shirt numbers, captain, set-piece takers (E21, E22, sync test)
+
+- **Shirt numbers**: club block +0x14E, one u16 per slot — Cássio 1→13 and a full real-squad
+  renumber all shown on the Escalação screen. The created character keeps his own number. [game]
+- **Captain**: manager record **+0x24E** = squad slot (0xFF = automatic). Shown when that
+  player is in the starting XI the AI manager picks; otherwise the armband goes to a starter. [game]
+- **Set-piece takers are not editable in BAL**: bytes +0x248..+0x24D/+0x24F..+0x251 had no
+  effect with XI players (E22); corners, penalties and free kicks went to the best-rated
+  player each time — the AI manager re-picks them. [game]
+- **Slot remapping**: role bytes and the stored lineup (+0x220) hold squad slots, so a release
+  shifts them; the engine now renumbers them on every release/add.
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -148,7 +160,6 @@ the second copy. Impact in game unknown.
 
 ## Still open
 
-- Captain and set-piece takers (not manager+0x251).
 
 ## Save safety
 
@@ -185,4 +196,6 @@ the second copy. Impact in game unknown.
 | E19 | Rhuan (efdb profile) + Kauã via new option-file ID | Rhuan correct; Kauã unnamed ("Jogadores") |
 | E20 | Kauã via spare database ID renamed | **named, LD 60** |
 | sync | Cruzeiro synced from the app UI (15 edits) | all 29 in game, 5 new to FL26 |
+| E21 | roles = bench players; shirts Kaio 99, Cássio 13 | captain Cássio + shirt 13 shown; other roles auto |
+| E22 | roles = XI players only | no effect except captain → takers are AI-picked |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

@@ -34,7 +34,7 @@ undecoded · **Later** = needs more research first.
 | New players get their real profile (position, abilities, style, age, nationality) from a donor career | Ready |
 | Squads up to 40 players (the old "starting size" cap was wrong) | Ready |
 | **Sync the whole league** to an option file: plan → review screen → apply | Ready |
-| **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / set takers in one go | **Done** (app; renumber/takers still to do) |
+| **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / captain in one go | **Done** |
 | **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | **Done** (app; lookalike face) |
 | Repair the game's own duplicates (a player listed twice in one squad) | Ready |
 | **Squad tidy tools**: renumber a squad (keepers 1/12/23, no clashes), sort by position, trim an oversized squad | Ready |
@@ -70,8 +70,9 @@ undecoded · **Later** = needs more research first.
 | Formation editor: pick one of the three presets, positions | Ready |
 | Tactical choices (attacking style, build-up, attacking area, pressuring…) | Ready (verified E18) |
 | Defensive line / compactness sliders | Partial — written, not shown on the screen tested |
-| Shirt numbers | Ready (located in the squad block) |
-| Captain, penalty and corner takers | Later — location not found (not manager+0x251) |
+| Shirt numbers | **Done** (editor + real numbers in sync) |
+| Captain | **Done** (worn when he starts) |
+| Penalty / corner / free-kick takers | Not possible in BAL — the AI manager picks them by rating |
 
 ## 6. Safety (built in, not optional)
 
