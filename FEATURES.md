@@ -46,8 +46,8 @@ undecoded · **Later** = needs more research first.
 |---|---|
 | Edit the 25 abilities of any player (game recalculates the overall) | Ready |
 | Edit age, form, weak foot | Ready |
-| Edit skills, playing style, position proficiency | Partial |
-| Build a new player's profile from scratch (no donor career) | Partial — abilities known; efootballdb supplies the stats for players missing from FL26 |
+| Edit skills, playing style, position proficiency | Ready (solved against efootballdb, 285 players) |
+| Build a new player's profile from scratch (no donor career) | Ready — full block decoded; efootballdb supplies the values |
 
 ## 4. Created character (your BAL player)
 
@@ -56,7 +56,7 @@ undecoded · **Later** = needs more research first.
 | Edit all abilities | Ready |
 | Add / remove skills | Ready |
 | Edit height, weight, foot, positions, playing style, nationality | Ready (fields known, 125 in total) |
-| Condition and contract: form, injury days, stamina, salary, market value | Ready (fields known from the CT table, write untested) |
+| Condition and contract: form, injury days, stamina, salary, market value | Partial — writes work, BAL has no screen to confirm salary/contract |
 | Move him to another club | Later |
 
 ## 5. Managers and tactics
@@ -68,9 +68,10 @@ undecoded · **Later** = needs more research first.
 | Change a manager but **keep the club's tactics** (name + ID only) | Ready |
 | Hire a coach without a club (669-coach pool) | Ready |
 | Formation editor: pick one of the three presets, positions | Ready |
-| Tactical sliders (attacking style, build-up, defensive line, compactness) | Partial — offsets known, not yet verified in a career |
+| Tactical choices (attacking style, build-up, attacking area, pressuring…) | Ready (verified E18) |
+| Defensive line / compactness sliders | Partial — written, not shown on the screen tested |
 | Shirt numbers | Ready (located in the squad block) |
-| Captain, penalty and corner takers | Partial — same game-plan layout as the formations, needs one test |
+| Captain, penalty and corner takers | Later — location not found (not manager+0x251) |
 
 ## 6. Safety (built in, not optional)
 

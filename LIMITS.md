@@ -96,6 +96,22 @@ Copying Palace's there changed nothing on screen. Also found: a pool of 669 coac
 (same 0x258 layout) around 0x190000 in BL0 — likely every coach incl. unemployed ones,
 the natural source for "hire this manager". [game]
 
+## Skills, positions, playing style, tactics — closed (E17, E18, 2026-10-11)
+
+- **Skills, position ratings and playing style of every player** are in the registry block,
+  solved against efootballdb.com ground truth for 285 players (96-100% agreement): 41 skill
+  flags at bits 191 and 204-243, 13 position ratings (0/1/2), playing style 5 bits at 166
+  (FL26's numbering; efootballdb's differs → mapping table). Code: `attributes.py`.
+  Spot check: João Marcelo decodes as CB with Cabeceio + Espírito guerreiro — as on screen. [file]
+- **Tactical choices are in the manager record's presets** (option-file offsets hold):
+  attacking style +0x63 (1 = Posse de bola, 0 = Contra-ataque) and pressuring +0x69
+  (0 = Agressiva, 1 = Tradicional) both flipped exactly on screen. [game]
+- **Defensive line / compactness** (+0x8E/+0x8F) written; this screen doesn't show them. [file]
+- **Captain**: `manager+0x251` is NOT the captain (Gerson still wore the armband after it
+  was set to Giu's slot). Captain/set-piece takers not located yet. [game]
+- **Giu's salary / contract year / form arrow**: written and kept by the file, but BAL has
+  no screen that shows them (Negociação only offers a transfer request). Can't verify in game.
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -116,9 +132,7 @@ the second copy. Impact in game unknown.
 
 ## Still open
 
-- Skills / playing style / positions inside the registry block (abilities done).
-- Tactical sliders inside a preset (attacking style, build-up, line, compactness) — offsets
-  known from the option file, not yet verified in a career.
+- Captain and set-piece takers (not manager+0x251).
 
 ## Save safety
 
@@ -150,4 +164,6 @@ the second copy. Impact in game unknown.
 | E14 | full manager swap Cruzeiro ↔ Man United (Amorim) | stays 4-3-3 — but Amorim's data is 4-3-3 too: inconclusive |
 | E15 | Palace's presets into Cruzeiro's *club block* | no change: club-block presets are not the live formation |
 | E16 | full manager swap Cruzeiro ↔ Crystal Palace (Glasner) | **Cruzeiro becomes 5-3-1-1, three CBs** |
+| E17 | Giu salary/contract/form; manager+0x251 as captain; def line/compactness | captain wrong field; others not visible in BAL |
+| E18 | attacking style + pressuring flipped in Cruzeiro's preset | **both shown exactly** |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |
