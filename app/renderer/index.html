@@ -15,6 +15,7 @@
     <span id="game-state" class="pill"></span>
     <button id="btn-league" class="ghost" disabled title="Sync every club of a league with efootballdb.com">Sync league</button>
     <button id="btn-backups" class="ghost">Backups</button>
+    <button id="btn-setup" class="ghost" title="Game folder, saves folder, database">Settings</button>
     <button id="btn-review" class="primary" disabled>Review &amp; apply <span id="staged-count" class="count">0</span></button>
   </header>
 
@@ -104,6 +105,28 @@
     <p class="muted">Every apply makes one. Restoring also backs up the current file first.</p>
     <ul id="backup-list" class="pick-list"></ul>
     <div class="dialog-actions"><button id="btn-close-backups" class="ghost">Close</button></div>
+  </dialog>
+
+  <dialog id="dlg-setup" class="dialog">
+    <h2>Set up CareerLab</h2>
+    <p class="muted">CareerLab needs your Football Life 2026 folder (for the player database) and your saves folder.</p>
+    <div class="setup-step" id="step-game">
+      <div><b>Game folder</b><div class="muted path" id="setup-game"></div></div>
+      <button id="btn-setup-game" class="ghost">Choose…</button>
+    </div>
+    <div class="setup-step" id="step-db">
+      <div><b>Player database</b><div class="muted" id="setup-db"></div></div>
+      <button id="btn-setup-module" class="ghost">Install database reader</button>
+    </div>
+    <div class="setup-step" id="step-saves">
+      <div><b>Saves folder</b><div class="muted path" id="setup-saves"></div></div>
+      <button id="btn-setup-saves" class="ghost">Choose…</button>
+    </div>
+    <p class="muted" id="setup-version"></p>
+    <div class="dialog-actions">
+      <button id="btn-setup-check" class="ghost">Check again</button>
+      <button id="btn-setup-done" class="primary">Continue</button>
+    </div>
   </dialog>
 
   <div id="toast" class="toast hidden"></div>

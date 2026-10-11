@@ -14,9 +14,10 @@ import collections
 import struct
 from pathlib import Path
 
+from . import config
 from .crypto import Save
 
-DEFAULT_DUMP = Path(r"E:\FL2026\SiderAddons\dbdump")
+DEFAULT_DUMP = None          # None = the configured game folder's dump (see config.py)
 
 
 def _text(b):
@@ -25,18 +26,17 @@ def _text(b):
 
 class Database:
     def __init__(self, dump_dir=DEFAULT_DUMP, edit_file=None):
-        dump_dir = Path(dump_dir)
-        pl = (dump_dir / "player.raw").read_bytes()
+        pl = config.table_file("player", dump_dir).read_bytes()
         self.player_names = {}
         for i in range(len(pl) // 312):
             o = i * 312
             self.player_names[struct.unpack_from("<I", pl, o + 8)[0]] = _text(pl[o + 0x44:o + 0x44 + 61])
-        tm = (dump_dir / "team.raw").read_bytes()
+        tm = config.table_file("team", dump_dir).read_bytes()
         self.team_names = {}
         for i in range(len(tm) // 0x5FC):
             o = i * 0x5FC
             self.team_names[struct.unpack_from("<I", tm, o + 8)[0]] = _text(tm[o + 0x170:o + 0x1B0])
-        pa = (dump_dir / "playerassignment.raw").read_bytes()
+        pa = config.table_file("playerassignment", dump_dir).read_bytes()
         self.player_teams = collections.defaultdict(list)       # pid -> [teamID]
         for i in range(len(pa) // 16):
             _, pid, tid, _ = struct.unpack_from("<4I", pa, i * 16)

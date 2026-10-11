@@ -570,6 +570,48 @@ async function stageLeague() {
   });
 }
 
+// ------------------------------------------------------------------ first-run setup
+
+async function refreshSetup() {
+  const st = await guarded(() => call("setup_status"));
+  if (!st) return null;
+  const step = (id, ok) => { $(id).className = "setup-step " + (ok ? "ok" : "bad"); };
+  $("#setup-game").textContent = st.gameDir || "Not found: choose the folder that has FL_2026.exe";
+  step("#step-game", !!st.gameDir);
+  let db;
+  if (!st.gameDir) db = "Needs the game folder first.";
+  else if (st.dumpOk) db = "Found (written by the game through Sider).";
+  else if (!st.siderInstalled) db = "Sider is not installed in this game folder, so the database cannot be read.";
+  else if (st.moduleInstalled) db = "Reader installed. Start FL2026 once, wait for the main menu, close it, then press Check again.";
+  else db = "Not found yet. Install the reader (a read-only Sider module), then start the game once.";
+  $("#setup-db").textContent = db;
+  step("#step-db", st.dumpOk);
+  $("#btn-setup-module").hidden = st.dumpOk || !st.siderInstalled || st.moduleInstalled;
+  $("#setup-saves").textContent = st.saveDir + (st.saveDirOk ? "" : " (not found)");
+  step("#step-saves", st.saveDirOk);
+  $("#btn-setup-done").disabled = !(st.gameDir && st.dumpOk && st.saveDirOk);
+  return st;
+}
+
+async function openSetup() {
+  window.cl.version().then((v) => { $("#setup-version").textContent = `CareerLab ${v}`; });
+  await refreshSetup();
+  if (!$("#dlg-setup").open) $("#dlg-setup").showModal();
+}
+
+async function chooseFolder(method, title) {
+  const dir = await window.cl.pickFolder(title);
+  if (!dir) return;
+  await guarded(async () => { await call(method, { path: dir }); });
+  await refreshSetup();
+}
+
+async function startup() {
+  const st = await refreshSetup();
+  if (st && st.gameDir && st.dumpOk && st.saveDirOk) return loadSaves();
+  openSetup();
+}
+
 // ------------------------------------------------------------------ backups / game state
 
 async function openBackups() {
@@ -622,6 +664,13 @@ $("#league-picker").onchange = () => loadLeague(false);
 $("#btn-league-refresh").onclick = () => loadLeague(true);
 $("#btn-close-league").onclick = () => $("#dlg-league").close();
 $("#btn-league-stage").onclick = stageLeague;
-loadSaves();
+$("#btn-setup").onclick = openSetup;
+$("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", "Football Life 2026 folder (with FL_2026.exe)");
+$("#btn-setup-saves").onclick = () => chooseFolder("set_save_dir", "Become a Legend saves folder");
+$("#btn-setup-module").onclick = () => guarded(async () => { await call("install_dump_module"); await refreshSetup(); toast("Database reader installed: start the game once"); });
+$("#btn-setup-check").onclick = refreshSetup;
+$("#btn-setup-done").onclick = () => { $("#dlg-setup").close(); loadSaves(); };
+$("#dlg-setup").addEventListener("cancel", (e) => { if ($("#btn-setup-done").disabled) e.preventDefault(); });
+startup();
 pollGame();
 setInterval(pollGame, 4000);

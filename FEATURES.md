@@ -112,6 +112,13 @@ undecoded · **Later** = needs more research first.
 
 ---
 
+## 10. Install
+
+| Feature | Status |
+|---|---|
+| **Windows installer** (per-user, no Python/Node needed): `python build.py` → `dist/CareerLab-Setup-<version>.exe` | **Done** (unsigned) |
+| First-run setup: finds the game and saves folders, installs the database reader (DBDump.lua) if missing | **Done** |
+
 ## Known limits (shown in the app, not hidden)
 
 - **Registry capacity**: about 2,500 more new players per career.

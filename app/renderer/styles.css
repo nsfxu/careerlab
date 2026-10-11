@@ -150,3 +150,10 @@ button.small { padding: 3px 10px; font-size: 12px; }
 .k-release { color: #e08a8a; } .k-move { color: #8ab4e0; } .k-add, .k-create { color: #7fd38b; }
 .k-numbers, .k-captain { color: var(--muted); }
 .league-total { margin-right: auto; }
+
+/* first-run setup */
+.setup-step { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+  border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 4px; padding: 10px 12px; margin: 8px 0; }
+.setup-step.ok { border-left-color: #2f9a45; }
+.setup-step.bad { border-left-color: var(--red); }
+.setup-step .path { font-size: 12px; word-break: break-all; margin-top: 2px; }

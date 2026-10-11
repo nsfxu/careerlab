@@ -143,3 +143,13 @@ def test_league_moves_leave_before_they_arrive():
     assert [o["op"] for o in Session._expand_moves(ops[1:2])] == ["move"]
     twice = [{"op": "move", "pid": 2, "from": 0, "to": 1}, {"op": "move", "pid": 2, "from": 1, "to": 2}]
     assert [o["op"] for o in Session._expand_moves(twice)] == ["move", "move"]
+
+
+def test_config_prefers_newest_dump_copy(tmp_path):
+    from fl26 import config
+    for n in ("player.raw", "player.copy1.raw", "player.copy2.raw", "team.raw"):
+        (tmp_path / n).write_bytes(b"x")
+    assert config.table_file("player", tmp_path).name == "player.copy2.raw"
+    assert config.table_file("team", tmp_path).name == "team.raw"
+    assert not config.dump_ok(tmp_path)               # playerassignment/appearance missing
+    assert config.asset("DBDump.lua").exists()

@@ -5,9 +5,55 @@
   "description": "CareerLab - editor for Football Life 2026 Become a Legend careers in progress",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "electron": "44.7.0"
+    "electron": "44.7.0",
+    "electron-builder": "^26.0.12"
+  },
+  "author": "Giu",
+  "build": {
+    "appId": "com.careerlab.fl2026",
+    "productName": "CareerLab",
+    "copyright": "Personal tool. Football Life 2026 data belongs to its owners.",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "res"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "res/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../build/dist/careerlab-engine",
+        "to": "engine"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "res/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CareerLab",
+      "artifactName": "CareerLab-Setup-${version}.exe",
+      "uninstallDisplayName": "CareerLab"
+    }
   }
 }

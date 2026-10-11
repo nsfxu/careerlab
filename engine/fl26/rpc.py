@@ -12,12 +12,9 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import safewrite
+from . import config, safewrite
 from .database import DEFAULT_DUMP, Database
 from .session import Session
-
-DEFAULT_SAVE_DIR = Path(os.path.expanduser(
-    r"~\Documents\KONAMI\eFootball PES 2021 SEASON UPDATE\2026\save"))
 
 
 class Server:
@@ -40,11 +37,33 @@ class Server:
     def ping(self):
         return {"pong": True}
 
+    # first-run setup: where the game is, and the database dump CareerLab reads
+
+    def setup_status(self):
+        return config.status()
+
+    def set_game_dir(self, path):
+        config.set_game_dir(path)
+        self.db = None
+        return config.status()
+
+    def set_save_dir(self, path):
+        if not Path(path).is_dir():
+            raise RuntimeError("that folder does not exist")
+        cfg = config.load()
+        cfg["saveDir"] = str(Path(path))
+        config.save(cfg)
+        return config.status()
+
+    def install_dump_module(self):
+        config.install_module()
+        return config.status()
+
     def game_state(self):
         return {"running": safewrite.game_running()}
 
     def list_saves(self, save_dir=None):
-        d = Path(save_dir or DEFAULT_SAVE_DIR)
+        d = Path(save_dir or config.save_dir())
         out = []
         for p in sorted(d.glob("BL*")):
             if p.is_file():

@@ -75,11 +75,11 @@ class EditFile:
         return k
 
 
-def load_db_tables(dump_dir):
+def load_db_tables(dump_dir=None):
     """({pid: Player.bin record}, {pid: appearance record}) from a Sider dump."""
-    dump_dir = Path(dump_dir)
-    pl = (dump_dir / "player.raw").read_bytes()
-    ap = (dump_dir / "playerappearance.raw").read_bytes()
+    from . import config
+    pl = config.table_file("player", dump_dir).read_bytes()
+    ap = config.table_file("playerappearance", dump_dir).read_bytes()
     players = {struct.unpack_from("<I", pl, i * 312 + 8)[0]: pl[i * 312:(i + 1) * 312]
                for i in range(len(pl) // 312)}
     faces = {struct.unpack_from("<I", ap, i * 60)[0]: ap[i * 60:(i + 1) * 60]

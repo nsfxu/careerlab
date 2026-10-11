@@ -1,6 +1,6 @@
 // CareerLab main process: one window, one long-lived Python engine child.
 // All save-format knowledge lives in the engine; this file only routes requests.
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const readline = require("readline");
@@ -46,12 +46,18 @@ function call(method, params = {}) {
 
 ipcMain.handle("engine", (_e, method, params) => call(method, params));
 ipcMain.handle("reveal", (_e, file) => shell.showItemInFolder(file));
+ipcMain.handle("pick-folder", async (e, title) => {
+  const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title, properties: ["openDirectory"] });
+  return r.canceled ? null : r.filePaths[0];
+});
+ipcMain.handle("version", () => app.getVersion());
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1100, minHeight: 700,
     backgroundColor: "#121212",
     title: "CareerLab",
+    icon: path.join(__dirname, "res", "icon.png"),
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
