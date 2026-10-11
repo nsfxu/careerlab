@@ -238,7 +238,7 @@ class Session:
             if isinstance(shirt, int) and 1 <= shirt <= 99:
                 plan["numbers"][str(real)] = shirt
                 if pid in squad_pids and current_shirt.get(pid) != shirt:
-                    plan["renumber"].append({"pid": real, "name": item["name"],
+                    plan["renumber"].append({"pid": real, "name": item["name"], "position": item["position"],
                                              "from": current_shirt.get(pid), "to": shirt})
             if a.get("captain"):
                 plan["captain"] = {"pid": real, "name": item["name"]}
@@ -259,7 +259,8 @@ class Session:
                 plan["create"].append(item)
         for h, pid in self.c.club(block).members:
             if pid not in target and pid < CREATED_ID_MIN:
-                plan["release"].append({"pid": pid, "name": self.name(pid)})
+                plan["release"].append({"pid": pid, "name": self.name(pid),
+                                        "position": self._player_row(pid).get("position")})
         return plan
 
     def _is_club(self, k):
@@ -396,9 +397,25 @@ class Session:
             clubs[op.get("to", op.get("block"))]["ops"].append(op)
         for k in blocks:
             cl = clubs[k]
-            if cl["numbers"]:
+            # numbers and captain only when something would actually change, so a synced
+            # league plans to nothing
+            arrivals = any(o["kind"] in ("move", "add", "create") for o in cl["ops"])
+            squad = self.c.club(k)
+            shirt_now = dict(zip(squad.pids, squad.shirts))
+            reserved = {n for p, n in shirt_now.items() if p >= CREATED_ID_MIN}   # Giu keeps his
+            renumber = arrivals or any(
+                shirt_now.get(self.career_pid(int(real))) not in (None, n)
+                for real, n in cl["numbers"].items() if n not in reserved)
+            if cl["numbers"] and renumber:
                 cl["ops"].append({"op": "renumber", "block": k, "numbers": cl["numbers"],
                                   "kind": "numbers", "label": f"{names[k]}: real shirt numbers"})
+            if cl["captain"] and not arrivals:
+                cap = self.career_pid(cl["captain"]["pid"])
+                try:
+                    if cap in squad.pids and self.mgr.captain(k) == squad.pids.index(cap):
+                        cl["captain"] = None              # already wearing the armband
+                except LookupError:
+                    pass
             if cl["captain"]:
                 cl["ops"].append({"op": "captain", "block": k, "pid": cl["captain"]["pid"],
                                   "kind": "captain",

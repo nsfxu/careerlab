@@ -54,6 +54,17 @@ function badge(pos) {
   b.textContent = POS_PT[pos] || pos || "?";
   return b;
 }
+// Unidentified internal squads (representative teams etc.) are named "Squad <n>": not worth showing.
+const namedBlocks = (blocks) => blocks.filter((b) => !/^Squad \d+$/.test(b.name));
+const SVGNS = "http://www.w3.org/2000/svg";
+function icon(name, cls = "") {
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("class", "i " + cls);
+  const use = document.createElementNS(SVGNS, "use");
+  use.setAttribute("href", "#i-" + name);
+  svg.append(use);
+  return svg;
+}
 function valClass(v) { return v >= 90 ? "v-hi" : v >= 80 ? "v-mid" : v >= 70 ? "v-lo" : "v-bad"; }
 function el(tag, props = {}, ...kids) {
   const e = document.createElement(tag);
@@ -69,8 +80,9 @@ async function loadSaves() {
   const sel = $("#save-picker");
   sel.innerHTML = "";
   for (const s of r.saves) {
-    const d = new Date(s.modified * 1000).toLocaleString();
-    sel.append(el("option", { value: s.path, textContent: `${s.slot}  ·  ${d}` }));
+    const d = new Date(s.modified * 1000).toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const n = /^BL0*(\d+)$/.exec(s.slot);
+    sel.append(el("option", { value: s.path, textContent: `${n ? "Slot " + (Number(n[1]) + 1) : s.slot}  ·  saved ${d}`, title: s.path }));
   }
   if (!r.saves.length) sel.append(el("option", { textContent: "No Become a Legend saves found" }));
   else await openSave(r.saves[0].path);
@@ -83,7 +95,9 @@ async function openSave(path) {
     state.save = path;
     state.staged = [];
     const me = state.summary.me;
-    $("#career-info").textContent = me ? `${me.name}, ${me.age} · ${me.club || ""}` : "";
+    const info = $("#career-info");
+    info.innerHTML = "";
+    if (me) info.append(icon("user"), el("b", { textContent: me.name }), `${me.age} · ${me.club || ""}`);
     state.clubs = await call("clubs");
     renderClubs();
     updateStaged();
@@ -99,15 +113,23 @@ function renderClubs() {
   const ul = $("#club-list");
   ul.innerHTML = "";
   const myBlock = state.summary?.me?.block;
-  for (const c of state.clubs) {
-    if (q && !c.name.toLowerCase().includes(q) && !(c.manager || "").toLowerCase().includes(q)) continue;
+  $("#club-count").textContent = state.clubs.length ? state.clubs.length : "";
+  const item = (c) => {
     const li = el("li", { className: c.block === state.block ? "active" : "" },
-      el("span", { textContent: c.name, className: c.block === myBlock ? "me" : "" }),
+      el("span", { textContent: c.name, className: "name" + (c.block === myBlock ? " me" : "") }),
       el("span", { className: "size", textContent: c.size }));
+    if (c.block === myBlock) li.prepend(icon("star", "me-star"));
     li.title = c.manager ? `Manager: ${c.manager}` : "";
     li.onclick = () => openClub(c.block);
-    ul.append(li);
+    return li;
+  };
+  const shown = state.clubs.filter((c) => !q || c.name.toLowerCase().includes(q) || (c.manager || "").toLowerCase().includes(q));
+  const mine = shown.find((c) => c.block === myBlock);
+  if (mine && !q) {
+    ul.append(el("li", { className: "group", textContent: "Your club" }), item(mine),
+      el("li", { className: "group", textContent: "All clubs" }));
   }
+  for (const c of shown) if (q || c.block !== myBlock) ul.append(item(c));
 }
 
 async function openClub(block) {
@@ -124,14 +146,20 @@ async function openClub(block) {
 function renderSquad() {
   const s = state.squad;
   $("#squad-name").textContent = s.name;
-  $("#squad-manager").textContent = s.manager?.name ? `Manager: ${s.manager.name} · ${s.players.length} players` : `${s.players.length} players`;
+  const meta = $("#squad-manager");
+  meta.innerHTML = "";
+  if (s.manager?.name) meta.append(el("span", {}, icon("whistle"), s.manager.name));
+  meta.append(el("span", {}, icon("user"), `${s.players.length} players`));
   const body = $("#squad-body");
   body.innerHTML = "";
   for (const p of s.players) {
     const tr = el("tr", { className: (p.created ? "created " : "") + (state.player?.pid === p.pid ? "active" : "") });
-    tr.append(el("td", { textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
-      el("td", { textContent: p.name + (p.captain ? "  (C)" : "") }), el("td", { textContent: p.age ?? "" }),
-      el("td", { textContent: p.speed ?? "" }));
+    const name = el("span", { className: "pname", textContent: p.name });
+    if (p.created) name.prepend(icon("star", "me-star"));
+    if (p.captain) name.append(el("span", { className: "armband", textContent: "C", title: "Captain" }));
+    tr.append(el("td", { className: "c-num", textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
+      el("td", {}, name), el("td", { className: "c-num", textContent: p.age ?? "" }),
+      el("td", { className: "c-num", textContent: p.speed ?? "" }));
     tr.onclick = () => openPlayer(p.pid);
     body.append(tr);
   }
@@ -161,50 +189,89 @@ function stagedValue(pid, field) {
   return undefined;
 }
 
+const ABIL_GROUPS = [
+  ["Ataque", ["offensive_awareness", "ball_control", "dribbling", "tight_possession", "low_pass", "lofted_pass",
+    "finishing", "heading", "place_kicking", "curl"]],
+  ["Físico", ["speed", "acceleration", "kicking_power", "jump", "physical_contact", "balance", "stamina"]],
+  ["Defesa", ["defensive_awareness", "ball_winning", "aggression"]],
+  ["Goleiro", ["gk_awareness", "gk_catching", "gk_clearing", "gk_reflexes", "gk_reach"]],
+];
+
+function abilityGrid(p, abilities, keys) {
+  const grid = el("div", { className: "abil" });
+  for (const k of keys) {
+    if (!(k in abilities)) continue;
+    const pending = stagedValue(p.pid, p.kind === "created" ? createdField(k) : k);
+    const v = pending ?? abilities[k];
+    const bar = el("div", { className: "bar " + valClass(v) }, el("i"));
+    bar.firstChild.style.width = `${Math.max(4, ((v - 40) / 59) * 100)}%`;
+    const inp = el("input", { type: "number", min: 40, max: 99, value: v, className: valClass(v) + (pending !== undefined ? " changed" : "") });
+    inp.onchange = () => stageAbility(p, k, Number(inp.value), abilities[k]);
+    grid.append(el("label", { textContent: ABIL_PT[k], title: ABIL_PT[k] }), bar, inp);
+  }
+  return grid;
+}
+
 function renderPlayer() {
   const p = state.player;
   const box = $("#detail");
   box.className = "detail-card";
   box.innerHTML = "";
-  box.append(el("h2", { textContent: p.name }));
-  const where = p.blocks.map((b) => b.name).join(", ") || "no squad";
-  box.append(el("div", { className: "detail-sub" }, badge(p.position), ` ${p.age ?? "?"} anos · ${where}`));
+  const inSquad = state.squad?.players.find((x) => x.pid === p.pid);
+  const where = namedBlocks(p.blocks).map((b) => b.name).join(", ") || "no squad";
 
+  // header card
+  const tags = el("div", { className: "p-tags" });
+  if (p.kind === "created") tags.append(el("span", { className: "tag me" }, icon("star"), "Your player"));
+  if (inSquad?.captain) tags.append(el("span", { className: "tag cap", textContent: "Captain" }));
+  box.append(el("div", { className: "p-head" },
+    el("div", { className: "p-shirt", textContent: inSquad?.shirt ?? "–", title: "Shirt number" }),
+    el("div", {}, el("h2", { textContent: p.name }),
+      el("div", { className: "p-sub" }, badge(p.position), `${p.age ?? "?"} anos`, el("span", { textContent: "·" }), where),
+      tags.childNodes.length ? tags : "")));
+
+  // abilities, grouped like the game; goalkeeping folded away for outfield players
   const abilities = p.kind === "created" ? createdAbilities(p) : p.abilities;
   if (abilities) {
-    box.append(el("div", { className: "section-title", textContent: "Habilidades" }));
-    const grid = el("div", { className: "abil" });
-    for (const k of ABIL_ORDER) {
-      if (!(k in abilities)) continue;
-      const pending = stagedValue(p.pid, p.kind === "created" ? createdField(k) : k);
-      const v = pending ?? abilities[k];
-      const inp = el("input", { type: "number", min: 40, max: 99, value: v, className: valClass(v) + (pending !== undefined ? " changed" : "") });
-      inp.onchange = () => stageAbility(p, k, Number(inp.value), abilities[k]);
-      grid.append(el("label", { textContent: ABIL_PT[k] }), inp);
+    const sec = el("div", { className: "section" });
+    const isGk = p.position === "GK";
+    for (const [title, keys] of ABIL_GROUPS) {
+      const vals = keys.filter((k) => k in abilities).map((k) => stagedValue(p.pid, p.kind === "created" ? createdField(k) : k) ?? abilities[k]);
+      if (!vals.length) continue;
+      const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      const head = el("div", { className: "section-title" }, title, el("span", { className: "avg " + valClass(avg), textContent: avg }));
+      if (title === "Goleiro" && !isGk) {
+        head.prepend(icon("chevron"));
+        sec.append(el("details", { className: "abil-group" }, el("summary", {}, head), abilityGrid(p, abilities, keys)));
+      } else sec.append(head, abilityGrid(p, abilities, keys));
     }
-    box.append(grid);
+    box.append(sec);
   }
+
   if (p.skills) {
-    box.append(el("div", { className: "section-title", textContent: "Habilidades do jogador" }));
+    const sec = el("div", { className: "section" });
+    sec.append(el("div", { className: "section-title", textContent: "Habilidades do jogador" }));
     const chips = el("div", { className: "chips" });
     for (const [k, label] of Object.entries(SKILL_NAMES)) {
       const pending = stagedValue(p.pid, p.kind === "created" ? p.skillFields[k] : k);
       const on = pending !== undefined ? pending === 1 : p.skills.includes(k);
       if (p.kind === "created" && !p.skillFields[k]) continue;
-      const c = el("span", { className: "chip" + (on ? " on" : ""), textContent: label });
+      const c = el("span", { className: "chip" + (on ? " on" : ""), textContent: label, title: on ? "Click to remove" : "Click to add back" });
       c.onclick = () => stage(skillOp(p, k, on ? 0 : 1, `${p.name}: ${label} ${on ? "off" : "on"}`), true);
       if (on || pending !== undefined) chips.append(c);
     }
-    const add = el("span", { className: "chip", textContent: "+ add skill" });
+    const add = el("span", { className: "chip add" }, icon("plus"), "Add skill");
     add.onclick = () => pickSkill(p);
     chips.append(add);
-    box.append(chips);
+    sec.append(chips);
+    box.append(sec);
   }
-  const inSquad = state.squad?.players.find((x) => x.pid === p.pid);
+
   if (inSquad) {
-    const club = el("div", { className: "actions" });
+    const sec = el("div", { className: "section" });
+    sec.append(el("div", { className: "section-title", textContent: `Clube · ${state.squad.name}` }));
+    const row = el("div", { className: "field-row" });
     const shirt = el("input", { type: "number", min: 1, max: 99, value: inSquad.shirt ?? "", title: "Shirt number" });
-    shirt.style.width = "70px";
     shirt.onchange = () => {
       const n = Number(shirt.value);
       if (!(n >= 1 && n <= 99)) return toast("Shirt numbers go from 1 to 99", true);
@@ -212,24 +279,26 @@ function renderPlayer() {
       stage({ op: "shirt", pid: p.pid, block: state.block, shirt: n,
         label: `${p.name}: shirt ${inSquad.shirt} → ${n}` + (owner ? ` (${owner.name} gets a free number)` : "") }, true);
     };
-    club.append(el("span", { className: "muted", textContent: "Shirt" }), shirt);
+    row.append(el("label", {}, icon("shirt"), "Número", shirt));
     if (!inSquad.captain) {
-      const cap = el("button", { className: "ghost", textContent: "Make captain" });
+      const cap = el("button", { className: "ghost small", title: "Wears the armband when he is in the starting XI" },
+        el("span", { className: "armband", textContent: "C" }), "Make captain");
       cap.onclick = () => stage({ op: "captain", pid: p.pid, block: state.block, label: `${state.squad.name} captain: ${p.name}` }, true);
-      club.append(cap);
-    } else club.append(el("span", { className: "tag new", textContent: "Captain" }));
-    club.title = "The captain wears the armband when he is in the starting XI the manager picks";
-    box.append(club);
-  }
-  if (p.kind !== "created" && p.blocks.length) {
-    const actions = el("div", { className: "actions" });
-    const mv = el("button", { className: "ghost", textContent: "Move to club…" });
-    mv.onclick = () => pickClub(`Move ${p.name} to`, (b) => stage({ op: "move", pid: p.pid, from: state.block, to: b.block,
-      label: `Move ${p.name}: ${state.squad.name} → ${b.name}` }));
-    const rel = el("button", { className: "ghost", textContent: "Release" });
-    rel.onclick = () => stage({ op: "release", pid: p.pid, block: state.block, label: `Release ${p.name} from ${state.squad.name}` });
-    actions.append(mv, rel);
-    box.append(actions);
+      row.append(cap);
+    }
+    sec.append(row);
+    if (p.kind !== "created") {
+      const actions = el("div", { className: "actions" });
+      actions.style.marginTop = "12px";
+      const mv = el("button", { className: "ghost" }, icon("move"), "Move to club…");
+      mv.onclick = () => pickClub(`Move ${p.name} to`, (b) => stage({ op: "move", pid: p.pid, from: state.block, to: b.block,
+        label: `Move ${p.name}: ${state.squad.name} → ${b.name}` }));
+      const rel = el("button", { className: "ghost danger" }, icon("user-minus"), "Release");
+      rel.onclick = () => stage({ op: "release", pid: p.pid, block: state.block, label: `Release ${p.name} from ${state.squad.name}` });
+      actions.append(mv, rel);
+      sec.append(actions);
+    }
+    box.append(sec);
   }
 }
 
@@ -279,7 +348,7 @@ async function openReview() {
   const ol = $("#staged-list");
   ol.innerHTML = "";
   state.staged.forEach((op, i) => {
-    const undo = el("button", { className: "small ghost", textContent: "Undo" });
+    const undo = el("button", { className: "small ghost", title: "Remove this edit" }, icon("undo"), "Undo");
     undo.onclick = async () => {
       state.staged = await call("unstage", { index: i });
       state.labels.splice(i, 1);
@@ -287,7 +356,7 @@ async function openReview() {
       state.staged.length ? openReview() : $("#dlg-review").close();
       if (state.player) renderPlayer();
     };
-    ol.append(el("li", {}, el("span", { textContent: state.labels?.[i] || JSON.stringify(op) }), undo));
+    ol.append(el("li", {}, el("div", {}, el("span", { textContent: state.labels?.[i] || JSON.stringify(op) }), undo)));
   });
   const chk = $("#review-check");
   chk.className = "review-check muted";
@@ -297,11 +366,11 @@ async function openReview() {
   if (!r) return;
   if (r.newProblems.length) {
     chk.className = "review-check bad";
-    chk.textContent = "These edits would break the save and will be refused: " + r.newProblems.join("; ");
+    chk.replaceChildren(icon("alert"), "These edits would break the save and will be refused: " + r.newProblems.join("; "));
     $("#btn-apply").disabled = true;
   } else {
     chk.className = "review-check good";
-    chk.textContent = "Check passed: no new problems.";
+    chk.replaceChildren(icon("check"), "Check passed: no new problems.");
     $("#btn-apply").disabled = false;
   }
 }
@@ -384,9 +453,9 @@ function onSearch() {
     box.classList.remove("hidden");
     if (!rows.length) box.append(el("div", { textContent: "No players found" }));
     for (const r of rows) {
-      const where = r.blocks.length ? r.blocks.map((b) => b.name).join(", ") : r.hasRecord ? "free / no squad" : "not in this career yet";
-      const row = el("div", {}, el("span", { textContent: r.name }), el("span", { className: "where", textContent: where }));
-      row.style.cursor = "pointer";
+      const where = r.blocks.length ? (namedBlocks(r.blocks).map((b) => b.name).join(", ") || r.blocks[0].name) : r.hasRecord ? "free / no squad" : "not in this career yet";
+      const row = el("div", {}, el("span", { textContent: r.name }),
+        el("span", { className: "where" }, icon(r.hasRecord ? (r.blocks.length ? "shield" : "user") : "user-plus"), where));
       if (!r.hasRecord) row.onclick = () => {
         box.classList.add("hidden");
         if (state.block == null) return;
@@ -405,7 +474,9 @@ function onSearch() {
 }
 function addOffer(r) {
   const actions = el("div", { className: "actions" });
-  const btn = el("button", { className: "primary", textContent: `Add to ${state.squad.name}` });
+  const btn = el("button", { className: "primary" }, icon("user-plus"), `Add to ${state.squad.name}`);
+  actions.className = "actions section";
+  actions.style.marginTop = "14px";
   btn.onclick = () => r.blocks.length
     ? stage({ op: "move", pid: r.pid, from: r.blocks[0].block, to: state.block, label: `Move ${r.name}: ${r.blocks[0].name} → ${state.squad.name}` })
     : stage({ op: "add", pid: r.pid, block: state.block, label: `Add ${r.name} to ${state.squad.name}` });
@@ -537,7 +608,7 @@ function renderLeague() {
     const counts = el("span", { className: "counts" });
     for (const [k, t] of [["move", "→ in"], ["add", "+ free"], ["create", "+ new"], ["release", "− out"]])
       if (n(k)) counts.append(el("span", { className: "k-" + k, textContent: `${t} ${n(k)}` }));
-    if (!ops.length) counts.append(el("span", { className: "muted", textContent: "nothing to change" }));
+    if (!ops.length) counts.append(el("span", { className: "tag ok" }, icon("check"), "Up to date"));
     body.append(el("details", { className: "league-club" + (cl._on ? "" : " off") },
       el("summary", {}, cb,
         el("span", {}, el("b", { textContent: cl.name }), el("span", { className: "muted", textContent: `  ${cl.keep} already match` })),
@@ -551,7 +622,7 @@ function renderLeague() {
     body.append(el("p", { className: "muted", textContent: "Skipped: " + leaguePlan.skipped.join("; ") }));
   body.append(el("p", { className: "muted", textContent: "Players FL26 lacks borrow a little-known player's ID and the face of a player of the same nationality. Coaches and set-piece takers are not synced." }));
   const total = leagueOps().length;
-  $("#league-total").textContent = `${total} edits selected`;
+  $("#league-total").textContent = total ? `${total} edits selected` : "Every club already matches efootballdb";
   $("#btn-league-stage").disabled = total === 0;
 }
 
@@ -621,13 +692,18 @@ async function openBackups() {
   ul.innerHTML = "";
   if (!rows.length) ul.append(el("li", { textContent: "No backups yet" }));
   for (const b of rows) {
-    const restore = el("button", { className: "small ghost", textContent: "Restore" });
+    const restore = el("button", { className: "small ghost" }, icon("undo"), "Restore");
     restore.onclick = async (ev) => {
       ev.stopPropagation();
       if (!confirm(`Restore ${b.name}? The current save is backed up first.`)) return;
       await guarded(async () => { await call("restore", { file: b.file }); $("#dlg-backups").close(); await openSave(state.save); toast("Backup restored"); });
     };
-    const li = el("li", {}, el("span", { textContent: b.name }), restore);
+    // 20261011-193531-careerlab-307-edits -> "11/10/2026 19:35" + "307 edits"
+    const m = b.name.match(/^(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)\d\d-(.*)$/);
+    const when = m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : b.name;
+    const what = m ? m[6].replace(/^careerlab-/, "").replace(/-/g, " ").replace(/^restore$/, "before a restore") : "";
+    const li = el("li", { title: "Double-click to show the file" },
+      el("span", { className: "pname" }, icon("history"), el("span", { textContent: when }), el("span", { className: "muted", textContent: what })), restore);
     li.ondblclick = () => window.cl.reveal(b.file);
     ul.append(li);
   }
