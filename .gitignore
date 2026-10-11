@@ -7,3 +7,5 @@ lab/p1_probe.json
 node_modules/
 dist/
 build/
+node_modules/
+app.log

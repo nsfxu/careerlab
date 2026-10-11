@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>CareerLab</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark"></span>Career<b>Lab</b></div>
+    <select id="save-picker" title="Career save"></select>
+    <div id="career-info" class="career-info"></div>
+    <div class="spacer"></div>
+    <span id="game-state" class="pill"></span>
+    <button id="btn-backups" class="ghost">Backups</button>
+    <button id="btn-review" class="primary" disabled>Review &amp; apply <span id="staged-count" class="count">0</span></button>
+  </header>
+
+  <main class="layout">
+    <aside class="clubs panel">
+      <div class="panel-head">
+        <h2>Clubs</h2>
+        <input id="club-filter" type="search" placeholder="Filter clubs or managers">
+      </div>
+      <ul id="club-list" class="club-list"></ul>
+    </aside>
+
+    <section class="squad panel">
+      <div class="panel-head squad-head">
+        <div>
+          <h2 id="squad-name">Open a career</h2>
+          <div id="squad-manager" class="muted"></div>
+        </div>
+        <div class="squad-tools">
+          <input id="player-search" type="search" placeholder="Search any player in the database">
+          <button id="btn-manager" class="ghost" disabled>Change manager</button>
+        </div>
+      </div>
+      <div id="search-results" class="search-results hidden"></div>
+      <table class="squad-table">
+        <thead><tr><th>#</th><th>Pos</th><th>Name</th><th>Age</th><th>Spd</th></tr></thead>
+        <tbody id="squad-body"></tbody>
+      </table>
+    </section>
+
+    <section class="detail panel">
+      <div id="detail" class="detail-empty muted">Select a player</div>
+    </section>
+  </main>
+
+  <dialog id="dlg-review" class="dialog">
+    <h2>Staged edits</h2>
+    <p class="muted">Nothing is written until you press Apply. A backup of the save is made first, in the <code>backup</code> folder beside your saves.</p>
+    <ol id="staged-list" class="staged-list"></ol>
+    <div id="review-check" class="review-check"></div>
+    <div class="dialog-actions">
+      <button id="btn-close-review" class="ghost">Close</button>
+      <button id="btn-apply" class="primary">Apply to save</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-pick" class="dialog">
+    <h2 id="pick-title"></h2>
+    <input id="pick-filter" type="search" placeholder="Filter">
+    <ul id="pick-list" class="pick-list"></ul>
+    <label id="pick-option" class="pick-option hidden"><input type="checkbox" id="pick-check"> <span></span></label>
+    <div class="dialog-actions"><button id="btn-close-pick" class="ghost">Cancel</button></div>
+  </dialog>
+
+  <dialog id="dlg-backups" class="dialog">
+    <h2>Backups</h2>
+    <p class="muted">Every apply makes one. Restoring also backs up the current file first.</p>
+    <ul id="backup-list" class="pick-list"></ul>
+    <div class="dialog-actions"><button id="btn-close-backups" class="ghost">Close</button></div>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>

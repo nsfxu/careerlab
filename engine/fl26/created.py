@@ -75,7 +75,7 @@ FIELDS = {
     "cut_behind_turn": (0x024, 7, 1),   # Cut Behind & Turn
     "scotch_move": (0x025, 0, 1),   # Scotch Move
     "step_on_skill_control": (0x028, 3, 1),   # Step On Skill control
-    "heading": (0x025, 1, 1),   # Heading
+    "heading_skill": (0x025, 1, 1),   # Heading (skill)
     "long_range_drive": (0x025, 2, 1),   # Long Range Drive
     "chip_shot_control": (0x028, 2, 1),   # Chip shot control
     "long_range_shooting": (0x029, 2, 1),   # Long Range Shooting

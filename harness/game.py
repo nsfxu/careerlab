@@ -305,9 +305,11 @@ def cmd_tolist():
     menus = ("menu_ball", "menu_ml", "menu_bal")
     end = time.time() + 180
     while True:                                        # intro, title, loading
-        best, scores = classify(menus + ("title",))
-        if best in menus and scores[best] < 3:
+        best, scores = classify(menus + ("title", "about"))
+        if best in menus and scores[best] < 5:
             break
+        if best == "about" and scores["about"] < 8:     # idle "SP Football Life" screen
+            focus(game_window()[0]); press("esc"); time.sleep(2); continue
         if time.time() > end:
             sys.exit("never reached the main menu")
         w = game_window()
