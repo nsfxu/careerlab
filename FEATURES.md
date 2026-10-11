@@ -30,12 +30,12 @@ undecoded · **Later** = needs more research first.
 | Search a player across the whole career: club, handle, reachable or not | Ready |
 | Move a player from one club to another | Ready |
 | Release a player | Ready |
-| **Add a player the career has never known** (added to the database after the career began) | Ready |
+| **Add a player the career has never known** (added to the database after the career began) | **Done** (app, from efootballdb) |
 | New players get their real profile (position, abilities, style, age, nationality) from a donor career | Ready |
 | Squads up to 40 players (the old "starting size" cap was wrong) | Ready |
 | **Sync the whole league** to an option file: plan → review screen → apply | Ready |
-| **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / set takers in one go | Ready — source found |
-| **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | Ready — each step proven separately |
+| **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / set takers in one go | **Done** (app; renumber/takers still to do) |
+| **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | **Done** (app; lookalike face) |
 | Repair the game's own duplicates (a player listed twice in one squad) | Ready |
 | **Squad tidy tools**: renumber a squad (keepers 1/12/23, no clashes), sort by position, trim an oversized squad | Ready |
 | **Reset a club to the database**: put a squad back to what the option file says | Ready |

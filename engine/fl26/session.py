@@ -6,20 +6,39 @@ running check, backup into ...\\2026\\backup, verify by re-reading).
 """
 from __future__ import annotations
 
+import json
+import os
 import struct
 from pathlib import Path
 
-from . import attributes as A, created, safewrite, validate
+from . import attributes as A, created, efdb, profiles, safewrite, validate
 from .career import CREATED_ID_MIN, Career
-from .database import Database, identify_blocks
+from .database import DEFAULT_DUMP, Database, identify_blocks
+from .editfile import EditFile, load_db_tables
 from .managers import Managers
 from .registry import REC, Registry
 
 POS_NAMES = "GK CB LB RB DMF CMF LMF RMF AMF LWF RWF SS CF".split()
 CLUB_CONTEXT = [(0x28, 0x74), (0x80, 0x84)]      # competitions, current club
 # Cheat Engine table names that differ from the registry's skill names
-CREATED_SKILL_ALIASES = {"heading_skill": "heading", "dipping_shot": "dipping_shots",
-                         "gk_low_punt": "gk_low_punt"}
+CREATED_SKILL_ALIASES = {"dipping_shot": "dipping_shots"}
+
+SPARES = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "spares.json"
+FACE_DONOR = 169270          # young Brazilian whose face new players borrow (FL26 has none)
+
+
+def load_spares():
+    """{real eFootball ID: spare FL26 ID} for players FL26 lacks. Install-wide, because the
+    option file that renames the spare is install-wide."""
+    try:
+        return {int(k): v for k, v in json.loads(SPARES.read_text(encoding="utf-8")).items()}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_spares(m):
+    SPARES.parent.mkdir(parents=True, exist_ok=True)
+    SPARES.write_text(json.dumps({str(k): v for k, v in m.items()}, indent=1), encoding="utf-8")
 
 
 class EditError(RuntimeError):
@@ -57,13 +76,17 @@ class Session:
         tid, conf = self.ids.get(k, (None, 0))
         return self.db.team_name(tid) if tid else f"Squad {k}"
 
+    def my_block(self):
+        blocks = self.c.club_of(0x800000BA)
+        # his club, not a representative squad: national teams have IDs under 100
+        return next((k for k in blocks if (self.ids.get(k, (None,))[0] or 0) >= 100),
+                    blocks[0] if blocks else None)
+
     def summary(self):
         me = None
         if self.created_base is not None:
             b = self.created_base
-            blocks = self.c.club_of(0x800000BA)
-            club = next((k for k in blocks if self.ids.get(k, (None,))[0] and self.ids[k][0] < 1000
-                         or self.ids.get(k, (None,))[0]), None)
+            club = self.my_block()
             me = {"name": created.name(self.c, b), "age": created.get(self.c, b, "age"),
                   "block": club, "club": self.club_name(club) if club is not None else None}
         return {"path": str(self.path), "slot": self.path.name, "clubs": len(self.c.clubs()),
@@ -149,6 +172,60 @@ class Session:
                     break
         return out
 
+    # ------------------------------------------------------------- efootballdb
+
+    def career_pid(self, real_pid):
+        """FL26 ID used for an eFootball player (his own, or the spare lent to him)."""
+        return load_spares().get(real_pid, real_pid)
+
+    def status(self, real_pid):
+        """'record' (career knows him) | 'db' (in FL26, new to career) | 'absent' (FL26 lacks him)."""
+        pid = self.career_pid(real_pid)
+        if pid != real_pid:
+            return "record" if pid in self.rec_of and self.c.club_of(pid) else "spare"
+        if real_pid in self.rec_of:
+            return "record"
+        return "db" if real_pid in self.db.player_names else "absent"
+
+    def sync_plan(self, block, refresh=False):
+        """Bring a club's squad to efootballdb's: keep, move in, add, create, release."""
+        tid = self.ids.get(block, (None,))[0]
+        if not tid:
+            raise EditError("this squad is not identified as a club, so it cannot be synced")
+        rows = efdb.squad(tid, refresh=refresh)
+        squad_pids = set(self.c.club(block).pids)
+        where = {}
+        for cl in self.c.clubs():
+            for _, p in cl.members:
+                where.setdefault(p, []).append(cl.index)
+        plan = {"block": block, "team": self.club_name(block), "coach": efdb.coach(tid),
+                "keep": [], "moveIn": [], "add": [], "create": [], "release": []}
+        target = set()
+        for real, shirt, order, p, a in rows:
+            pid = self.career_pid(real)
+            target.add(pid)
+            item = {"pid": real, "careerPid": pid, "name": p.get("player_name"), "shirt": shirt,
+                    "position": p.get("main_position_text"), "age": p.get("age")}
+            st = self.status(real)
+            if pid in squad_pids:
+                plan["keep"].append(item)
+            elif st == "record":
+                clubs = [k for k in where.get(pid, [])
+                         if k != block and (self.ids.get(k, (None,))[0] or 0) >= 100]
+                if clubs:
+                    item["from"] = clubs[0]
+                    item["fromName"] = self.club_name(clubs[0])
+                    plan["moveIn"].append(item)
+                else:
+                    plan["add"].append(item)
+            else:
+                item["kind"] = st
+                plan["create"].append(item)
+        for h, pid in self.c.club(block).members:
+            if pid not in target and pid < CREATED_ID_MIN:
+                plan["release"].append({"pid": pid, "name": self.name(pid)})
+        return plan
+
     # ------------------------------------------------------------------ staging
 
     def stage(self, op):
@@ -163,32 +240,79 @@ class Session:
     def _check(self, op):
         kind = op.get("op")
         pid = op.get("pid")
+        if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
+                        "manager_set", "shirt", "new"):
+            raise EditError(f"unknown edit {kind}")
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
             raise EditError("the created character is not moved by squad tools")
         if kind == "add" and pid not in self.rec_of:
-            raise EditError("this player has no record in the career yet (new-player creation "
-                            "is not wired up in this build)")
-        if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
-                        "manager_set", "shirt"):
-            raise EditError(f"unknown edit {kind}")
+            raise EditError("this player has no career record: use create instead")
+        if kind in ("add", "move", "new"):
+            to = op.get("to", op.get("block"))
+            planned = sum(1 for o in self.staged if o.get("to", o.get("block")) == to
+                          and o["op"] in ("add", "move", "new")) - sum(
+                1 for o in self.staged if o["op"] == "release" and o.get("block") == to) - sum(
+                1 for o in self.staged if o["op"] == "move" and o.get("from") == to)
+            if len(self.c.club(to).members) + planned + 1 > 40:
+                raise EditError("a squad holds at most 40 players")
 
     # -------------------------------------------------------------------- apply
 
-    def _club_value(self, c, reg, k):
-        """Most common registry club-context of a block, from its members."""
-        import collections
-        votes = collections.Counter()
-        for h, p in c.club(k).members:
-            i = h & 0xFFFF
-            if i < reg.count and reg.pid(i) == p:
-                votes[bytes(reg.blob[i * REC + 0x80:i * REC + 0x84])] += 1
-        return votes.most_common(1)[0][0] if votes else None
+    def _gap(self, reg, rec_of):
+        """Season gap: career ages minus efootballdb ages, from the user's own club."""
+        k = self.my_block()
+        tid = self.ids.get(k, (None,))[0] if k is not None else None
+        if not tid:
+            return 0
+        return profiles.season_gap(reg, rec_of, [x for *_, x, _ in efdb.squad(tid)])
 
-    def _apply_ops(self, c, reg, mgr):
+    def _apply_ops(self, c, reg, mgr, edit=None):
+        """Replay staged edits on (c, reg, mgr). Returns {real ID: spare ID} newly lent."""
         rec_of = {reg.pid(i): i for i in range(reg.count)}
+        spares = load_spares()
+        new_spares = {}
+        gap = None
+        db_tables = None
         for op in self.staged:
             kind = op["op"]
-            if kind == "release":
+            if kind == "new":
+                real = int(op["pid"])
+                p = efdb.player(real)
+                if gap is None:
+                    gap = self._gap(reg, rec_of)
+                pid = spares.get(real) or new_spares.get(real)
+                if pid is None and real in self.db.player_names:
+                    if real in rec_of:
+                        raise EditError(f"{p.get('player_name')} already has a career record")
+                    h = profiles.build_new_player(c, reg, real, op["block"], p, gap)
+                    rec_of[real] = h & 0xFFFF
+                    c.add(op["block"], real, shirt=op.get("shirt"), handle=h)
+                    continue
+                if pid is None:                       # FL26 lacks him: lend a spare ID
+                    if edit is None:
+                        raise EditError("creating a player FL26 lacks needs the option file")
+                    edit_pids = {struct.unpack_from("<I", edit.d, 0x7C + k * 0x138)[0]
+                                 for k in range(edit.count)}
+                    pid, si = profiles.pick_spare(c, reg, self.db, edit_pids,
+                                                  exclude=set(spares.values()) | set(new_spares.values()))
+                    if db_tables is None:
+                        db_tables = load_db_tables(DEFAULT_DUMP)
+                    players, faces = db_tables
+                    edit.add_player(pid, p.get("player_name", f"#{real}"),
+                                    (p.get("shirt_name") or p.get("player_name", "")).upper(),
+                                    players[pid], faces.get(FACE_DONOR, faces[pid]),
+                                    p.get("height"), p.get("weight"),
+                                    (p.get("nationality_a") or {}).get("country_id"))
+                    new_spares[real] = pid
+                else:                                 # already lent earlier: reuse the spare
+                    si = rec_of.get(pid)
+                    if si is None:
+                        raise EditError(f"the spare ID {pid} for {real} has no career record")
+                    for k in c.club_of(pid):
+                        c.release(k, pid)
+                h = profiles.adopt_spare(c, reg, si, op["block"], p, gap)
+                c.add(op["block"], pid, shirt=op.get("shirt"), handle=h)
+            elif kind == "release":
                 c.release(op["block"], op["pid"])
             elif kind in ("add", "move"):
                 if kind == "move":
@@ -219,12 +343,17 @@ class Session:
                 idx = cl.pids.index(op["pid"])
                 struct.pack_into("<H", c.d, cl.offset + 0x14E + idx * 2, int(op["shirt"]))
         reg.commit()
+        return new_spares
+
+    def _edit_file(self):
+        p = self.path.parent / "EDIT00000000"
+        return EditFile(p) if p.exists() else None
 
     def preview(self):
         """Apply to a scratch copy and report validator differences, without writing."""
         c = Career.load(self.path)
         before = validate.check(c)
-        self._apply_ops(c, Registry(c), Managers(c))
+        self._apply_ops(c, Registry(c), Managers(c), self._edit_file())
         new = validate.new_problems(before, validate.check(c))
         return {"edits": len(self.staged), "newProblems": [str(p) for p in new]}
 
@@ -232,17 +361,26 @@ class Session:
         if not self.staged:
             raise EditError("nothing staged")
         c = Career.load(self.path)
+        edit = self._edit_file()
         before = validate.check(c)
-        self._apply_ops(c, Registry(c), Managers(c))
+        new_spares = self._apply_ops(c, Registry(c), Managers(c), edit)
         new = validate.new_problems(before, validate.check(c))
         if new:
             raise EditError("refused: the edits would introduce problems: "
                             + "; ".join(str(p) for p in new[:5]))
-        backup = safewrite.write(c, f"careerlab-{len(self.staged)}-edits")
+        label = f"careerlab-{len(self.staged)}-edits"
+        if new_spares:            # option file first: a renamed spare is harmless on its own
+            safewrite.write_file(edit, label)
+        backup = safewrite.write(c, label)
+        if new_spares:
+            m = load_spares()
+            m.update(new_spares)
+            save_spares(m)
+            self.db = Database(DEFAULT_DUMP, self.path.parent / "EDIT00000000")
         n = len(self.staged)
         self.staged = []
         self.reload()
-        return {"applied": n, "backup": str(backup)}
+        return {"applied": n, "backup": str(backup), "newPlayers": len(new_spares)}
 
     # ------------------------------------------------------------------ backups
 

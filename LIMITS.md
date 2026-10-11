@@ -112,6 +112,22 @@ the natural source for "hire this manager". [game]
 - **Giu's salary / contract year / form arrow**: written and kept by the file, but BAL has
   no screen that shows them (Negociação only offers a transfer request). Can't verify in game.
 
+## New players from efootballdb — SOLVED (E19, E20, sync test)
+
+- **In FL26's database, new to the career** (Rhuan Gabriel): registry record built from
+  efootballdb (abilities, positions, skills, style, age + season gap, nationality) with a
+  teammate's club context → SA, 24, Brasil, "Armador criativo" in game. Profiles rebuilt
+  this way for 288 existing players agree 98.9% on skills, 98% on positions. [game]
+- **Not in FL26 at all** (Kauã Moraes): an option-file record for a NEW ID is ignored —
+  the career shows him with full stats but as "Jogadores" with a generic face (E19).
+  Working method (E20): lend a **spare database ID** (obscure, no club, no squad, no
+  history), turn the spare's registry record into the player and rename the spare in the
+  option file (data + face cloned from a donor). Shows as "Kauã Moraes" LD 60. The app
+  keeps `{real ID: spare ID}` in `%LOCALAPPDATA%\CareerLab\spares.json`. [game]
+- **Whole-club sync through the app**: Cruzeiro synced to efootballdb (1 moved in, 1 added,
+  6 created incl. 5 new to FL26, 7 released) — all 29 listed by name in game. [game]
+- Note: created players get age + season gap but today's ratings (no growth applied).
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -166,4 +182,7 @@ the second copy. Impact in game unknown.
 | E16 | full manager swap Cruzeiro ↔ Crystal Palace (Glasner) | **Cruzeiro becomes 5-3-1-1, three CBs** |
 | E17 | Giu salary/contract/form; manager+0x251 as captain; def line/compactness | captain wrong field; others not visible in BAL |
 | E18 | attacking style + pressuring flipped in Cruzeiro's preset | **both shown exactly** |
+| E19 | Rhuan (efdb profile) + Kauã via new option-file ID | Rhuan correct; Kauã unnamed ("Jogadores") |
+| E20 | Kauã via spare database ID renamed | **named, LD 60** |
+| sync | Cruzeiro synced from the app UI (15 edits) | all 29 in game, 5 new to FL26 |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

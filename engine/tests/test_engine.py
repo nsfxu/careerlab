@@ -100,3 +100,24 @@ def test_manager_table_both_careers(bl0):
     assert Managers(bl0).get(120) == (6, "Leonardo Jardim")
     if USER_BL1.exists():
         assert Managers(Career.load(USER_BL1)).get(0) == (102109, "Mikel Arteta")
+
+
+def test_no_field_name_collisions():
+    # a duplicate key silently overwrote the Heading ability twice; keep it impossible
+    from fl26 import created as C
+    assert len(A.ABILITIES) == 25 and A.FIELDS["heading"] == (50, 6, 40)
+    assert C.FIELDS["heading"][2] == 7 and "heading_skill" in C.FIELDS
+
+
+@needs
+def test_profile_rebuild_matches_career(bl0):
+    import json
+    from fl26 import profiles
+    reg = Registry(bl0)
+    rec = reg.record(reg.index_of(151850))          # Joao Marcelo
+    p = {"main_position": 1, "cb": 2, "header": A.get(rec, "heading"), "heading": 1,
+         "fighting_spirit": 1, "age": 26}
+    built = profiles.block_from_efdb(p, rec, gap=4)
+    assert A.get(built, "registered_position") == 1 and A.get(built, "pos_cb") == 2
+    assert A.get(built, "heading_skill") == 1 and A.get(built, "fighting_spirit") == 1
+    assert A.get(built, "age") == 30

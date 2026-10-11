@@ -52,6 +52,22 @@ def restore(save_path, backup_file):
     shutil.copy2(backup_file, save_path)
 
 
+def write_file(obj, label, dest=None):
+    """Like `write`, for anything with `.d` (decrypted payload), `.path` and `.to_bytes()`
+    -- the option file included."""
+    if game_running():
+        raise WriteRefused("the game is running")
+    dest = Path(dest or obj.path)
+    expected = bytes(obj.d)
+    blob = obj.to_bytes()
+    saved = backup(dest, label)
+    dest.write_bytes(blob)
+    if Save.load(dest).data != expected:
+        shutil.copy2(saved, dest)
+        raise WriteRefused(f"{dest.name} did not verify after writing; restored the backup")
+    return saved
+
+
 def write(career, label, dest=None):
     """Encrypt `career` to `dest` (default: where it was loaded from). Returns the backup."""
     if game_running():

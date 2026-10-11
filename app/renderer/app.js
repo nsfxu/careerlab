@@ -21,7 +21,7 @@ const ABIL_ORDER = Object.keys(ABIL_PT);
 const SKILL_NAMES = {
   scissors_feint: "Pedalada simples", flip_flap: "Elástico", marseille_turn: "Giro de Marselha",
   sombrero: "Chapéu", cut_behind_turn: "Corte por trás e giro", scotch_move: "Toque de letra",
-  heading: "Cabeçada", long_range_drive: "Chute de longe", knuckle_shot: "Folha seca",
+  heading_skill: "Cabeçada", long_range_drive: "Chute de longe", knuckle_shot: "Folha seca",
   acrobatic_finishing: "Finalização acrobática", heel_trick: "Toque de calcanhar",
   first_time_shot: "Chute de primeira", one_touch_pass: "Passe de primeira", weighted_pass: "Passe na medida",
   pinpoint_crossing: "Cruzamento preciso", outside_curler: "Curva para fora", rabona: "De letra",
@@ -116,6 +116,7 @@ async function openClub(block) {
     renderClubs();
     renderSquad();
     $("#btn-manager").disabled = false;
+    $("#btn-sync").disabled = !state.squad.teamId;
   });
 }
 
@@ -290,7 +291,7 @@ async function applyEdits() {
     state.staged = [];
     state.labels = [];
     updateStaged();
-    toast(`Applied ${r.applied} edits. Backup: ${r.backup.split("\\").slice(-2).join("\\")}`);
+    toast(`Applied ${r.applied} edits${r.newPlayers ? ` (${r.newPlayers} players new to FL26)` : ""}. Backup: ${r.backup.split("\\").slice(-2).join("\\")}`);
     state.clubs = await call("clubs");
     renderClubs();
     if (state.block != null) await openClub(state.block);
@@ -363,7 +364,13 @@ function onSearch() {
     for (const r of rows) {
       const where = r.blocks.length ? r.blocks.map((b) => b.name).join(", ") : r.hasRecord ? "free / no squad" : "not in this career yet";
       const row = el("div", {}, el("span", { textContent: r.name }), el("span", { className: "where", textContent: where }));
-      row.style.cursor = r.hasRecord ? "pointer" : "default";
+      row.style.cursor = "pointer";
+      if (!r.hasRecord) row.onclick = () => {
+        box.classList.add("hidden");
+        if (state.block == null) return;
+        if (confirm(`${r.name} is not in this career yet. Create him at ${state.squad.name} with his efootballdb ratings?`))
+          stage({ op: "new", pid: r.pid, block: state.block, label: `Create ${r.name} at ${state.squad.name}` });
+      };
       if (r.hasRecord) row.onclick = async () => {
         box.classList.add("hidden");
         await openPlayer(r.pid);
@@ -382,6 +389,60 @@ function addOffer(r) {
     : stage({ op: "add", pid: r.pid, block: state.block, label: `Add ${r.name} to ${state.squad.name}` });
   actions.append(btn);
   $("#detail").append(actions);
+}
+
+// ------------------------------------------------------------------ efootballdb sync
+
+let syncPlan = null;
+async function openSync(refresh = false) {
+  const body = $("#sync-body");
+  body.innerHTML = "<p class='muted'>Fetching the real squad…</p>";
+  $("#sync-title").textContent = `Sync ${state.squad.name} with efootballdb`;
+  if (!$("#dlg-sync").open) $("#dlg-sync").showModal();
+  syncPlan = await guarded(() => call("sync_plan", { block: state.block, refresh }));
+  if (!syncPlan) { body.innerHTML = ""; return; }
+  body.innerHTML = "";
+  const group = (title, note, items, render, checked = true) => {
+    if (!items.length) return;
+    const g = el("div", { className: "sync-group" });
+    g.append(el("h3", {}, `${title} (${items.length}) `, el("span", { className: "muted", textContent: note })));
+    for (const it of items) {
+      const cb = el("input", { type: "checkbox", checked });
+      it._cb = cb;
+      const [main, side] = render(it);
+      g.append(el("div", { className: "sync-row" }, cb, badge(it.position) || "", main, side));
+    }
+    body.append(g);
+  };
+  const tag = (t, cls) => el("span", { className: "tag " + cls, textContent: t });
+  group("Move in", "currently at another club in your career", syncPlan.moveIn,
+    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: `from ${it.fromName}` })]);
+  group("Add", "known to the career, without a club", syncPlan.add,
+    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: "free player" })]);
+  group("Create", "new to this career", syncPlan.create,
+    (it) => [el("span", { textContent: `${it.name}, ${it.age}` }),
+      it.kind === "absent" ? tag("not in FL26: lookalike face", "absent") : tag("in FL26 database", "new")]);
+  group("Release", "not in the real squad any more", syncPlan.release,
+    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: "becomes a free agent" })]);
+  if (syncPlan.keep.length)
+    body.append(el("p", { className: "muted", textContent: `${syncPlan.keep.length} players already match.` }));
+  if (syncPlan.coach?.name && syncPlan.coach.name !== state.squad.manager?.name)
+    body.append(el("p", { className: "muted", textContent: `Real coach: ${syncPlan.coach.name} (change it with "Change manager").` }));
+}
+
+async function stageSync() {
+  const p = syncPlan;
+  if (!p) return;
+  const team = state.squad.name;
+  const ops = [];
+  for (const it of p.release) if (it._cb.checked) ops.push({ op: "release", pid: it.pid, block: p.block, label: `Release ${it.name} from ${team}` });
+  for (const it of p.moveIn) if (it._cb.checked) ops.push({ op: "move", pid: it.careerPid, from: it.from, to: p.block, label: `Move ${it.name}: ${it.fromName} → ${team}` });
+  for (const it of p.add) if (it._cb.checked) ops.push({ op: "add", pid: it.careerPid, block: p.block, label: `Add ${it.name} to ${team}` });
+  for (const it of p.create) if (it._cb.checked) ops.push({ op: "new", pid: it.pid, block: p.block, shirt: it.shirt,
+    label: `Create ${it.name} at ${team}` + (it.kind === "absent" ? " (new to FL26)" : "") });
+  $("#dlg-sync").close();
+  for (const op of ops) await stage(op);
+  toast(`${ops.length} sync edits staged — review and apply when ready`);
 }
 
 // ------------------------------------------------------------------ backups / game state
@@ -427,6 +488,10 @@ $("#btn-close-pick").onclick = () => $("#dlg-pick").close();
 $("#btn-backups").onclick = openBackups;
 $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
+$("#btn-sync").onclick = () => openSync(false);
+$("#btn-sync-refresh").onclick = () => openSync(true);
+$("#btn-close-sync").onclick = () => $("#dlg-sync").close();
+$("#btn-sync-stage").onclick = stageSync;
 loadSaves();
 pollGame();
 setInterval(pollGame, 4000);

@@ -34,6 +34,7 @@
         </div>
         <div class="squad-tools">
           <input id="player-search" type="search" placeholder="Search any player in the database">
+          <button id="btn-sync" class="ghost" disabled title="Compare with the real squad on efootballdb.com">Sync real squad</button>
           <button id="btn-manager" class="ghost" disabled>Change manager</button>
         </div>
       </div>
@@ -66,6 +67,18 @@
     <ul id="pick-list" class="pick-list"></ul>
     <label id="pick-option" class="pick-option hidden"><input type="checkbox" id="pick-check"> <span></span></label>
     <div class="dialog-actions"><button id="btn-close-pick" class="ghost">Cancel</button></div>
+  </dialog>
+
+  <dialog id="dlg-sync" class="dialog wide">
+    <h2 id="sync-title">Sync with efootballdb</h2>
+    <p class="muted">Real squad from efootballdb.com (same player IDs as FL26). Untick anything you want to leave as it is.
+      Players FL26 doesn't have are created with their real ratings and a lookalike face.</p>
+    <div id="sync-body" class="sync-body"></div>
+    <div class="dialog-actions">
+      <button id="btn-sync-refresh" class="ghost">Refresh from efootballdb</button>
+      <button id="btn-close-sync" class="ghost">Cancel</button>
+      <button id="btn-sync-stage" class="primary">Stage selected</button>
+    </div>
   </dialog>
 
   <dialog id="dlg-backups" class="dialog">

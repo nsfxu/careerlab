@@ -58,7 +58,7 @@ FIELDS.update({
 # Skills: one bit each, solved against efootballdb for 285 players (96-100% agreement).
 SKILLS = {
     "scissors_feint": 191, "flip_flap": 204, "marseille_turn": 205, "sombrero": 206,
-    "cut_behind_turn": 207, "scotch_move": 208, "heading": 209, "long_range_drive": 210,
+    "cut_behind_turn": 207, "scotch_move": 208, "heading_skill": 209, "long_range_drive": 210,
     "knuckle_shot": 211, "acrobatic_finishing": 212, "heel_trick": 213,
     "first_time_shot": 214, "one_touch_pass": 215, "weighted_pass": 216,
     "pinpoint_crossing": 217, "outside_curler": 218, "rabona": 219, "low_lofted_pass": 220,

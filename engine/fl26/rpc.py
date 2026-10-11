@@ -71,6 +71,15 @@ class Server:
     def search(self, query):
         return self._session().search(query)
 
+    def sync_plan(self, block, refresh=False):
+        return self._session().sync_plan(int(block), refresh)
+
+    def efdb_player(self, pid):
+        from . import efdb
+        p = efdb.player(int(pid))
+        return {"pid": p["pes_id"], "name": p.get("player_name"), "position": p.get("main_position_text"),
+                "age": p.get("age"), "status": self._session().status(int(pid))}
+
     def stage(self, op):
         return self._session().stage(op)
 
