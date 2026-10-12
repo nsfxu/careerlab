@@ -744,7 +744,7 @@ async function openSync(refresh = false, source = syncSource) {
       const cb = el("input", { type: "checkbox", checked });
       it._cb = cb;
       const [main, side] = render(it);
-      g.append(el("div", { className: "sync-row" }, cb, badge(it.position) || "", main, side));
+      g.append(el("div", { className: "sync-row" }, cb, it.position ? badge(it.position) : el("span"), main, side));
     }
     body.append(g);
   };
@@ -754,7 +754,7 @@ async function openSync(refresh = false, source = syncSource) {
   group(t("sync.add"), t("sync.addNote"), syncPlan.add,
     (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.freePlayer") })]);
   group(t("sync.create"), t("sync.createNote"), syncPlan.create,
-    (it) => [el("span", { textContent: `${it.name}, ${it.age}` }),
+    (it) => [el("span", { textContent: it.age ? `${it.name}, ${it.age}` : it.name }),
       it.kind === "absent" ? tag(t("sync.absentTag"), "absent") : tag(t("sync.dbTag"), "new")]);
   group(t("sync.release"), t(syncPlan.source === "edit" ? "sync.releaseNoteEdit" : "sync.releaseNote"), syncPlan.release,
     (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.becomesFree") })]);

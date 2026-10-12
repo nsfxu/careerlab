@@ -151,7 +151,7 @@ class Session:
         if pid >= CREATED_ID_MIN and self.created_base is not None:
             b = self.created_base
             row.update(position=POS_NAMES[created.get(self.c, b, "registred_position")],
-                       age=created.get(self.c, b, "age"))
+                       age=created.get(self.c, b, "age"), rating=self._created_rating(b))
             return row
         i = self.rec_of.get(pid)
         if i is not None:
@@ -160,6 +160,15 @@ class Session:
             row.update(position=POS_NAMES[pos] if pos < 13 else "?", age=A.get(rec, "age"),
                        speed=A.get(rec, "speed"), rating=round(A.overall_estimate(rec)))
         return row
+
+    def _created_rating(self, b):
+        """Your player's estimated overall, same formula as everyone's."""
+        vals = {k: created.get(self.c, b, k) for k in A.ABILITIES if k in created.FIELDS}
+        if created.get(self.c, b, "registred_position") == 0:
+            gk = [v for k, v in vals.items() if k.startswith("gk_")]
+            return round(sum(gk) / len(gk) - 7) if gk else None
+        top = sorted((v for k, v in vals.items() if not k.startswith("gk_")), reverse=True)[:14]
+        return round(sum(top) / len(top)) if top else None
 
     def squad(self, k):
         cl = self.c.club(k)

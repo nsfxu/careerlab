@@ -13,9 +13,13 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
   and captains, in one reviewed batch.
 - **Create players FL26 doesn't have** (academy promotions, new signings) with their real
   ratings, age, position, style and nationality, and a lookalike face.
-- **Edit any player**: the 25 abilities, skills, shirt number, captaincy; move or release him.
-- **Edit your own player** (the created character): abilities and skills.
-- **Change a club's manager**, with or without his tactics.
+- **Reset a club to the FL26 database**: put a squad back to the one FL26 starts careers with.
+- **Sign free agents**: browse the players without a club, strongest first, and sign them.
+- **Edit any player**: the 25 abilities, skills, playing style, positions (on a mini pitch),
+  weak foot, form, age, shirt number, captaincy; move or release him.
+- **Edit your own player**: also height, weight, best foot and injury resistance.
+- **Change a club's manager**, with or without his tactics, or **copy another club's tactics**.
+- **Tools**: export squads to CSV; repair the duplicate entries the game creates at season end.
 - **Portuguese or English**, switched with the flags in Settings; updates itself from GitHub Releases.
 - **Safe by design**: nothing is written until you apply, every apply is checked and backed up,
   and the save is never touched while the game is running.
@@ -38,9 +42,12 @@ CareerLab updates itself: when a new version is out it downloads in the backgrou
 ## Using it
 
 **Squads and players.** Pick the career slot at the top, then a club on the left (your club is
-pinned first). Click a player to open his panel: abilities grouped like the game (Ataque,
-Físico, Defesa, Goleiro) with rating bars, skills as chips, shirt number, captaincy, move and
-release. Your own player is marked with a star.
+pinned first). The squad table shows an estimated overall (within about 3 points of the
+game's). Click a player to open his panel: a **profile** (playing style, registered position,
+weak foot, form, age, and a mini pitch where a click cycles each position between C, B and A),
+abilities grouped like the game with rating bars, skills as chips, shirt number, captaincy,
+move and release. For your own player (marked with a star) the profile also has height,
+weight, best foot and injury resistance. Style names are exactly the game's.
 
 ![Your player](docs/screenshots/02-your-player.png)
 
@@ -48,6 +55,8 @@ release. Your own player is marked with a star.
 efootballdb and shows what would change. Untick anything you want to keep as it is. Players
 FL26 lacks are created with their real ratings; players FL26 knows under another ID are
 recognised by name, not duplicated. pesmaster.com is checked as a second opinion.
+The **Tactics** button copies another club's formations and tactics while keeping the
+manager; **Manager** swaps managers, with or without their tactics.
 
 ![Club sync](docs/screenshots/03-club-sync.png)
 
@@ -68,10 +77,22 @@ folder. Each backup says what restoring it would undo, with the full list of edi
 
 ![Backups](docs/screenshots/06-backups.png)
 
-**Search.** The search box finds any player in FL26's database: where he plays in your career,
-or whether he is free. A player the career has never had can be created at the open club.
+**Free agents and search.** *Free agents* lists the players the career knows who are in no
+squad, strongest first, filtered by position, age and name; *Sign* adds them to the open
+club. The search box finds any player in FL26's database, and a player the career has never
+had can be created at the open club.
 
-![Search](docs/screenshots/07-search.png)
+![Free agents](docs/screenshots/07-free-agents.png)
+
+**Reset to the FL26 database.** The club sync dialog has a second source: *FL26 database*
+plans the club back to the squad FL26's own option file gives it, undoing transfers.
+
+![Reset to the database](docs/screenshots/08-reset-to-database.png)
+
+**Settings.** Language (Brazilian Portuguese or English, by flag), game and saves folders,
+the database reader, updates, and the tools: CSV export and duplicate repair.
+
+![Settings](docs/screenshots/09-settings.png)
 
 ## How it works
 

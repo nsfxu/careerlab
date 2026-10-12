@@ -343,3 +343,9 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
   padding: 4px 6px; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
 .free-row .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-ovr { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* the squad toolbar keeps the search usable: secondary tools become icons first */
+@media (max-width: 1600px) {
+  #btn-free span, #btn-tactics span, #btn-manager span { display: none; }
+  #btn-free, #btn-tactics, #btn-manager { padding: 7px 9px; }
+}

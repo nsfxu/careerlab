@@ -76,7 +76,7 @@ def main():
         "await row((r) => r.textContent.includes('Matheus Pereira'));")
     p.shot("01-squad-and-player")
 
-    run("await row((r) => r.classList.contains('created')); $('.detail').scrollTop = 9999; await w(300);")
+    run("await row((r) => r.classList.contains('created')); $('.detail').scrollTop = 0; await w(300);")
     p.shot("02-your-player")
 
     run("$('.detail').scrollTop = 0; await club('Aston Villa'); $('#btn-sync').click();"
@@ -95,11 +95,21 @@ def main():
         "const b = document.querySelector('.bk'); if (b) b.open = true; await w(300);")
     p.shot("06-backups")
 
-    run("$('#btn-close-backups').click(); $('#player-search').value = 'Neymar';"
-        "$('#player-search').dispatchEvent(new Event('input')); await w(1500);")
-    p.shot("07-search")
+    run("$('#btn-close-backups').click(); $('#btn-free').click(); await until(() => document.querySelectorAll('.free-row').length > 0);"
+        "$('#free-pos').value = 'CB'; $('#free-pos').dispatchEvent(new Event('change')); await w(300);"
+        "$('#free-age').value = 25; $('#free-age').dispatchEvent(new Event('input')); await w(1500);")
+    p.shot("07-free-agents")
 
-    run("$('#search-results').classList.add('hidden'); $('#player-search').value = '';")
+    run("$('#btn-close-free').click(); $('#btn-sync').click(); await until(() => !/Fetching/.test($('#sync-body').textContent));"
+        "document.querySelector('#sync-source button[data-src=edit]').click(); await w(300);"
+        "await until(() => !/Fetching/.test($('#sync-body').textContent)); await w(600);")
+    p.shot("08-reset-to-database")
+
+    run("document.querySelector('#sync-source button[data-src=efdb]').classList.add('on'); syncSource = 'efdb';"
+        "$('#btn-close-sync').click(); $('#btn-setup').click(); await w(1500);")
+    p.shot("09-settings")
+
+    run("$('#btn-setup-done').click(); await w(300);")
     p.cmd("Emulation.clearDeviceMetricsOverride")
     staged = run("return document.querySelector('#staged-count').textContent;")
     if staged != "0":

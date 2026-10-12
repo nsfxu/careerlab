@@ -26,11 +26,11 @@
 | `crypto.py` | `Save.load/encrypt`: pesXdecrypter ported to Python (MT19937 keystream, numpy). Round trip is byte-identical. |
 | `career.py` | The club squad table (40 slots per club block), handle/ID pairs, `release`, `add`, `club_of`, namespaces |
 | `registry.py` | The player registry (zlib section, 156-byte records); `append`, `commit` recompresses and fixes the directory |
-| `attributes.py` | Bit map of a registry record: abilities, positions, skills, style, age, form, weak foot; efootballdb style mapping |
+| `attributes.py` | Bit map of a registry record: abilities, positions, skills, style, age, form, weak foot; efootballdb style mapping; `overall_estimate` |
 | `created.py` | The user's created player (a full runtime-layout struct, 125 fields; registry record 0 is only a mirror) |
 | `managers.py` | Per-club manager records: coach, tactics presets, stored lineup, captain; slot remapping on release/add |
 | `database.py` | FL26's base database from the Sider dump (names, teams, assignments) + option-file names; club identification |
-| `editfile.py` | `EDIT00000000` (option file) player table: rename a spare player |
+| `editfile.py` | `EDIT00000000` (option file): player table (rename a spare player) and the squad table (`squads()`, used by reset-to-database) |
 | `profiles.py` | Build a registry record from efootballdb data; spare-ID picking; face donors |
 | `efdb.py` | efootballdb client (team squads, players, league list), cached in `%LOCALAPPDATA%\CareerLab\efdb-cache` |
 | `pesmaster.py` | pesmaster.com squad page parser, the second opinion in club sync |
@@ -50,7 +50,7 @@
    if spare IDs were lent, then the career; both through `safewrite` with a description from
    `describe()`. `spares.json` is updated only after the write succeeds.
 
-Op kinds: `move release add new attr created manager_swap manager_set shirt renumber captain`.
+Op kinds: `move release add new attr created manager_swap manager_set tactics_copy shirt renumber captain dedupe`.
 `label` (human text) and `source` ("Cruzeiro EC sync") are kept with the op and end up in the
 backup description; keys in `Session.UI_ONLY` are stripped.
 

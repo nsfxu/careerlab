@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — unreleased
+## 2.0.0 — 2026-10-12
 
 - **Profile editor**: playing style, registered position, position ratings on a mini pitch
   (click to cycle C/B/A), weak foot, form and age for any player; height, weight, best foot
@@ -15,6 +15,8 @@
 - **Export squads to CSV** (this club or all clubs) from Settings → Tools.
 - **Repair duplicate entries**: the game lists some players twice at season rollover; one
   click keeps a single entry (and fixes the manager's lineup/captain references).
+- UI review: the squad toolbar keeps the search usable on narrower windows, dialogs scroll
+  when taller than the window, unknown values are no longer shown as "null".
 
 ## 1.0.1 — 2026-10-12
 
