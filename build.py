@@ -4,7 +4,8 @@
 2. freezes the engine with PyInstaller  -> build/dist/careerlab-engine/
 3. packages the Electron app with it    -> dist/CareerLab-Setup-<version>.exe
 
-Needs Python with numpy + PyInstaller, and Node (npm install once in app/).
+Needs Python with engine/requirements-dev.txt, and Node (npm install once in app/).
+GitHub Actions runs this same script on every v* tag (.github/workflows/release.yml).
 """
 import json
 import shutil
@@ -33,7 +34,8 @@ def main():
          "--exclude-module", "matplotlib", "--exclude-module", "websocket"], ENGINE)
     if not (APP / "node_modules").exists():
         run(["npm", "install"], APP)
-    run(["npx", "electron-builder", "--win", "nsis", "--x64"], APP)
+    # publishing is the release workflow's job (and auto-update's, later), never the build's
+    run(["npx", "electron-builder", "--win", "nsis", "--x64", "--publish", "never"], APP)
     version = json.loads((APP / "package.json").read_text(encoding="utf-8"))["version"]
     print("installer:", ROOT / "dist" / f"CareerLab-Setup-{version}.exe")
 

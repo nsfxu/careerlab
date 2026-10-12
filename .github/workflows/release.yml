@@ -1,0 +1,70 @@
+# Build the Windows installer and publish it as a GitHub Release.
+#
+#   git tag v0.3.0 && git push origin v0.3.0     -> Release "CareerLab 0.3.0" with the installer
+#   Actions > release > Run workflow             -> build only; the installer is a run artifact
+#
+# The version comes from the tag (app/package.json is set to it before building).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements-dev.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r engine/requirements-dev.txt
+          npm ci --prefix app
+
+      - name: Version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          npm version "$v" --no-git-tag-version --allow-same-version --prefix app
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: Test, freeze engine, build installer
+        run: python build.py
+
+      - name: Keep the installer as a run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CareerLab-installer
+          path: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
+          if-no-files-found: error
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CareerLab ${{ env.VERSION }}
+          generate_release_notes: true
+          files: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
