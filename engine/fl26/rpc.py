@@ -118,15 +118,6 @@ class Server:
     def unstage(self, index):
         return self._session().unstage(int(index))
 
-    def since_last(self):
-        return self._session().since_last()
-
-    def compare_backup(self, file):
-        return self._session().compare_backup(file)
-
-    def accept_snapshot(self):
-        return self._session().accept_snapshot()
-
     def unstage_all(self):
         return self._session().unstage_all()
 

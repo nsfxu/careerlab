@@ -91,9 +91,9 @@ undecoded · **Later** = needs more research first.
 | Feature | Status |
 |---|---|
 | Export squads / players / managers to CSV | Ready |
-| Compare two saves (what the game changed between them) | **Done** (backups → Compare) |
+| Compare two saves (what the game changed between them) | Ready |
 | **Player career stats viewer**: matches, goals, history per player, read from the save | Later — layout not yet decoded |
-| **Career timeline / What changed**: what the game did since CareerLab last saw the career (transfers, signings, departures, managers, regens, your club's ratings, your player), and compare with any backup | **Done** (1.1.0) |
+| **Career timeline**: snapshot every autosave the game writes, show what happened between them (AI transfers, manager changes, player development) | Ready — save diff exists |
 
 ## 8. Workflow
 

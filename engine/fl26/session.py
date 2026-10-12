@@ -6,11 +6,9 @@ running check, backup into ...\\2026\\backup, verify by re-reading).
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
-import shutil
 import struct
 import unicodedata
 from pathlib import Path
@@ -29,7 +27,6 @@ CLUB_CONTEXT = [(0x28, 0x74), (0x80, 0x84)]      # competitions, current club
 CREATED_SKILL_ALIASES = {"dipping_shot": "dipping_shots"}
 
 SPARES = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "spares.json"
-SNAPSHOTS = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "snapshots"
 FACE_DONOR = 169270          # fallback face (young Brazilian) when no same-nationality donor
 
 
@@ -132,67 +129,9 @@ class Session:
             club = self.my_block()
             me = {"name": created.name(self.c, b), "age": created.get(self.c, b, "age"),
                   "block": club, "club": self.club_name(club) if club is not None else None}
-        snap = self.snapshot_info()
         return {"path": str(self.path), "slot": self.path.name, "clubs": len(self.c.clubs()),
                 "registry": self.reg.count, "capacity": self.reg.capacity, "me": me,
-                "staged": len(self.staged), "changedSinceLast": snap["changed"],
-                "snapshotTaken": snap["taken"]}
-
-    # ------------------------------------------------------------- what changed
-
-    def _snap_paths(self):
-        key = hashlib.sha1(str(self.path.resolve()).lower().encode()).hexdigest()[:10]
-        d = SNAPSHOTS / f"{self.path.name}-{key}"
-        return d / "baseline", d / "baseline.json"
-
-    @staticmethod
-    def _digest(path):
-        return hashlib.md5(Path(path).read_bytes()).hexdigest()
-
-    def snapshot_info(self):
-        """Is the save different from the copy CareerLab last saw? The first time, the
-        current save becomes the baseline."""
-        snap, meta = self._snap_paths()
-        if not snap.exists():
-            self.accept_snapshot()
-            return {"changed": False, "taken": None}
-        try:
-            m = json.loads(meta.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            m = {}
-        return {"changed": m.get("md5") != self._digest(self.path), "taken": m.get("taken")}
-
-    def accept_snapshot(self):
-        """The current save becomes the baseline (after the user saw the changes, or after
-        CareerLab's own apply/restore, which are not news)."""
-        from datetime import datetime
-        snap, meta = self._snap_paths()
-        snap.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(self.path, snap)
-        meta.write_text(json.dumps({"md5": self._digest(snap),
-                                    "taken": datetime.now().isoformat(timespec="seconds")}), encoding="utf-8")
-        return True
-
-    def _compare(self, old_path):
-        from .compare import View, compare
-        return compare(View(old_path), View(self.path), self.name, self.club_name, self._is_club,
-                       self.my_block())
-
-    def since_last(self):
-        snap, meta = self._snap_paths()
-        if not snap.exists():
-            return {"empty": True}
-        out = self._compare(snap)
-        try:
-            out["since"] = json.loads(meta.read_text(encoding="utf-8")).get("taken")
-        except (OSError, ValueError):
-            out["since"] = None
-        return out
-
-    def compare_backup(self, file):
-        out = self._compare(file)
-        out["since"] = Path(file).name[:15]
-        return out
+                "staged": len(self.staged)}
 
     def clubs(self):
         out = []
@@ -831,7 +770,6 @@ class Session:
         n = len(self.staged)
         self.staged = []
         self.reload()
-        self.accept_snapshot()            # our own edits are not "what the game changed"
         return {"applied": n, "backup": str(backup), "newPlayers": len(new_spares)}
 
     # ------------------------------------------------------------------ backups
@@ -857,5 +795,4 @@ class Session:
         safewrite.restore(self.path, file)
         self.staged = []
         self.reload()
-        self.accept_snapshot()
         return self.summary()
