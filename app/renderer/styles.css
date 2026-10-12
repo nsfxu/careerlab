@@ -401,3 +401,9 @@ body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
   color: var(--dim); border-bottom: 0; }
 .squad-table tr.pinned { background: var(--red-soft); box-shadow: inset 3px 0 0 var(--red-glow); }
 .squad-table tr.pinned:hover { background: #c8102e33; }
+
+/* sortable squad table */
+#squad-head th { cursor: pointer; user-select: none; white-space: nowrap; }
+#squad-head th:hover { color: var(--text); }
+#squad-head th.sorted { color: var(--red-glow); }
+.sort-arrow { font-style: normal; font-size: 8px; margin-left: 4px; vertical-align: 1px; }

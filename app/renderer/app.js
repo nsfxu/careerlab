@@ -199,7 +199,8 @@ function renderSquad() {
   body.innerHTML = "";
   // your own player pinned on top, like your club in the club list
   const mine = s.players.filter((p) => p.created);
-  const rest = s.players.filter((p) => !p.created);
+  const rest = sortPlayers(s.players.filter((p) => !p.created));
+  markSortHeaders();
   const group = (key) => el("tr", { className: "group" }, el("td", { colSpan: 6, textContent: t(key) }));
   if (mine.length) body.append(group("squad.yourPlayer"));
   for (const p of [...mine, ...rest]) {
@@ -215,6 +216,44 @@ function renderSquad() {
     tr.onclick = () => openPlayer(p.pid);
     body.append(tr);
   }
+}
+
+// Column sorting: first click = the natural direction for that column (numbers that mean
+// "better" go biggest first), second flips it, third returns to the squad order.
+const SORT_FIRST = { shirt: "asc", pos: "asc", name: "asc", age: "desc", rating: "desc", speed: "desc" };
+const SORT_VALUE = {
+  shirt: (p) => p.shirt, name: (p) => p.name?.toLowerCase(), age: (p) => p.age, rating: (p) => p.rating,
+  speed: (p) => p.speed, pos: (p) => { const i = POS_CODES.indexOf(p.position); return i < 0 ? null : i; },
+};
+state.sort = (() => { try { return JSON.parse(localStorage.getItem("careerlab.sort")) || null; } catch { return null; } })();
+
+function sortPlayers(list) {
+  const sk = state.sort;
+  if (!sk || !SORT_VALUE[sk.key]) return list;
+  const val = SORT_VALUE[sk.key], dir = sk.dir === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    const x = val(a), y = val(b);
+    if (x == null || x === "") return (y == null || y === "") ? 0 : 1;     // blanks always last
+    if (y == null || y === "") return -1;
+    return (x < y ? -1 : x > y ? 1 : 0) * dir;
+  });
+}
+
+function markSortHeaders() {
+  for (const th of document.querySelectorAll("#squad-head th")) {
+    const on = state.sort?.key === th.dataset.sort;
+    th.classList.toggle("sorted", on);
+    th.querySelector(".sort-arrow").textContent = on ? (state.sort.dir === "asc" ? "▲" : "▼") : "";
+  }
+}
+
+function clickSort(key) {
+  const sk = state.sort, first = SORT_FIRST[key];
+  if (!sk || sk.key !== key) state.sort = { key, dir: first };
+  else if (sk.dir === first) state.sort = { key, dir: first === "asc" ? "desc" : "asc" };
+  else state.sort = null;                                           // third click: squad order
+  try { localStorage.setItem("careerlab.sort", JSON.stringify(state.sort)); } catch {}
+  if (state.squad) renderSquad();
 }
 
 // ------------------------------------------------------------------ player
@@ -1178,6 +1217,7 @@ $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
 $("#btn-tactics").onclick = pickTactics;
 $("#btn-free").onclick = openFree;
+for (const th of document.querySelectorAll("#squad-head th")) th.onclick = () => clickSort(th.dataset.sort);
 $("#btn-close-free").onclick = () => $("#dlg-free").close();
 $("#free-pos").onchange = loadFree;
 for (const id of ["#free-age", "#free-q"]) $(id).oninput = () => { clearTimeout(freeTimer); freeTimer = setTimeout(loadFree, 300); };

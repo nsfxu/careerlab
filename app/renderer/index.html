@@ -91,7 +91,14 @@
       <div id="search-results" class="search-results hidden"></div>
       <div class="table-wrap">
         <table class="squad-table">
-          <thead><tr><th class="c-num">#</th><th class="c-pos">Pos</th><th data-i18n="col.name"></th><th class="c-num" data-i18n="col.age"></th><th class="c-num" data-i18n="col.ovr" data-i18n-title="col.ovrTitle"></th><th class="c-num" data-i18n="col.speed" data-i18n-title="col.speedTitle"></th></tr></thead>
+          <thead><tr id="squad-head">
+            <th class="c-num" data-sort="shirt"><span>#</span><i class="sort-arrow"></i></th>
+            <th class="c-pos" data-sort="pos"><span>Pos</span><i class="sort-arrow"></i></th>
+            <th data-sort="name"><span data-i18n="col.name"></span><i class="sort-arrow"></i></th>
+            <th class="c-num" data-sort="age"><span data-i18n="col.age"></span><i class="sort-arrow"></i></th>
+            <th class="c-num" data-sort="rating" data-i18n-title="col.ovrTitle"><span data-i18n="col.ovr"></span><i class="sort-arrow"></i></th>
+            <th class="c-num" data-sort="speed" data-i18n-title="col.speedTitle"><span data-i18n="col.speed"></span><i class="sort-arrow"></i></th>
+          </tr></thead>
           <tbody id="squad-body"></tbody>
         </table>
       </div>
