@@ -1,6 +1,11 @@
 // CareerLab main process: one window, one long-lived Python engine child.
 // All save-format knowledge lives in the engine; this file only routes requests.
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } = require("electron");
+const { pathToFileURL } = require("url");
+
+// climg://<player|flag|coach>/<id> serves game images the engine extracts from the user's
+// own FL26 install (cached as PNG); 404 when the game has none.
+protocol.registerSchemesAsPrivileged([{ scheme: "climg", privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const { spawn } = require("child_process");
 const path = require("path");
 const readline = require("readline");
@@ -72,5 +77,18 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 
-app.whenReady().then(() => { startEngine(); createWindow(); updater.init(() => mainWindow); });
+app.whenReady().then(() => {
+  protocol.handle("climg", async (req) => {
+    const u = new URL(req.url);
+    const kind = u.hostname, id = Number(u.pathname.replace(/\//g, ""));
+    if (!["player", "flag", "coach"].includes(kind) || !Number.isFinite(id)) return new Response(null, { status: 400 });
+    try {
+      const file = await call("image", { kind, id });
+      return file ? net.fetch(pathToFileURL(file).toString()) : new Response(null, { status: 404 });
+    } catch {
+      return new Response(null, { status: 404 });
+    }
+  });
+  startEngine(); createWindow(); updater.init(() => mainWindow);
+});
 app.on("window-all-closed", () => { if (engine) engine.kill(); app.quit(); });

@@ -293,10 +293,10 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 /* language flags */
 .lang-step { grid-template-columns: 22px 1fr auto; }
 .flags { display: flex; gap: 8px; }
-.flag { padding: 5px 10px 5px 6px; gap: 7px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; }
-.flag svg { width: 28px; height: 20px; border-radius: 3px; box-shadow: 0 0 0 1px #0006; }
-.flag:hover { background: var(--panel-2); }
-.flag.on { border-color: var(--red-glow); color: var(--text); background: var(--red-soft); }
+.flags .flag { padding: 5px 10px 5px 6px; gap: 7px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; }
+.flags .flag svg { width: 28px; height: 20px; border-radius: 3px; box-shadow: 0 0 0 1px #0006; }
+.flags .flag:hover { background: var(--panel-2); }
+.flags .flag.on { border-color: var(--red-glow); color: var(--text); background: var(--red-soft); }
 
 /* updates */
 .update-btn:not(:disabled) { color: #7fd38b; border-color: #2f6a38; }
@@ -407,3 +407,26 @@ body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
 #squad-head th:hover { color: var(--text); }
 #squad-head th.sorted { color: var(--red-glow); }
 .sort-arrow { font-style: normal; font-size: 8px; margin-left: 4px; vertical-align: 1px; }
+
+/* game images */
+.gimg { flex: none; object-fit: contain; }
+.gimg.ph { display: inline-grid; place-items: center; color: var(--dim); background: var(--panel-3); }
+.gimg.ph .i { width: 60%; height: 60%; }
+.crest-sm { width: 18px; height: 18px; }
+.crest-sm.ph { border-radius: 4px; background: transparent; }
+.crest-lg { width: 44px; height: 44px; }
+.crest-lg.ph { border-radius: 10px; }
+.squad-title { display: flex; align-items: center; gap: 12px; }
+.squad-crest:empty { display: none; }
+.coach-sm { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; object-position: top; background: var(--panel-3); }
+.face-sm { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; object-position: top;
+  background: radial-gradient(circle at 50% 35%, #34343a, #1d1d21); margin: -4px 0; }
+.face-lg { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; object-position: top;
+  background: radial-gradient(circle at 50% 30%, #3a3a40, #1b1b1f); border: 1px solid var(--line); }
+.p-face { position: relative; flex: none; }
+.p-shirt-badge { position: absolute; right: -6px; bottom: -6px; min-width: 24px; height: 22px; padding: 0 5px; border-radius: 7px;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--panel); border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums; }
+.club-list li { gap: 9px; }
+.club-list li .name { display: inline-flex; align-items: center; gap: 6px; }
+.free-row .fname { display: inline-flex; align-items: center; gap: 8px; }

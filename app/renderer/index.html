@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' climg:; style-src 'self' 'unsafe-inline'; script-src 'self'">
   <title>CareerLab</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -74,8 +74,11 @@
     <section class="squad panel">
       <div class="panel-head squad-head">
         <div class="squad-title">
+          <span id="squad-crest" class="squad-crest"></span>
+          <div>
           <h2 id="squad-name" data-i18n="squad.open"></h2>
           <div id="squad-manager" class="muted squad-meta"></div>
+          </div>
         </div>
         <div class="squad-tools">
           <div class="search-box grow">

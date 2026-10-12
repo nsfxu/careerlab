@@ -35,6 +35,8 @@
 | `efdb.py` | efootballdb client (team squads, players, league list), cached in `%LOCALAPPDATA%\CareerLab\efdb-cache` |
 | `pesmaster.py` | pesmaster.com squad page parser, the second opinion in club sync |
 | `i18n.py` | Engine text in English and pt-BR (`tr()`), set by the `set_language` RPC |
+| `cpk.py` | Reads files out of the game's CRI CPK archives (@UTF tables, WESYS unwrap) |
+| `images.py` | Player portraits, club crests and manager photos from the user's install, cached as PNG (served to the UI as `climg://kind/id`) |
 | `validate.py` | Consistency checks; `new_problems(before, after)` is the apply gate |
 | `safewrite.py` | Game-running check, backup (+ `.json` description), write, verify, restore |
 | `config.py` | Game folder, saves folder, dump location (`%LOCALAPPDATA%\CareerLab\config.json`), DBDump module install |
@@ -71,5 +73,6 @@ squad-slot references (lineup, captain).
 
 - `%LOCALAPPDATA%\CareerLab\config.json`: game/saves folders
 - `%LOCALAPPDATA%\CareerLab\spares.json`: `{real eFootball ID: spare FL26 ID}` for players FL26 lacks (install-wide, like the option file)
+- `%LOCALAPPDATA%\CareerLab\images\{player,flag,coach}\<id>.png`: game images extracted on first use
 - `%LOCALAPPDATA%\CareerLab\efdb-cache\`: efootballdb responses (teams 24 h, players 7 days, leagues 7 days)
 - `<game>\SiderAddons\dbdump\`: the database dump the engine reads (newest `<table>.copyN.raw`)

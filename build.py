@@ -31,20 +31,23 @@ def main():
          "--noconfirm", "--clean",
          "--distpath", BUILD / "dist", "--workpath", BUILD / "work", "--specpath", BUILD,
          "--add-data", f"{ENGINE / 'fl26' / 'assets' / 'DBDump.lua'};fl26/assets",
-         "--exclude-module", "tkinter", "--exclude-module", "pytest", "--exclude-module", "PIL",
+         "--exclude-module", "tkinter", "--exclude-module", "pytest",
          "--exclude-module", "matplotlib", "--exclude-module", "websocket"], ENGINE)
     if not (APP / "node_modules").exists():
         run(["npm", "install"], APP)
     # publishing is the release workflow's job (and auto-update's, later), never the build's
     builder = ["npx", "electron-builder", "--win", "nsis", "--x64", "--publish", "never"]
-    try:
-        run(builder, APP)
-    except subprocess.CalledProcessError:
-        # locally the first run after freezing sometimes fails on a file still held by
-        # antivirus / a just-closed CareerLab; a second run succeeds (CI never needed it)
-        print("electron-builder failed once; retrying", flush=True)
-        time.sleep(5)
-        run(builder, APP)
+    # locally a run right after freezing sometimes fails on a file still held by antivirus /
+    # a just-closed CareerLab; a later run succeeds (CI never needed it)
+    for attempt in range(3):
+        try:
+            run(builder, APP)
+            break
+        except subprocess.CalledProcessError:
+            if attempt == 2:
+                raise
+            print("electron-builder failed; retrying", flush=True)
+            time.sleep(15)
     version = json.loads((APP / "package.json").read_text(encoding="utf-8"))["version"]
     print("installer:", ROOT / "dist" / f"CareerLab-Setup-{version}.exe")
 

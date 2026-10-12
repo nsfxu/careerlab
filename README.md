@@ -21,6 +21,8 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
 - **Change a club's manager**, with or without his tactics, or **copy another club's tactics**.
 - **Tools**: export squads to CSV; repair the duplicate entries the game creates at season end.
 - **Portuguese or English**, switched with the flags in Settings; updates itself from GitHub Releases.
+- **The game's own images**: player portraits, club crests and manager photos, read from your
+  FL26 install.
 - **Safe by design**: nothing is written until you apply, every apply is checked and backed up,
   and the save is never touched while the game is running.
 

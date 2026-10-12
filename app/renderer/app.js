@@ -99,6 +99,15 @@ function icon(name, cls = "") {
   svg.append(use);
   return svg;
 }
+// Game images from the user's own install (climg:// is served by the main process); a
+// placeholder takes over when the game has no image for that ID.
+function gameImg(kind, id, cls = "") {
+  const fallback = () => el("span", { className: `gimg ph g-${kind} ${cls}` }, icon(kind === "flag" ? "shield" : "user"));
+  if (id == null || id === "" || id === 0) return fallback();
+  const img = el("img", { className: `gimg g-${kind} ${cls}`, src: `climg://${kind}/${id}`, loading: "lazy", alt: "", draggable: false });
+  img.onerror = () => img.replaceWith(fallback());
+  return img;
+}
 function valClass(v) { return v >= 90 ? "v-hi" : v >= 80 ? "v-mid" : v >= 70 ? "v-lo" : "v-bad"; }
 function el(tag, props = {}, ...kids) {
   const e = document.createElement(tag);
@@ -159,9 +168,10 @@ function renderClubs() {
   $("#club-count").textContent = state.clubs.length ? state.clubs.length : "";
   const item = (c) => {
     const li = el("li", { className: c.block === state.block ? "active" : "" },
+      gameImg("flag", c.teamId, "crest-sm"),
       el("span", { textContent: c.name, className: "name" + (c.block === myBlock ? " me" : "") }),
       el("span", { className: "size", textContent: c.size }));
-    if (c.block === myBlock) li.prepend(icon("star", "me-star"));
+    if (c.block === myBlock) li.querySelector(".name").prepend(icon("star", "me-star"));
     li.title = c.manager ? t("clubs.manager", { name: c.manager }) : "";
     li.onclick = () => openClub(c.block);
     return li;
@@ -191,9 +201,10 @@ async function openClub(block) {
 function renderSquad() {
   const s = state.squad;
   $("#squad-name").textContent = s.name;
+  $("#squad-crest").replaceChildren(gameImg("flag", s.teamId, "crest-lg"));
   const meta = $("#squad-manager");
   meta.innerHTML = "";
-  if (s.manager?.name) meta.append(el("span", {}, icon("whistle"), s.manager.name));
+  if (s.manager?.name) meta.append(el("span", {}, gameImg("coach", s.manager.id, "coach-sm"), s.manager.name));
   meta.append(el("span", {}, icon("user"), t("squad.players", { n: s.players.length })));
   const body = $("#squad-body");
   body.innerHTML = "";
@@ -208,6 +219,7 @@ function renderSquad() {
     const tr = el("tr", { className: (p.created ? "created pinned " : "") + (state.player?.pid === p.pid ? "active" : "") });
     const name = el("span", { className: "pname", textContent: p.name });
     if (p.created) name.prepend(icon("star", "me-star"));
+    name.prepend(gameImg("player", p.pid, "face-sm"));
     if (p.captain) name.append(el("span", { className: "armband", textContent: "C", title: t("captain") }));
     tr.append(el("td", { className: "c-num", textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
       el("td", {}, name), el("td", { className: "c-num", textContent: p.age ?? "" }),
@@ -316,7 +328,8 @@ function renderPlayer() {
   if (p.kind === "created") tags.append(el("span", { className: "tag me" }, icon("star"), t("detail.yourPlayer")));
   if (inSquad?.captain) tags.append(el("span", { className: "tag cap", textContent: t("captain") }));
   box.append(el("div", { className: "p-head" },
-    el("div", { className: "p-shirt", textContent: inSquad?.shirt ?? "–", title: t("detail.shirtNumber") }),
+    el("div", { className: "p-face" }, gameImg("player", p.pid, "face-lg"),
+      el("span", { className: "p-shirt-badge", textContent: inSquad?.shirt ?? "–", title: t("detail.shirtNumber") })),
     el("div", {}, el("h2", { textContent: p.name }),
       el("div", { className: "p-sub" }, badge(p.position), t("detail.years", { n: p.age ?? "?" }), el("span", { textContent: "·" }), where),
       tags.childNodes.length ? tags : ""),
@@ -597,19 +610,33 @@ function setClubsCollapsed(on) {
   b.dataset.i18nTitle = on ? "clubs.expand" : "clubs.collapse";
   b.title = t(b.dataset.i18nTitle);
   store.set("careerlab.clubsCollapsed", on ? "1" : "0");
+  if (typeof fitDetailWidth === "function" && $(".layout")) requestAnimationFrame(fitDetailWidth);
+}
+
+// the player panel can never squeeze the squad below 380px, whatever width was saved
+function maxDetailWidth() {
+  const layout = $(".layout").getBoundingClientRect();
+  const clubs = $(".clubs").getBoundingClientRect();
+  return Math.max(320, layout.right - 10 - (clubs.right + 10) - 380 - 12);
 }
 
 function setDetailWidth(px, save = true) {
   const layout = $(".layout");
   if (px == null) { layout.style.removeProperty("--detail-w"); if (save) store.set("careerlab.detailW", ""); return; }
-  layout.style.setProperty("--detail-w", `${Math.round(px)}px`);
-  if (save) store.set("careerlab.detailW", String(Math.round(px)));
+  const w = Math.round(Math.max(320, Math.min(px, maxDetailWidth())));
+  layout.style.setProperty("--detail-w", `${w}px`);
+  if (save) store.set("careerlab.detailW", String(w));
+}
+
+function fitDetailWidth() {            // window resized or clubs panel toggled: keep the saved width if it fits
+  const saved = Number(store.get("careerlab.detailW"));
+  if (saved > 0) setDetailWidth(saved, false);
 }
 
 function initLayout() {
   setClubsCollapsed(store.get("careerlab.clubsCollapsed") === "1");
-  const w = Number(store.get("careerlab.detailW"));
-  if (w > 0) setDetailWidth(w, false);
+  fitDetailWidth();
+  window.addEventListener("resize", fitDetailWidth);
   $("#btn-clubs-toggle").onclick = (e) => { e.stopPropagation(); setClubsCollapsed(!document.body.classList.contains("clubs-collapsed")); };
   // collapsed, the whole strip expands the list again
   $(".clubs").addEventListener("click", () => { if (document.body.classList.contains("clubs-collapsed")) setClubsCollapsed(false); });
@@ -776,7 +803,8 @@ async function loadFree() {
       btn.disabled = true;
       btn.lastChild.textContent = t("free.staged");
     };
-    return el("div", { className: "free-row" }, badge(p.position), el("span", { className: "fname", textContent: p.name }),
+    return el("div", { className: "free-row" }, badge(p.position),
+      el("span", { className: "fname pname" }, gameImg("player", p.pid, "face-sm"), p.name),
       el("span", { className: "muted", textContent: t("detail.years", { n: p.age }) }),
       el("span", { className: "c-ovr " + valClass(p.rating), textContent: p.rating }), btn);
   }));

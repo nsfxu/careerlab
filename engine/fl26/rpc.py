@@ -12,7 +12,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import config, i18n, safewrite
+from . import config, i18n, images, safewrite
 from .i18n import tr
 from .database import DEFAULT_DUMP, Database
 from .session import Session
@@ -42,6 +42,16 @@ class Server:
 
     def set_language(self, lang):
         return {"lang": i18n.set_lang(lang)}
+
+    def image(self, kind, id):
+        """Path of the cached PNG for a game image, or None (no image in the game, or a
+        player whose ID is borrowed / your own created player: the app shows a silhouette)."""
+        from .career import CREATED_ID_MIN
+        from .session import load_spares
+        if kind == "player" and (int(id) >= CREATED_ID_MIN or int(id) in set(load_spares().values())):
+            return None
+        p = images.path_for(kind, int(id))
+        return str(p) if p else None
 
     def setup_status(self):
         return config.status()
@@ -77,6 +87,7 @@ class Server:
 
     def open_save(self, path):
         self.s = Session(path, self._db(Path(path).parent))
+        images.warm_up()
         return self.s.summary()
 
     def summary(self):

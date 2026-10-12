@@ -193,3 +193,10 @@ def test_pesmaster_parse_squad():
             '<h2>Cruzeiro EC eFootball Lineup</h2>'
             '<a href="/legend/efootball-2022/player/7511/">')            # legends: not squad
     assert parse_squad(page) == [(36943, "Cassio"), (151850, "Joao Marcelo")]
+
+
+def test_image_names_match_game_files():
+    from fl26.images import KINDS
+    assert KINDS["player"][1](151850) == "151850.dds"
+    assert KINDS["flag"][1](274) == "e_000274_r.png"
+    assert KINDS["coach"][1](100110) == "coach_100110.png"

@@ -42,3 +42,12 @@ Cruzeiro's 28 players are identical to efootballdb's. Planned as a cross-check a
 ## pesdb.net
 
 Same IDs, HTML only, oriented to Dream Team cards, no squad API: cross-check single players only.
+
+## Game images (the user's own install)
+
+Read from the CPK archives on demand, never shipped: `common/render/symbol/player/<id>.dds`
+(29,484 portraits, DDS in WESYS), `common/render/symbol/flag/e_<teamID:06d>_r.png` (3,297
+crests), `common/render/symbol/coach/coach_<coachID>.png` (1,021 photos). Priority like the
+game: `Data/*.cpk`, then `download/*.cpk` in `spFileList.bin` order (later wins), then Sider
+`cpk.root` folders. Borrowed spare IDs and the created player get a silhouette (their
+portrait would be someone else's).
