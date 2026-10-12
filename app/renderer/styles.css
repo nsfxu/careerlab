@@ -430,3 +430,20 @@ body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
 .club-list li { gap: 9px; }
 .club-list li .name { display: inline-flex; align-items: center; gap: 6px; }
 .free-row .fname { display: inline-flex; align-items: center; gap: 8px; }
+
+/* images, second pass */
+.crest-xs { width: 16px; height: 16px; vertical-align: -3px; }
+.crest-xs.ph { background: transparent; }
+.face-xs { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; object-position: top;
+  background: radial-gradient(circle at 50% 35%, #34343a, #1d1d21); }
+.face-lg { width: 76px; height: 76px; }
+.p-head { overflow: hidden; }
+.p-head > :not(.p-watermark) { position: relative; z-index: 1; }
+.p-watermark { position: absolute; right: -18px; top: 50%; width: 150px; height: 150px; margin-top: -75px;
+  opacity: .09; filter: grayscale(.2); pointer-events: none; z-index: 0; }
+.p-club { display: inline-flex; align-items: center; gap: 5px; }
+.career-info .ci-text .crest-xs { margin-left: 2px; }
+.sync-row .pname, .pick-list .pname, .search-results .pname, .league-club .pname { display: inline-flex; align-items: center; gap: 8px; }
+.league-club .pname .muted { font-size: 12px; }
+.search-results .where .crest-xs { width: 15px; height: 15px; }
+.p-watermark { right: -34px; }

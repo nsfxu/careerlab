@@ -4,7 +4,8 @@
 
 - **Game images**: player portraits, club crests and manager photos, read from your own FL26
   install (nothing is downloaded or shipped) — in the club list, squad table, squad header and
-  player panel.
+  player panel; also in search results, the club and league sync dialogs, the club pickers and
+  the career chip; the player panel header shows a large portrait over a faded club crest.
 - Position map drawn like FL26's player card: the game's pitch zones and markings, A in solid
   teal, B in light teal; names on hover, click cycles C/B/A.
 - The club list can be collapsed to a slim strip (icon in its header; click the strip to bring

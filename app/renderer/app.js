@@ -108,6 +108,7 @@ function gameImg(kind, id, cls = "") {
   img.onerror = () => img.replaceWith(fallback());
   return img;
 }
+const teamOf = (block) => state.clubs.find((c) => c.block === block)?.teamId;
 function valClass(v) { return v >= 90 ? "v-hi" : v >= 80 ? "v-mid" : v >= 70 ? "v-lo" : "v-bad"; }
 function el(tag, props = {}, ...kids) {
   const e = document.createElement(tag);
@@ -151,6 +152,7 @@ async function openSave(path) {
       info.title = `${me.name} · ${me.age} · ${me.club || ""}`;
     }
     state.clubs = await call("clubs");
+    if (me && teamOf(me.block)) $("#career-info .ci-text")?.append(" ", gameImg("flag", teamOf(me.block), "crest-xs"));
     renderClubs();
     updateStaged();
     $("#btn-league").disabled = false;
@@ -321,20 +323,30 @@ function renderPlayer() {
   box.className = "detail-card";
   box.innerHTML = "";
   const inSquad = state.squad?.players.find((x) => x.pid === p.pid);
-  const where = namedBlocks(p.blocks).map((b) => b.name).join(", ") || t("detail.noSquad");
+  const named = namedBlocks(p.blocks);
+  const where = named.length
+    ? el("span", { className: "p-club" }, gameImg("flag", teamOf(named[0].block), "crest-xs"), named.map((b) => b.name).join(", "))
+    : t("detail.noSquad");
+  const clubTeam = named.length ? teamOf(named[0].block) : null;
 
   // header card
   const tags = el("div", { className: "p-tags" });
   if (p.kind === "created") tags.append(el("span", { className: "tag me" }, icon("star"), t("detail.yourPlayer")));
   if (inSquad?.captain) tags.append(el("span", { className: "tag cap", textContent: t("captain") }));
-  box.append(el("div", { className: "p-head" },
+  const head = el("div", { className: "p-head" },
     el("div", { className: "p-face" }, gameImg("player", p.pid, "face-lg"),
       el("span", { className: "p-shirt-badge", textContent: inSquad?.shirt ?? "–", title: t("detail.shirtNumber") })),
     el("div", {}, el("h2", { textContent: p.name }),
       el("div", { className: "p-sub" }, badge(p.position), t("detail.years", { n: p.age ?? "?" }), el("span", { textContent: "·" }), where),
       tags.childNodes.length ? tags : ""),
     (() => { const x = el("button", { className: "ghost icon-only small p-close", title: t("detail.close") }, icon("x"));
-      x.onclick = closePlayer; return x; })()));
+      x.onclick = closePlayer; return x; })());
+  if (clubTeam) {
+    const mark = el("img", { className: "p-watermark", src: `climg://flag/${clubTeam}`, alt: "" });
+    mark.onerror = () => mark.remove();
+    head.prepend(mark);
+  }
+  box.append(head);
 
   const prof = profileSection(p);
   if (prof) box.append(prof);
@@ -754,9 +766,9 @@ function openPicker(title, items, render, onPick, option) {
     const q = filter.value.trim().toLowerCase();
     list.innerHTML = "";
     for (const it of items) {
-      const [main, side] = render(it);
+      const [main, side, image] = render(it);
       if (q && !(main + " " + side).toLowerCase().includes(q)) continue;
-      const li = el("li", {}, el("span", { textContent: main }), el("span", { className: "muted", textContent: side }));
+      const li = el("li", {}, el("span", { className: "pname" }, image ? image() : "", main), el("span", { className: "muted", textContent: side }));
       li.onclick = () => { $("#dlg-pick").close(); onPick(it, $("#pick-check").checked); };
       list.append(li);
     }
@@ -767,7 +779,7 @@ function openPicker(title, items, render, onPick, option) {
   filter.focus();
 }
 function pickClub(title, onPick) {
-  openPicker(title, state.clubs.filter((c) => c.block !== state.block), (c) => [c.name, t("pick.players", { n: c.size })], onPick);
+  openPicker(title, state.clubs.filter((c) => c.block !== state.block), (c) => [c.name, t("pick.players", { n: c.size }), () => gameImg("flag", c.teamId, "crest-sm")], onPick);
 }
 function pickSkill(p) {
   const missing = Object.entries(skillNames()).filter(([k]) => !p.skills.includes(k)
@@ -814,14 +826,14 @@ async function loadFree() {
 function pickTactics() {
   const here = state.squad;
   openPicker(t("pick.tactics", { club: here.name }), state.clubs.filter((c) => c.block !== state.block && c.manager),
-    (c) => [c.name, c.manager],
+    (c) => [c.name, c.manager, () => gameImg("flag", c.teamId, "crest-sm")],
     (c) => stage({ op: "tactics_copy", block: here.block, from: c.block,
       label: t("lab.tactics", { club: here.name, from: c.name, manager: c.manager }) }));
 }
 function pickManager() {
   const here = state.squad;
   openPicker(t("pick.manager", { club: here.name }), state.clubs.filter((c) => c.block !== state.block && c.manager),
-    (c) => [c.manager, c.name],
+    (c) => [c.manager, c.name, () => gameImg("flag", c.teamId, "crest-sm")],
     (c, withTactics) => withTactics
       ? stage({ op: "manager_swap", a: here.block, b: c.block, label: t("lab.managerSwap", { a: c.manager, here: here.name, b: here.manager.name, there: c.name }) })
       : guarded(async () => {
@@ -847,8 +859,9 @@ function onSearch() {
     if (!rows.length) box.append(el("div", { textContent: t("search.none") }));
     for (const r of rows) {
       const where = r.blocks.length ? (namedBlocks(r.blocks).map((b) => b.name).join(", ") || r.blocks[0].name) : r.hasRecord ? t("search.free") : t("search.notInCareer");
-      const row = el("div", {}, el("span", { textContent: r.name }),
-        el("span", { className: "where" }, icon(r.hasRecord ? (r.blocks.length ? "shield" : "user") : "user-plus"), where));
+      const row = el("div", {}, el("span", { className: "pname" }, gameImg("player", r.pid, "face-xs"), r.name),
+        el("span", { className: "where" }, r.blocks.length ? gameImg("flag", teamOf(r.blocks[0].block), "crest-xs")
+          : icon(r.hasRecord ? "user" : "user-plus"), where));
       if (!r.hasRecord) row.onclick = () => {
         box.classList.add("hidden");
         if (state.block == null) return;
@@ -914,6 +927,8 @@ async function openSync(refresh = false, source = syncSource) {
       const cb = el("input", { type: "checkbox", checked });
       it._cb = cb;
       const [main, side] = render(it);
+      main.prepend(gameImg("player", it.careerPid || it.pid, "face-xs"));
+      main.classList.add("pname");
       g.append(el("div", { className: "sync-row" }, cb, it.position ? badge(it.position) : el("span"), main, side));
     }
     body.append(g);
@@ -1022,7 +1037,8 @@ function renderLeague() {
     if (!ops.length) counts.append(el("span", { className: "tag ok" }, icon("check"), t("league.upToDate")));
     body.append(el("details", { className: "league-club" + (cl._on ? "" : " off") },
       el("summary", {}, cb,
-        el("span", {}, el("b", { textContent: cl.name }), el("span", { className: "muted", textContent: "  " + t("league.match", { n: cl.keep }) })),
+        el("span", { className: "pname" }, gameImg("flag", cl.teamId, "crest-sm"), el("b", { textContent: cl.name }),
+          el("span", { className: "muted", textContent: t("league.match", { n: cl.keep }) })),
         counts),
       el("div", { className: "ops" }, ...ops.map((o) => el("div", { className: "k-" + o.kind, textContent: o.label })),
         ...(cl.kept?.length ? [el("div", { className: "muted", textContent: t("league.kept", { n: leaguePlan.minSquad, names: cl.kept.join(", ") }) })] : []))));
