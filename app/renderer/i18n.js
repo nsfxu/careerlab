@@ -12,7 +12,8 @@ const STRINGS = {
     "save.option": "Slot {n}  ·  saved {d}", "save.none": "No Become a Legend saves found", "loading": "Loading…",
     "game.running": "Game running — saving disabled", "game.closed": "Game closed", "game.closeFirst": "Close the game first",
 
-    "clubs.title": "Clubs", "clubs.filter": "Filter clubs or managers", "clubs.yours": "Your club",
+    "clubs.title": "Clubs", "clubs.collapse": "Hide the club list", "clubs.expand": "Show the club list",
+    "detail.close": "Close the player panel", "layout.resize": "Drag to resize · double-click to reset", "clubs.filter": "Filter clubs or managers", "clubs.yours": "Your club",
     "clubs.all": "All clubs", "clubs.manager": "Manager: {name}",
 
     "squad.open": "Open a career", "squad.search": "Search any player in the database",
@@ -153,7 +154,8 @@ const STRINGS = {
     "save.option": "Slot {n}  ·  salvo {d}", "save.none": "Nenhum save do Rumo ao Estrelato encontrado", "loading": "Carregando…",
     "game.running": "Jogo aberto — gravação bloqueada", "game.closed": "Jogo fechado", "game.closeFirst": "Feche o jogo primeiro",
 
-    "clubs.title": "Clubes", "clubs.filter": "Filtrar clubes ou técnicos", "clubs.yours": "Seu clube",
+    "clubs.title": "Clubes", "clubs.collapse": "Ocultar a lista de clubes", "clubs.expand": "Mostrar a lista de clubes",
+    "detail.close": "Fechar o painel do jogador", "layout.resize": "Arraste para redimensionar · clique duplo para voltar", "clubs.filter": "Filtrar clubes ou técnicos", "clubs.yours": "Seu clube",
     "clubs.all": "Todos os clubes", "clubs.manager": "Técnico: {name}",
 
     "squad.open": "Abra uma carreira", "squad.search": "Buscar qualquer jogador do banco de dados",

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.1 — unreleased
+
+- Position map drawn like FL26's player card: the game's pitch zones and markings, A in solid
+  teal, B in light teal; names on hover, click cycles C/B/A.
+- The club list can be collapsed to a slim strip (icon in its header; click the strip to bring
+  it back).
+- The edge between the squad table and the player panel can be dragged to resize them
+  (double-click resets); the width is remembered.
+- The player panel only opens when a player is selected (× closes it), so the squad table
+  uses the full width otherwise.
+
 ## 2.0.0 — 2026-10-12
 
 - **Profile editor**: playing style, registered position, position ratings on a mini pitch

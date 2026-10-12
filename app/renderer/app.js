@@ -260,6 +260,7 @@ function abilityGrid(p, abilities, keys) {
 
 function renderPlayer() {
   const p = state.player;
+  document.body.classList.remove("no-player");
   const box = $("#detail");
   box.className = "detail-card";
   box.innerHTML = "";
@@ -274,7 +275,9 @@ function renderPlayer() {
     el("div", { className: "p-shirt", textContent: inSquad?.shirt ?? "–", title: t("detail.shirtNumber") }),
     el("div", {}, el("h2", { textContent: p.name }),
       el("div", { className: "p-sub" }, badge(p.position), t("detail.years", { n: p.age ?? "?" }), el("span", { textContent: "·" }), where),
-      tags.childNodes.length ? tags : "")));
+      tags.childNodes.length ? tags : ""),
+    (() => { const x = el("button", { className: "ghost icon-only small p-close", title: t("detail.close") }, icon("x"));
+      x.onclick = closePlayer; return x; })()));
 
   const prof = profileSection(p);
   if (prof) box.append(prof);
@@ -531,6 +534,66 @@ function stageAbility(p, k, value, original) {
   const field = p.kind === "created" ? createdField(k) : k;
   stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field, value,
     label: t("lab.ability", { name: p.name, ability: abilName(k), from: original, to: value }) }, true);
+}
+
+function closePlayer() {
+  state.player = null;
+  document.body.classList.add("no-player");
+  if (state.squad) renderSquad();
+}
+
+// ------------------------------------------------------------------ layout (clubs panel, split)
+
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+function setClubsCollapsed(on) {
+  document.body.classList.toggle("clubs-collapsed", on);
+  const b = $("#btn-clubs-toggle");
+  b.dataset.i18nTitle = on ? "clubs.expand" : "clubs.collapse";
+  b.title = t(b.dataset.i18nTitle);
+  store.set("careerlab.clubsCollapsed", on ? "1" : "0");
+}
+
+function setDetailWidth(px, save = true) {
+  const layout = $(".layout");
+  if (px == null) { layout.style.removeProperty("--detail-w"); if (save) store.set("careerlab.detailW", ""); return; }
+  layout.style.setProperty("--detail-w", `${Math.round(px)}px`);
+  if (save) store.set("careerlab.detailW", String(Math.round(px)));
+}
+
+function initLayout() {
+  setClubsCollapsed(store.get("careerlab.clubsCollapsed") === "1");
+  const w = Number(store.get("careerlab.detailW"));
+  if (w > 0) setDetailWidth(w, false);
+  $("#btn-clubs-toggle").onclick = (e) => { e.stopPropagation(); setClubsCollapsed(!document.body.classList.contains("clubs-collapsed")); };
+  // collapsed, the whole strip expands the list again
+  $(".clubs").addEventListener("click", () => { if (document.body.classList.contains("clubs-collapsed")) setClubsCollapsed(false); });
+  const rz = $("#resizer");
+  rz.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const layout = $(".layout");
+    const clubs = $(".clubs").getBoundingClientRect();
+    rz.classList.add("dragging");
+    document.body.classList.add("resizing");
+    const move = (ev) => {
+      const r = layout.getBoundingClientRect();
+      // the player panel takes what is right of the pointer; the squad keeps at least 380px
+      const max = r.right - 10 - (clubs.right + 10) - 380 - 12;
+      setDetailWidth(Math.max(320, Math.min(max, r.right - 10 - ev.clientX - 6)), false);
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      rz.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      const v = parseInt(getComputedStyle(layout).getPropertyValue("--detail-w"), 10);
+      if (v) store.set("careerlab.detailW", String(v));
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+  rz.addEventListener("dblclick", () => setDetailWidth(null));
 }
 
 // ------------------------------------------------------------------ staging
@@ -1138,6 +1201,7 @@ $("#btn-update-check").onclick = async () => renderUpdate(await window.cl.checkU
 window.cl.onUpdate(renderUpdate);
 window.cl.updateState().then(renderUpdate);
 applyStatic();
+initLayout();
 call("set_language", { lang: LANG }).catch(() => null);
 startup();
 pollGame();

@@ -6,7 +6,7 @@
   <title>CareerLab</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="no-player">
   <!-- Icon set (24px stroke icons, drawn for CareerLab). Use: <svg class="i"><use href="#i-name"/></svg> -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
     <defs>
@@ -35,6 +35,7 @@
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
       <symbol id="i-tactics" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/><circle cx="12" cy="12" r="3"/><path d="M6 8l2 2m0-2l-2 2"/><circle cx="17" cy="16" r="1.5"/></symbol>
+      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M15 10l-2 2 2 2"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/><path d="M12 12v6"/><path d="M9 15l3 3 3-3"/></symbol>
     </defs>
   </svg>
@@ -60,7 +61,8 @@
   <main class="layout">
     <aside class="clubs panel">
       <div class="panel-head">
-        <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title"></span> <span id="club-count" class="muted head-count"></span></h2>
+        <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title" class="clubs-label"></span> <span id="club-count" class="muted head-count"></span>
+          <button id="btn-clubs-toggle" class="ghost icon-only small clubs-toggle" data-i18n-title="clubs.collapse"><svg class="i"><use href="#i-sidebar"/></svg></button></h2>
         <div class="search-box">
           <svg class="i"><use href="#i-search"/></svg>
           <input id="club-filter" type="search" data-i18n-placeholder="clubs.filter">
@@ -95,6 +97,7 @@
       </div>
     </section>
 
+    <div id="resizer" class="resizer" data-i18n-title="layout.resize"></div>
     <section class="detail panel">
       <div id="detail" class="detail-empty"><svg class="i big"><use href="#i-user"/></svg><span data-i18n="detail.empty"></span></div>
     </section>

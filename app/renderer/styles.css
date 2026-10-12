@@ -79,7 +79,8 @@ button.icon-only { padding: 7px 9px; }
 .top-actions { display: flex; gap: 4px; }
 
 /* layout */
-.layout { display: grid; grid-template-columns: 270px minmax(0, 1fr) 400px; gap: 10px; padding: 10px;
+.layout { --clubs-w: 270px; --detail-w: 400px; display: grid; gap: 0;
+  grid-template-columns: var(--clubs-w) minmax(380px, 1fr) 12px var(--detail-w); padding: 10px;
   height: calc(100% - 54px); }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
   display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
@@ -255,7 +256,7 @@ input[type=checkbox] { accent-color: var(--red); }
 .setup-step .path { font-size: 12px; word-break: break-all; margin-top: 2px; }
 
 @media (max-width: 1250px) {
-  .layout { grid-template-columns: 230px minmax(0, 1fr) 360px; }
+  .layout { --clubs-w: 230px; }
   .squad-tools button span, .top-actions button span { display: none; }
   .save-box > .i { display: none; }
   .squad-tools button, .top-actions button { padding: 7px 9px; }
@@ -363,3 +364,29 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .pitch-legend .sw { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #ffffff22; }
 .pitch-legend .sw.a { background: #1de9b6; } .pitch-legend .sw.b { background: #1de9b666; } .pitch-legend .sw.c { background: #2a1316; }
 .prof-top { grid-template-columns: minmax(0, 1fr) 224px; margin-bottom: 8px; }
+
+/* layout: collapsible clubs, resizable squad/player split, player panel only when selected */
+.layout > .clubs { grid-column: 1; margin-right: 10px; }
+.layout > .squad { grid-column: 2; }
+.layout > .resizer { grid-column: 3; }
+.layout > .detail { grid-column: 4; }
+.resizer { position: relative; cursor: col-resize; }
+.resizer::after { content: ""; position: absolute; left: 5px; top: 50%; width: 2px; height: 44px; margin-top: -22px;
+  border-radius: 2px; background: var(--panel-3); transition: background .12s, height .12s; }
+.resizer:hover::after, .resizer.dragging::after { background: var(--red-glow); height: 80px; margin-top: -40px; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.no-player .layout { grid-template-columns: var(--clubs-w) minmax(380px, 1fr) 0 0; }
+body.no-player .resizer, body.no-player .detail { display: none; }
+body.clubs-collapsed .layout { --clubs-w: 52px; }
+body.clubs-collapsed .clubs .clubs-label, body.clubs-collapsed .clubs .head-count,
+body.clubs-collapsed .clubs .search-box, body.clubs-collapsed .clubs .club-list { display: none; }
+body.clubs-collapsed .clubs .panel-head { padding: 10px 6px; border-bottom: 0; }
+body.clubs-collapsed .clubs .panel-head h2 { flex-direction: column; gap: 10px; margin: 0; }
+.clubs-toggle { margin-left: auto; color: var(--muted); }
+.panel-head h2 .head-count + .clubs-toggle { margin-left: 8px; }
+body.clubs-collapsed .clubs-toggle { margin: 0; }
+body.clubs-collapsed .clubs-toggle .i { transform: scaleX(-1); }
+.p-head { position: relative; }
+.p-close { position: absolute; top: 10px; right: 10px; color: var(--muted); }
+body.clubs-collapsed .clubs { cursor: pointer; }
+body.clubs-collapsed .clubs:hover { border-color: var(--panel-3); }
