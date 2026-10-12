@@ -2,7 +2,8 @@
 const $ = (s) => document.querySelector(s);
 const call = (m, p) => window.cl.call(m, p);
 
-// Game-style Portuguese position labels and colours.
+// Game terms. Portuguese mode shows FL26's own labels; English mode the English edition's
+// (PES 2021 English names), so either way they match the game in that language.
 const POS_PT = { GK: "GO", CB: "ZC", LB: "LE", RB: "LD", DMF: "VOL", CMF: "MLG", LMF: "MLE",
   RMF: "MLD", AMF: "MAT", LWF: "PTE", RWF: "PTD", SS: "SA", CF: "CA" };
 const POS_GROUP = { GK: "gk", CB: "def", LB: "def", RB: "def", DMF: "mid", CMF: "mid", LMF: "mid",
@@ -36,6 +37,39 @@ const SKILL_NAMES = {
   through_passing: "Passe em profundidade",
 };
 
+const ABIL_EN = {
+  offensive_awareness: "Offensive Awareness", ball_control: "Ball Control", dribbling: "Dribbling",
+  tight_possession: "Tight Possession", low_pass: "Low Pass", lofted_pass: "Lofted Pass",
+  finishing: "Finishing", heading: "Heading", place_kicking: "Place Kicking", curl: "Curl",
+  speed: "Speed", acceleration: "Acceleration", kicking_power: "Kicking Power", jump: "Jump",
+  physical_contact: "Physical Contact", balance: "Balance", stamina: "Stamina",
+  defensive_awareness: "Defensive Awareness", ball_winning: "Ball Winning", aggression: "Aggression",
+  gk_awareness: "GK Awareness", gk_catching: "GK Catching", gk_clearing: "GK Clearing",
+  gk_reflexes: "GK Reflexes", gk_reach: "GK Reach",
+};
+const SKILL_EN = {
+  scissors_feint: "Scissors Feint", flip_flap: "Flip Flap", marseille_turn: "Marseille Turn",
+  sombrero: "Sombrero", cut_behind_turn: "Cut Behind & Turn", scotch_move: "Scotch Move",
+  heading_skill: "Heading", long_range_drive: "Long Range Drive", knuckle_shot: "Knuckle Shot",
+  acrobatic_finishing: "Acrobatic Finishing", heel_trick: "Heel Trick",
+  first_time_shot: "First-time Shot", one_touch_pass: "One-touch Pass", weighted_pass: "Weighted Pass",
+  pinpoint_crossing: "Pinpoint Crossing", outside_curler: "Outside Curler", rabona: "Rabona",
+  low_lofted_pass: "Low Lofted Pass", gk_low_punt: "GK Low Punt", long_throw: "Long Throw",
+  gk_long_throw: "GK Long Throw", gamesmanship: "Gamesmanship", man_marking: "Man Marking",
+  track_back: "Track Back", acrobatic_clear: "Acrobatic Clear", captaincy: "Captaincy",
+  super_sub: "Super-sub", fighting_spirit: "Fighting Spirit", no_look_pass: "No Look Pass",
+  penalty_specialist: "Penalty Specialist", gk_penalty_saver: "GK Penalty Saver",
+  chip_shot_control: "Chip Shot Control", step_on_skill_control: "Step On Skill Control", dipping_shots: "Dipping Shot",
+  rising_shots: "Rising Shot", gk_high_punt: "GK High Punt", interception: "Interception",
+  double_touch: "Double Touch", cross_over_turn: "Cross Over Turn", long_range_shooting: "Long Range Shooting",
+  through_passing: "Through Passing",
+};
+const GROUP_NAMES = { pt: { atk: "Ataque", phy: "Físico", def: "Defesa", gk: "Goleiro" },
+  en: { atk: "Attacking", phy: "Physical", def: "Defending", gk: "Goalkeeping" } };
+const abilName = (k) => (LANG === "en" ? ABIL_EN : ABIL_PT)[k];
+const skillNames = () => (LANG === "en" ? SKILL_EN : SKILL_NAMES);
+const posLabel = (pos) => (LANG === "en" ? pos : POS_PT[pos]) || pos || "?";
+
 const state = { save: null, summary: null, clubs: [], block: null, squad: null, player: null, staged: [] };
 
 function toast(msg, error = false) {
@@ -51,7 +85,7 @@ async function guarded(fn) {
 function badge(pos) {
   const b = document.createElement("span");
   b.className = "badge " + (POS_GROUP[pos] || "");
-  b.textContent = POS_PT[pos] || pos || "?";
+  b.textContent = posLabel(pos);
   return b;
 }
 // Unidentified internal squads (representative teams etc.) are named "Squad <n>": not worth showing.
@@ -195,11 +229,11 @@ function stagedValue(pid, field) {
 }
 
 const ABIL_GROUPS = [
-  ["Ataque", ["offensive_awareness", "ball_control", "dribbling", "tight_possession", "low_pass", "lofted_pass",
+  ["atk", ["offensive_awareness", "ball_control", "dribbling", "tight_possession", "low_pass", "lofted_pass",
     "finishing", "heading", "place_kicking", "curl"]],
-  ["Físico", ["speed", "acceleration", "kicking_power", "jump", "physical_contact", "balance", "stamina"]],
-  ["Defesa", ["defensive_awareness", "ball_winning", "aggression"]],
-  ["Goleiro", ["gk_awareness", "gk_catching", "gk_clearing", "gk_reflexes", "gk_reach"]],
+  ["phy", ["speed", "acceleration", "kicking_power", "jump", "physical_contact", "balance", "stamina"]],
+  ["def", ["defensive_awareness", "ball_winning", "aggression"]],
+  ["gk", ["gk_awareness", "gk_catching", "gk_clearing", "gk_reflexes", "gk_reach"]],
 ];
 
 function abilityGrid(p, abilities, keys) {
@@ -212,7 +246,7 @@ function abilityGrid(p, abilities, keys) {
     bar.firstChild.style.width = `${Math.max(4, ((v - 40) / 59) * 100)}%`;
     const inp = el("input", { type: "number", min: 40, max: 99, value: v, className: valClass(v) + (pending !== undefined ? " changed" : "") });
     inp.onchange = () => stageAbility(p, k, Number(inp.value), abilities[k]);
-    grid.append(el("label", { textContent: ABIL_PT[k], title: ABIL_PT[k] }), bar, inp);
+    grid.append(el("label", { textContent: abilName(k), title: abilName(k) }), bar, inp);
   }
   return grid;
 }
@@ -240,12 +274,12 @@ function renderPlayer() {
   if (abilities) {
     const sec = el("div", { className: "section" });
     const isGk = p.position === "GK";
-    for (const [title, keys] of ABIL_GROUPS) {
+    for (const [gid, keys] of ABIL_GROUPS) {
       const vals = keys.filter((k) => k in abilities).map((k) => stagedValue(p.pid, p.kind === "created" ? createdField(k) : k) ?? abilities[k]);
       if (!vals.length) continue;
       const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-      const head = el("div", { className: "section-title" }, title, el("span", { className: "avg " + valClass(avg), textContent: avg }));
-      if (title === "Goleiro" && !isGk) {
+      const head = el("div", { className: "section-title" }, GROUP_NAMES[LANG][gid], el("span", { className: "avg " + valClass(avg), textContent: avg }));
+      if (gid === "gk" && !isGk) {
         head.prepend(icon("chevron"));
         sec.append(el("details", { className: "abil-group" }, el("summary", {}, head), abilityGrid(p, abilities, keys)));
       } else sec.append(head, abilityGrid(p, abilities, keys));
@@ -257,7 +291,7 @@ function renderPlayer() {
     const sec = el("div", { className: "section" });
     sec.append(el("div", { className: "section-title", textContent: t("detail.skills") }));
     const chips = el("div", { className: "chips" });
-    for (const [k, label] of Object.entries(SKILL_NAMES)) {
+    for (const [k, label] of Object.entries(skillNames())) {
       const pending = stagedValue(p.pid, p.kind === "created" ? p.skillFields[k] : k);
       const on = pending !== undefined ? pending === 1 : p.skills.includes(k);
       if (p.kind === "created" && !p.skillFields[k]) continue;
@@ -327,7 +361,7 @@ function stageAbility(p, k, value, original) {
   if (value === original) return;
   const field = p.kind === "created" ? createdField(k) : k;
   stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field, value,
-    label: t("lab.ability", { name: p.name, ability: ABIL_PT[k], from: original, to: value }) }, true);
+    label: t("lab.ability", { name: p.name, ability: abilName(k), from: original, to: value }) }, true);
 }
 
 // ------------------------------------------------------------------ staging
@@ -433,7 +467,7 @@ function pickClub(title, onPick) {
   openPicker(title, state.clubs.filter((c) => c.block !== state.block), (c) => [c.name, t("pick.players", { n: c.size })], onPick);
 }
 function pickSkill(p) {
-  const missing = Object.entries(SKILL_NAMES).filter(([k]) => !p.skills.includes(k)
+  const missing = Object.entries(skillNames()).filter(([k]) => !p.skills.includes(k)
     && (p.kind !== "created" || p.skillFields[k]));
   openPicker(t("pick.addSkill", { name: p.name }), missing, ([, label]) => [label, ""],
     ([k, label]) => stage(skillOp(p, k, 1, t("lab.skillOn", { name: p.name, skill: label })), true));
@@ -709,6 +743,7 @@ async function switchLanguage(lang) {
   }
   pollGame();
   refreshSetup();
+  renderUpdate();
 }
 
 async function openSetup() {
@@ -729,6 +764,24 @@ async function startup() {
   const st = await refreshSetup();
   if (st && st.gameDir && st.dumpOk && st.saveDirOk) return loadSaves();
   openSetup();
+}
+
+// ------------------------------------------------------------------ updates
+
+let updateState = { status: "idle" };
+function renderUpdate(st = updateState) {
+  updateState = st;
+  const v = st.version || "";
+  $("#update-status").textContent = t("update." + st.status, { v, p: st.percent ?? 0, e: st.error || "" });
+  $("#btn-update-check").hidden = st.status === "disabled" || st.status === "checking" || st.status === "downloading";
+  const btn = $("#btn-update");
+  btn.hidden = !(st.status === "ready" || st.status === "downloading");
+  btn.disabled = st.status !== "ready";
+  $("#update-text").textContent = st.status === "ready" ? t("update.button", { v }) : t("update.downloadingShort", { p: st.percent ?? 0 });
+}
+async function installUpdate() {
+  if (state.staged.length && !confirm(t("update.confirmStaged", { n: state.staged.length }))) return;
+  await window.cl.installUpdate();
 }
 
 // ------------------------------------------------------------------ backups / game state
@@ -816,6 +869,10 @@ $("#btn-setup-check").onclick = refreshSetup;
 $("#btn-setup-done").onclick = () => { $("#dlg-setup").close(); loadSaves(); };
 $("#dlg-setup").addEventListener("cancel", (e) => { if ($("#btn-setup-done").disabled) e.preventDefault(); });
 for (const b of document.querySelectorAll(".flag")) b.onclick = () => switchLanguage(b.dataset.lang);
+$("#btn-update").onclick = installUpdate;
+$("#btn-update-check").onclick = async () => renderUpdate(await window.cl.checkUpdates());
+window.cl.onUpdate(renderUpdate);
+window.cl.updateState().then(renderUpdate);
 applyStatic();
 call("set_language", { lang: LANG }).catch(() => null);
 startup();

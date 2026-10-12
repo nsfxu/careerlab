@@ -58,12 +58,17 @@ jobs:
             dist/*.blockmap
           if-no-files-found: error
 
+      - name: Release notes from CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: python tools/release_notes.py ${{ env.VERSION }} > release-notes.md
+
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           name: CareerLab ${{ env.VERSION }}
-          generate_release_notes: true
+          body_path: release-notes.md
           files: |
             dist/*.exe
             dist/latest.yml

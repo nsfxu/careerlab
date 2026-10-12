@@ -11,6 +11,7 @@ import json
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -35,7 +36,15 @@ def main():
     if not (APP / "node_modules").exists():
         run(["npm", "install"], APP)
     # publishing is the release workflow's job (and auto-update's, later), never the build's
-    run(["npx", "electron-builder", "--win", "nsis", "--x64", "--publish", "never"], APP)
+    builder = ["npx", "electron-builder", "--win", "nsis", "--x64", "--publish", "never"]
+    try:
+        run(builder, APP)
+    except subprocess.CalledProcessError:
+        # locally the first run after freezing sometimes fails on a file still held by
+        # antivirus / a just-closed CareerLab; a second run succeeds (CI never needed it)
+        print("electron-builder failed once; retrying", flush=True)
+        time.sleep(5)
+        run(builder, APP)
     version = json.loads((APP / "package.json").read_text(encoding="utf-8"))["version"]
     print("installer:", ROOT / "dist" / f"CareerLab-Setup-{version}.exe")
 

@@ -40,7 +40,21 @@ The version is `app/package.json` → `version`. `main.js` picks the frozen engi
   Verified 2026-10-12: green on a clean runner.
 - Screenshots for the README: `python harness/readme_shots.py` with the app running on CDP 9333.
 
-## Planned
+## Auto-update (`app/updater.js`)
 
-- Auto-update with `electron-updater` from GitHub Releases. The repo is private: needs a
-  public releases repo (or a token in the app, which is not acceptable). Waiting on the user.
+- `electron-updater` (GitHub provider, `app/package.json` → `build.publish`), installed app
+  only. Checks 5 s after start and every 6 h, downloads in the background, then the top bar
+  shows *Restart to update* (silent install + relaunch). Unapplied staged edits trigger a
+  confirm. If the user never restarts, the update installs on quit.
+- It reads `latest.yml` from the newest **non-draft, non-prerelease** release of
+  `nsfxu/careerlab`; the workflow uploads it with the installer and blockmap.
+- Unsigned builds update fine (no publisher check without a certificate).
+- Test an update: build an older version locally (`npm version 0.9.9 --no-git-tag-version`
+  in `app/`, `npx electron-builder --dir`), run `dist\win-unpacked\CareerLab.exe`, and watch
+  Settings → update status.
+
+## Release checklist
+
+1. Add the version's section to `CHANGELOG.md` (the workflow uses it as release notes).
+2. Tests green; `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Watch the run; check the Release has the `.exe`, `latest.yml` and `.blockmap`.

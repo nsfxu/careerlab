@@ -1,6 +1,6 @@
 // CareerLab interface text, English and Brazilian Portuguese.
-// Game terms (positions, ability and skill names) are not here: they stay in FL26's
-// Portuguese in both languages, so they always match what the game shows.
+// Game terms (positions, ability and skill names) live in app.js: FL26's Portuguese labels in
+// Portuguese mode, PES 2021's English names in English mode.
 // Static text in index.html uses data-i18n / data-i18n-placeholder / data-i18n-title.
 
 const STRINGS = {
@@ -107,6 +107,12 @@ const STRINGS = {
     "setup.choose": "Choose…", "setup.check": "Check again", "setup.continue": "Continue",
     "setup.pickGame": "Football Life 2026 folder (with FL_2026.exe)", "setup.pickSaves": "Become a Legend saves folder",
     "setup.readerInstalled": "Database reader installed: start the game once",
+
+    "update.check": "Check for updates", "update.checking": "checking for updates…", "update.none": "up to date",
+    "update.downloading": "downloading {v}… {p}%", "update.ready": "{v} ready", "update.error": "update check failed ({e})",
+    "update.disabled": "updates work in the installed app", "update.idle": "",
+    "update.button": "Restart to update to {v}", "update.downloadingShort": "Update {p}%",
+    "update.confirmStaged": "You have {n} staged edits that are not applied yet; restarting discards them. Restart and update now?",
 
     "bk.title": "Backups",
     "bk.note": "Every apply first saves a copy of the career as it was, so you can go back. Restoring also backs up the current file first.",
@@ -219,6 +225,12 @@ const STRINGS = {
     "setup.choose": "Escolher…", "setup.check": "Verificar de novo", "setup.continue": "Continuar",
     "setup.pickGame": "Pasta do Football Life 2026 (com o FL_2026.exe)", "setup.pickSaves": "Pasta dos saves do Rumo ao Estrelato",
     "setup.readerInstalled": "Leitor do banco instalado: abra o jogo uma vez",
+
+    "update.check": "Procurar atualizações", "update.checking": "procurando atualizações…", "update.none": "atualizado",
+    "update.downloading": "baixando {v}… {p}%", "update.ready": "{v} pronta", "update.error": "falha ao procurar atualização ({e})",
+    "update.disabled": "atualizações funcionam no app instalado", "update.idle": "",
+    "update.button": "Reiniciar para atualizar para {v}", "update.downloadingShort": "Atualização {p}%",
+    "update.confirmStaged": "Você tem {n} alterações na fila que ainda não foram aplicadas; reiniciar as descarta. Reiniciar e atualizar agora?",
 
     "bk.title": "Backups",
     "bk.note": "Cada aplicação salva antes uma cópia da carreira como estava, para você poder voltar. Restaurar também faz backup do arquivo atual antes.",

@@ -19,8 +19,9 @@ squad sync from efootballdb.com. Windows only. Electron UI + Python engine.
    fresh load, refuses if the validator finds a *new* problem, then writes. Keep it that way.
 5. **The created character (ID ≥ 0x80000000) is never moved by squad tools**, and keeps his
    own shirt number in renumbers.
-6. **The GitHub repo `nsfxu/careerlab` is private.** Do not make it public or publish
-   anything from it without the user asking.
+6. **The GitHub repo `nsfxu/careerlab` is public (MIT) since 1.0.** Releases are what
+   installed apps update from: never delete or edit a published release, never push a `v*`
+   tag without the user asking, and keep game data and personal saves out of the repo.
 7. **Claims about the save format need in-game proof.** "The file changed" is not "the game
    shows it". `LIMITS.md` marks each finding `[game]` or `[file]`; keep doing that.
 8. **UI tests go through CDP** (`harness/ui.py`), never by clicking on the user's screen.
@@ -62,5 +63,6 @@ python build.py                                     # tests -> frozen engine -> 
 ## Style
 
 Match the surrounding code: small modules, docstrings that say *why*, no build tooling in the
-renderer, Portuguese game terms in the UI (positions ZC/VOL/PTE…, ability names) because they
-must match what the user sees in FL26. Keep answers to the user short: result first.
+renderer. UI text goes through `t()` (`renderer/i18n.js`, engine `fl26/i18n.py`) in English
+and pt-BR; game terms (positions, abilities, skills) follow the language: FL26's Portuguese
+labels (ZC/VOL/PTE…) or PES 2021's English names (CB/DMF/LWF…), so they match the game. Keep answers to the user short: result first.

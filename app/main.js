@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const readline = require("readline");
+const updater = require("./updater");
 
 let engine = null;
 let nextId = 1;
@@ -52,8 +53,10 @@ ipcMain.handle("pick-folder", async (e, title) => {
 });
 ipcMain.handle("version", () => app.getVersion());
 
+let mainWindow = null;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  const win = mainWindow = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1100, minHeight: 700,
     backgroundColor: "#121212",
     title: "CareerLab",
@@ -64,5 +67,5 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 
-app.whenReady().then(() => { startEngine(); createWindow(); });
+app.whenReady().then(() => { startEngine(); createWindow(); updater.init(() => mainWindow); });
 app.on("window-all-closed", () => { if (engine) engine.kill(); app.quit(); });

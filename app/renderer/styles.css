@@ -291,3 +291,8 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .flag svg { width: 28px; height: 20px; border-radius: 3px; box-shadow: 0 0 0 1px #0006; }
 .flag:hover { background: var(--panel-2); }
 .flag.on { border-color: var(--red-glow); color: var(--text); background: var(--red-soft); }
+
+/* updates */
+.update-btn:not(:disabled) { color: #7fd38b; border-color: #2f6a38; }
+.update-btn:not(:disabled):hover { background: #12261a; }
+.setup-version { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }

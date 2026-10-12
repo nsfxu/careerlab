@@ -71,7 +71,9 @@ def main():
     p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=H, deviceScaleFactor=1, mobile=False)
     run = lambda code: p.js(PRELUDE + code)
 
-    run("await until(() => !$('#btn-league').disabled); await row((r) => r.textContent.includes('Matheus Pereira'));")
+    lang = sys.argv[1] if len(sys.argv) > 1 else "en"          # README screenshots are English
+    run(f"await until(() => !$('#btn-league').disabled); if (LANG !== '{lang}') {{ await switchLanguage('{lang}'); await w(800); }}"
+        "await row((r) => r.textContent.includes('Matheus Pereira'));")
     p.shot("01-squad-and-player")
 
     run("await row((r) => r.classList.contains('created')); $('.detail').scrollTop = 9999; await w(300);")

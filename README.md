@@ -16,12 +16,13 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
 - **Edit any player**: the 25 abilities, skills, shirt number, captaincy; move or release him.
 - **Edit your own player** (the created character): abilities and skills.
 - **Change a club's manager**, with or without his tactics.
+- **Portuguese or English**, switched with the flags in Settings; updates itself from GitHub Releases.
 - **Safe by design**: nothing is written until you apply, every apply is checked and backed up,
   and the save is never touched while the game is running.
 
 ## Install
 
-1. Download `CareerLab-Setup-<version>.exe` from the repository's **Releases** page and run it
+1. Download `CareerLab-Setup-<version>.exe` from [Releases](https://github.com/nsfxu/careerlab/releases/latest) and run it
    (per-user install, no admin). Windows SmartScreen may warn because the installer is not
    signed: *More info → Run anyway*.
 2. On first start CareerLab looks for your FL2026 folder (the one with `FL_2026.exe`) and your
@@ -31,6 +32,8 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
    once, wait for the main menu, close it, and press *Check again*.
 
 Requirements: Windows 10/11, Football Life 2026 with Sider (it ships with the Smoke Patch).
+CareerLab updates itself: when a new version is out it downloads in the background and offers
+*Restart to update*.
 
 ## Using it
 
@@ -44,7 +47,7 @@ release. Your own player is marked with a star.
 **Sync a club with the real world.** *Sync real squad* fetches the club's current squad from
 efootballdb and shows what would change. Untick anything you want to keep as it is. Players
 FL26 lacks are created with their real ratings; players FL26 knows under another ID are
-recognised by name, not duplicated.
+recognised by name, not duplicated. pesmaster.com is checked as a second opinion.
 
 ![Club sync](docs/screenshots/03-club-sync.png)
 
@@ -109,5 +112,8 @@ python build.py                      # tests -> frozen engine -> dist/CareerLab-
 git tag v0.3.0 && git push origin v0.3.0   # GitHub Actions builds and publishes a Release
 ```
 
-Personal project, not affiliated with Konami, PES Smoke Patch or efootballdb. Football Life
-2026 data belongs to its owners.
+## License
+
+[MIT](LICENSE). CareerLab ships no game data: it reads your own installation and edits your
+own saves. Not affiliated with Konami, PES Smoke Patch, efootballdb or pesmaster; Football
+Life 2026 and eFootball data belong to their owners. See [CHANGELOG.md](CHANGELOG.md).

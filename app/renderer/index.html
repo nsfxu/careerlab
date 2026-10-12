@@ -52,6 +52,7 @@
       <button id="btn-backups" class="ghost" data-i18n-title="top.backupsTitle"><svg class="i"><use href="#i-history"/></svg><span data-i18n="top.backups"></span></button>
       <button id="btn-setup" class="ghost icon-only" data-i18n-title="top.settingsTitle"><svg class="i"><use href="#i-sliders"/></svg></button>
     </nav>
+    <button id="btn-update" class="ghost update-btn" hidden><svg class="i"><use href="#i-cloud"/></svg><span id="update-text"></span></button>
     <button id="btn-review" class="primary" disabled><svg class="i"><use href="#i-check"/></svg><span data-i18n="top.review"></span> <span id="staged-count" class="count">0</span></button>
   </header>
 
@@ -186,7 +187,8 @@
       <button id="btn-setup-saves" class="ghost"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="setup.choose"></span></button>
     </div>
     <div class="dialog-actions">
-      <span class="muted left" id="setup-version"></span>
+      <span class="muted left setup-version"><span id="setup-version"></span> · <span id="update-status"></span>
+        <button id="btn-update-check" class="ghost small" data-i18n="update.check"></button></span>
       <button id="btn-setup-check" class="ghost" data-i18n="setup.check"></button>
       <button id="btn-setup-done" class="primary" data-i18n="setup.continue"></button>
     </div>

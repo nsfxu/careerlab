@@ -1,6 +1,6 @@
 {
   "name": "careerlab",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "private": true,
   "description": "CareerLab - editor for Football Life 2026 Become a Legend careers in progress",
   "main": "main.js",
@@ -24,6 +24,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "updater.js",
       "renderer/**/*",
       "res/icon.png",
       "package.json"
@@ -54,6 +55,18 @@
       "shortcutName": "CareerLab",
       "artifactName": "CareerLab-Setup-${version}.exe",
       "uninstallDisplayName": "CareerLab"
-    }
-  }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "nsfxu",
+        "repo": "careerlab"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "repository": "github:nsfxu/careerlab",
+  "license": "MIT"
 }
