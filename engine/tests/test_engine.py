@@ -195,6 +195,22 @@ def test_pesmaster_parse_squad():
     assert parse_squad(page) == [(36943, "Cassio"), (151850, "Joao Marcelo")]
 
 
+def test_staging_one_value_replaces_the_last():
+    from fl26.session import Session
+    s = Session.__new__(Session)
+    s.staged = []
+    s._check = lambda op: None
+    for v in (33, 32, 27):
+        s.stage({"op": "attr", "pid": 1, "field": "age", "value": v})
+    assert s.staged == [{"op": "attr", "pid": 1, "field": "age", "value": 27}]
+    s.stage({"op": "attr", "pid": 1, "field": "speed", "value": 90})
+    s.stage({"op": "attr", "pid": 1, "field": "age", "revert": True})
+    assert [o["field"] for o in s.staged] == ["speed"]
+    s.stage({"op": "move", "pid": 2, "from": 1, "to": 3})
+    s.stage({"op": "move", "pid": 2, "from": 3, "to": 4})              # moves are not merged
+    assert len(s.staged) == 3
+
+
 def test_image_names_match_game_files():
     from fl26.images import KINDS
     assert KINDS["player"][1](151850) == "151850.dds"

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.4.0 — 2026-10-12
+
+- **Review window redone**: a summary of the staged edits by kind (transfers, player edits,
+  squad, managers & tactics, national teams) with icons; edits grouped by player (portrait),
+  club (crest) or sync batch, each group with its own Undo; an icon per kind of edit;
+  "34 → 27" shown as old value → new value; big sync batches start folded.
+- Free agents and call-up lists: portraits no longer cut off, each player's country flag, the
+  rating as a coloured badge, a green "Staged ✓" once signed.
+- Club sync window: a summary row (moving in, free agents, new, leaving, numbers, already
+  matching); each section in its own box with a coloured icon and an "All" checkbox; the
+  source club's crest on moves; whole rows clickable; old → new shirt numbers; the options in
+  an Options box and the notes (real coach, set-piece takers) as a list with icons.
+- "Move in" no longer takes a player's national team for his current club.
+- Changing the same value again replaces the staged edit instead of adding another (typing a
+  new age was staged once per keystroke); setting a value back to what the save has removes
+  the edit.
+
 ## 2.3.0 — 2026-10-12
 
 - **National teams** (*Nations* tab): every national squad of the career (140 in the test

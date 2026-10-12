@@ -645,6 +645,16 @@ function skillOp(p, k, value, label) {
     : { op: "attr", pid: p.pid, field: k, value, label };
 }
 
+// the value is back to what the save has: drop the staged edit instead of staging a no-op
+async function unstageValue(p, kind, field) {
+  if (stagedValue(p.pid, field) === undefined) return;
+  await guarded(async () => {
+    state.staged = await call("stage", { op: { op: kind, pid: p.pid, field, revert: true } });
+    updateStaged();
+    if (state.player) renderPlayer();
+  });
+}
+
 function stagedValue(pid, field) {
   for (let i = state.staged.length - 1; i >= 0; i--) {
     const o = state.staged[i];
@@ -852,6 +862,7 @@ function stageProfile(p, fdef, value) {
   const kind = p.kind === "created" ? "created" : "attr";
   const raw = value - (fdef.off || 0);
   if (raw === (stagedValue(p.pid, fdef.field) ?? fdef.raw)) return;      // nothing changes
+  if (raw === fdef.raw) return unstageValue(p, kind, fdef.field);        // back to the save's value
   const shown = (r) => fdef.options ? (fdef.options.find(([v]) => v === r)?.[1] ?? r) : r + (fdef.off || 0);
   stage({ op: kind, pid: p.pid, field: fdef.field, value: raw,
     label: t("lab.profile", { name: p.name, what: fdef.label, from: shown(fdef.raw), to: shown(raw) }) }, true);
@@ -894,6 +905,8 @@ function profileSection(p) {
   };
   const pitch = positionPitch(level, (code, lv) => {
     const next = (lv.value + 1) % 3;
+    const base = p.kind === "created" ? p.fields[lv.field] : p.positions?.[code.toLowerCase()];
+    if (next === (base ?? 0)) return unstageValue(p, p.kind === "created" ? "created" : "attr", lv.field);
     stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field: lv.field, value: next,
       label: t("lab.position", { name: p.name, pos: posLabel(code), from: "CBA"[lv.value], to: "CBA"[next] }) }, true);
   });
@@ -965,8 +978,8 @@ function createdAbilities(p) {
 
 function stageAbility(p, k, value, original) {
   if (!(value >= 40 && value <= 99)) return toast(t("err.abilityRange"), true);
-  if (value === original) return;
   const field = p.kind === "created" ? createdField(k) : k;
+  if (value === original) return unstageValue(p, p.kind === "created" ? "created" : "attr", field);
   stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field, value,
     label: t("lab.ability", { name: p.name, ability: abilName(k), from: original, to: value }) }, true);
 }
@@ -1048,7 +1061,20 @@ function initLayout() {
 
 // ------------------------------------------------------------------ staging
 
+function groupOf(op) {
+  if (op.source) return { type: "source", name: op.source };
+  const club = (b) => state.clubs.find((c) => c.block === b);
+  if (op.pid != null && ["attr", "created", "shirt"].includes(op.op)) {
+    const name = state.player?.pid === op.pid ? state.player.name : state.squad?.players.find((x) => x.pid === op.pid)?.name;
+    return { type: "player", id: op.pid, name: name || "#" + op.pid };
+  }
+  const b = op.to ?? op.block ?? op.a;
+  const c = b != null ? club(b) : null;
+  return c ? { type: "club", id: c.block, teamId: c.teamId, name: c.name } : { type: "other" };
+}
+
 async function stage(op, keepPlayer = false) {
+  if (!op.group) op.group = groupOf(op);
   await guarded(async () => {
     state.staged = await call("stage", { op });
     updateStaged();
@@ -1064,19 +1090,80 @@ function updateStaged() {
   saveTabs();
 }
 
+// What each kind of edit looks like in the review window
+const EDIT_KINDS = {
+  move: ["move", "transfer"], release: ["user-minus", "transfer"], add: ["user-plus", "transfer"], new: ["plus", "transfer"],
+  _in: ["move", "transfer"], _out: ["user-minus", "transfer"],
+  attr: ["sliders", "player"], created: ["star", "player"], shirt: ["shirt", "squad"], renumber: ["shirt", "squad"],
+  captain: ["shield", "squad"], dedupe: ["shield", "squad"], manager_swap: ["whistle", "manager"],
+  manager_set: ["whistle", "manager"], tactics_copy: ["tactics", "manager"], callup: ["globe", "national"], drop: ["globe", "national"],
+};
+const EDIT_CATS = ["transfer", "player", "squad", "manager", "national"];
+
+async function unstageMany(indices) {
+  await guarded(async () => {
+    for (const i of [...indices].sort((a, b) => b - a)) state.staged = await call("unstage", { index: i });
+    updateStaged();
+    if (state.player) renderPlayer();
+  });
+  state.staged.length ? openReview() : $("#dlg-review").close();
+}
+
 async function openReview() {
   const ol = $("#staged-list");
   ol.innerHTML = "";
+  // summary: how many edits of each category
+  const counts = {};
+  for (const op of state.staged) {
+    const cat = (EDIT_KINDS[op.op] || ["sliders", "other"])[1];
+    counts[cat] = (counts[cat] || 0) + 1;
+  }
+  $("#review-summary").replaceChildren(
+    el("span", { className: "rv-total" }, t("review.total", { n: state.staged.length })),
+    ...[...EDIT_CATS, "other"].filter((c) => counts[c]).map((c) =>
+      el("span", { className: "rv-chip cat-" + c }, icon(c === "transfer" ? "move" : c === "player" ? "user" : c === "squad" ? "shirt"
+        : c === "manager" ? "whistle" : c === "national" ? "globe" : "sliders"), t("review.cat." + c),
+        el("b", { textContent: counts[c] }))));
+  // groups: a sync batch, a player, a club
+  const groups = new Map();
   state.staged.forEach((op, i) => {
-    const undo = el("button", { className: "small ghost", title: t("review.undoTitle") }, icon("undo"), t("review.undo"));
-    undo.onclick = async () => {
-      state.staged = await call("unstage", { index: i });
-      updateStaged();
-      state.staged.length ? openReview() : $("#dlg-review").close();
-      if (state.player) renderPlayer();
-    };
-    ol.append(el("li", {}, el("div", {}, el("span", { textContent: op.label || op.op }), undo)));
+    const g = op.group || groupOf(op);
+    const key = g.type + ":" + (g.id ?? g.name ?? "");
+    if (!groups.has(key)) groups.set(key, { g, items: [] });
+    groups.get(key).items.push({ op, i });
   });
+  for (const { g, items } of groups.values()) {
+    const srcClub = g.type === "source" ? state.clubs.find((c) => c.block === (items[0].op.block ?? items[0].op.to)) : null;
+    const image = g.type === "player" ? gameImg("player", g.id, "face-sm")
+      : g.type === "club" ? gameImg("flag", g.teamId, "crest-sm")
+      : srcClub && !items.some((x) => (x.op.block ?? x.op.to) !== srcClub.block) ? gameImg("flag", srcClub.teamId, "crest-sm")
+      : el("span", { className: "rv-gicon" }, icon(g.type === "source" ? "sync" : "sliders"));
+    const undoAllHere = el("button", { className: "ghost small rv-gundo", title: t("review.undoGroup") }, icon("undo"), t("review.undo"));
+    undoAllHere.onclick = (e) => { e.preventDefault(); unstageMany(items.map((x) => x.i)); };
+    const head = el("summary", { className: "rv-ghead" }, image,
+      el("span", { className: "rv-gname", textContent: g.name || t("review.other") }),
+      el("span", { className: "rv-gcount", textContent: items.length }), undoAllHere);
+    const det = el("details", { className: "rv-group", open: items.length <= 12 || groups.size === 1 }, head);
+    const list = el("ul", { className: "rv-items" });
+    for (const { op, i } of items) {
+      const [ic, cat] = EDIT_KINDS[op.op] || ["sliders", "other"];
+      let text = op.label || op.op;
+      // the group already names the player / club: drop it from the row, capitalise what is left
+      for (const pre of [g.name + ": ", g.name + " "])
+        if ((g.type === "player" || g.type === "club") && g.name && text.startsWith(pre)) { text = text.slice(pre.length); break; }
+      text = text.charAt(0).toUpperCase() + text.slice(1);
+      const undo = el("button", { className: "ghost icon-only small rv-undo", title: t("review.undoTitle") }, icon("undo"));
+      undo.onclick = () => unstageMany([i]);
+      // "34 → 27" gets its own styling
+      const m = text.match(/^(.*?)(\S+) → (\S+)$/);
+      const body = m && !text.includes(":", m[1].length) ? el("span", { className: "rv-text" }, m[1],
+        el("span", { className: "rv-from", textContent: m[2] }), el("span", { className: "rv-arrow", textContent: "→" }),
+        el("span", { className: "rv-to", textContent: m[3] })) : el("span", { className: "rv-text", textContent: text });
+      list.append(el("li", {}, el("span", { className: `rv-kind cat-${cat} op-${op.op}` }, icon(ic)), body, undo));
+    }
+    det.append(list);
+    ol.append(det);
+  }
   const chk = $("#review-check");
   chk.className = "review-check muted";
   chk.textContent = t("review.checking");
@@ -1224,14 +1311,17 @@ async function loadFree() {
         : { op: "add", pid: p.pid, block: state.block, label: t("lab.add", { name: p.name, club: state.squad.name }) });
       if (state.staged.length === before) return;                     // refused (e.g. squad full)
       btn.disabled = true;
+      btn.classList.add("staged");
+      btn.firstChild.replaceWith(icon("check"));
       btn.lastChild.textContent = t("free.staged");
     };
-    const name = el("span", { className: "fname pname" }, gameImg("player", p.pid, "face-sm"), p.name);
+    if (done.has(p.pid)) { btn.classList.add("staged"); btn.firstChild.replaceWith(icon("check")); }
+    const name = personCell(p.pid, p.name, p.nation);
     if (p.created) name.append(icon("star", "me-star"));
     return el("div", { className: "free-row" + (callup ? " with-club" : "") }, badge(p.position), name,
       ...(callup ? [el("span", { className: "muted fclub", textContent: p.club || t("nat.noClub") })] : []),
-      el("span", { className: "muted", textContent: t("detail.years", { n: p.age }) }),
-      el("span", { className: "c-ovr " + valClass(p.rating), textContent: p.rating }), btn);
+      el("span", { className: "muted fage", textContent: t("detail.years", { n: p.age }) }),
+      el("span", { className: "ovr-pill " + valClass(p.rating), textContent: p.rating }), btn);
   }));
   $("#free-total").textContent = t(callup ? "nat.total" : "free.total", { shown: r.players.length, n: r.total });
 }
@@ -1309,6 +1399,17 @@ function addOffer(r) {
   $("#detail").append(actions);
 }
 
+// A player in a dialog row: portrait, name (ellipsis), country flag.
+function personCell(pid, name, nation) {
+  const cell = el("span", { className: "person" }, gameImg("player", pid, "face-md"),
+    el("span", { className: "person-name", textContent: name }));
+  if (nation) {
+    const f = gameImg("flag", nation, "nation-flag");
+    if (f.tagName === "IMG") cell.append(f);
+  }
+  return cell;
+}
+
 // ------------------------------------------------------------------ efootballdb sync
 
 let syncPlan = null;
@@ -1338,44 +1439,63 @@ async function openSync(refresh = false, source = syncSource) {
     }
     body.append(box);
   }
-  const group = (title, note, items, render, checked = true) => {
+  // summary of the plan
+  const P = syncPlan;
+  const chip = (cls, ic, label, n) => n ? el("span", { className: "rv-chip " + cls }, icon(ic), label, el("b", { textContent: n })) : null;
+  body.append(el("div", { className: "review-summary sync-summary" }, ...[
+    chip("sg-in", "move", t("sync.moveIn"), P.moveIn.length), chip("sg-add", "user-plus", t("sync.add"), P.add.length),
+    chip("sg-add", "plus", t("sync.create"), P.create.length), chip("sg-out", "user-minus", t("sync.release"), P.release.length),
+    chip("sg-num", "shirt", t("sync.numbers"), P.renumber.length), chip("sg-keep", "check", t("sync.keep"), P.keep.length),
+  ].filter(Boolean)));
+  if (!P.moveIn.length && !P.add.length && !P.create.length && !P.release.length && !P.renumber.length)
+    body.append(el("div", { className: "cross good" }, icon("check"), t("sync.nothing")));
+  const group = (cls, ic, title, note, items, render, checked = true) => {
     if (!items.length) return;
-    const g = el("div", { className: "sync-group" });
-    g.append(el("h3", {}, `${title} (${items.length}) `, el("span", { className: "muted", textContent: note })));
+    const all = el("input", { type: "checkbox", checked, title: t("sync.selectAll") });
+    const g = el("div", { className: "sync-group " + cls });
+    g.append(el("h3", {}, el("span", { className: "sg-icon" }, icon(ic)), el("span", { className: "sg-title", textContent: title }),
+      el("span", { className: "rv-gcount", textContent: items.length }), el("span", { className: "sg-note", textContent: note }),
+      el("label", { className: "sg-all" }, all, t("sync.all"))));
+    const boxes = [];
     for (const it of items) {
       const cb = el("input", { type: "checkbox", checked });
       it._cb = cb;
-      const [main, side] = render(it);
-      main.prepend(gameImg("player", it.careerPid || it.pid, "face-xs"));
-      main.classList.add("pname");
-      g.append(el("div", { className: "sync-row" }, cb, it.position ? badge(it.position) : el("span"), main, side));
+      boxes.push(cb);
+      const [name, side] = render(it);
+      g.append(el("label", { className: "sync-row" }, cb, it.position ? badge(it.position) : el("span"),
+        personCell(it.careerPid || it.pid, name, it.nation), side));
     }
+    all.onchange = () => boxes.forEach((b) => { b.checked = all.checked; });
     body.append(g);
   };
   const tag = (text, cls) => el("span", { className: "tag " + cls, textContent: text });
-  group(t("sync.moveIn"), t("sync.moveInNote"), syncPlan.moveIn,
-    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.from", { club: it.fromName }) })]);
-  group(t("sync.add"), t("sync.addNote"), syncPlan.add,
-    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.freePlayer") })]);
-  group(t("sync.create"), t("sync.createNote"), syncPlan.create,
-    (it) => [el("span", { textContent: it.age ? `${it.name}, ${it.age}` : it.name }),
+  group("sg-in", "move", t("sync.moveIn"), t("sync.moveInNote"), P.moveIn,
+    (it) => [it.name, el("span", { className: "note from" }, gameImg("flag", it.fromTeam, "crest-xs"), t("sync.from", { club: it.fromName }))]);
+  group("sg-add", "user-plus", t("sync.add"), t("sync.addNote"), P.add,
+    (it) => [it.name, tag(t("sync.freePlayer"), "ok")]);
+  group("sg-add", "plus", t("sync.create"), t("sync.createNote"), P.create,
+    (it) => [it.age ? `${it.name}, ${it.age}` : it.name,
       it.kind === "absent" ? tag(t("sync.absentTag"), "absent") : tag(t("sync.dbTag"), "new")]);
-  group(t("sync.release"), t(syncPlan.source === "edit" ? "sync.releaseNoteEdit" : "sync.releaseNote"), syncPlan.release,
-    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.becomesFree") })]);
-  group(t("sync.numbers"), t("sync.numbersNote"), syncPlan.renumber,
-    (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: `${it.from ?? "–"} → ${it.to}` })]);
-  syncPlan._numbersCb = el("input", { type: "checkbox", checked: true });
-  body.append(el("label", { className: "pick-option" }, syncPlan._numbersCb,
-    t("sync.numbersAll")));
-  if (syncPlan.captain) {
-    syncPlan._captainCb = el("input", { type: "checkbox", checked: true });
-    body.append(el("label", { className: "pick-option" }, syncPlan._captainCb, t("sync.captainCb", { name: syncPlan.captain.name })));
+  group("sg-out", "user-minus", t("sync.release"), t(P.source === "edit" ? "sync.releaseNoteEdit" : "sync.releaseNote"), P.release,
+    (it) => [it.name, el("span", { className: "note out", textContent: t("sync.becomesFree") })]);
+  group("sg-num", "shirt", t("sync.numbers"), t("sync.numbersNote"), P.renumber,
+    (it) => [it.name, el("span", { className: "note" }, el("span", { className: "rv-from", textContent: it.from ?? "–" }),
+      el("span", { className: "rv-arrow", textContent: "→" }), el("span", { className: "rv-to", textContent: it.to }))]);
+  // options and notes
+  const opts = el("div", { className: "sync-options" }, el("h3", { textContent: t("sync.options") }));
+  P._numbersCb = el("input", { type: "checkbox", checked: true });
+  opts.append(el("label", { className: "sync-opt" }, P._numbersCb, icon("shirt"), t("sync.numbersAll").trim()));
+  if (P.captain) {
+    P._captainCb = el("input", { type: "checkbox", checked: true });
+    opts.append(el("label", { className: "sync-opt" }, P._captainCb, el("span", { className: "armband", textContent: "C" }),
+      t("sync.captainCb", { name: P.captain.name }).trim()));
   }
-  body.append(el("p", { className: "muted", textContent: t("sync.takers") }));
-  if (syncPlan.keep.length)
-    body.append(el("p", { className: "muted", textContent: t("sync.alreadyMatch", { n: syncPlan.keep.length }) }));
-  if (syncPlan.coach?.name && syncPlan.coach.name !== state.squad.manager?.name)
-    body.append(el("p", { className: "muted", textContent: t("sync.realCoach", { name: syncPlan.coach.name }) }));
+  body.append(opts);
+  const notes = el("ul", { className: "sync-notes" });
+  if (P.coach?.name && P.coach.name !== state.squad.manager?.name)
+    notes.append(el("li", {}, icon("whistle"), t("sync.realCoach", { name: P.coach.name })));
+  notes.append(el("li", {}, icon("alert"), t("sync.takers")));
+  body.append(notes);
 }
 
 async function stageSync() {

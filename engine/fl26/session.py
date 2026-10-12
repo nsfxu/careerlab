@@ -170,6 +170,11 @@ class Session:
         out.sort(key=lambda x: (not x["mine"], x["name"]))
         return out
 
+    def nation_team(self, pid):
+        """National-team ID of the player's country (its crest is the country's flag)."""
+        nat = self.nationality(pid)
+        return self.db.national_of().get(nat) if nat is not None else None
+
     def nationality(self, pid):
         if pid >= CREATED_ID_MIN:
             return self.my_nationality()
@@ -376,11 +381,11 @@ class Session:
             if pid in squad_pids:
                 plan["keep"].append(item)
             elif st == "record":
-                clubs = [k for k in where.get(pid, [])
-                         if k != block and (self.ids.get(k, (None,))[0] or 0) >= 100]
+                clubs = [k for k in where.get(pid, []) if k != block and self._is_club(k)]
                 if clubs:
                     item["from"] = clubs[0]
                     item["fromName"] = self.club_name(clubs[0])
+                    item["fromTeam"] = self.ids[clubs[0]][0]
                     plan["moveIn"].append(item)
                 else:
                     plan["add"].append(item)
@@ -407,6 +412,9 @@ class Session:
                                              "from": current_shirt.get(r["pid"]), "to": n})
             if plan["captain"] and plan["captain"]["pid"] == it["pid"]:
                 plan["captain"]["pid"] = r["pid"]
+        for key in ("moveIn", "add", "release", "renumber"):
+            for it in plan[key]:
+                it["nation"] = self.nation_team(it.get("careerPid", self.career_pid(it["pid"])))
         # second opinion: does pesmaster.com list the same squad?
         if source != "efdb":
             return plan
@@ -601,9 +609,33 @@ class Session:
 
     # ------------------------------------------------------------------ staging
 
+    @staticmethod
+    def _same_target(op):
+        """Edits that set one value: a newer one replaces the older (typing 34 -> 27 in the
+        age box is one edit, not seven)."""
+        k = op.get("op")
+        if k in ("attr", "created"):
+            return (k, op.get("pid"), op.get("field"))
+        if k == "shirt":
+            return (k, op.get("pid"), op.get("block"))
+        if k in ("captain", "tactics_copy"):
+            return (k, op.get("block"))
+        return None
+
     def stage(self, op):
+        """Stage an edit. One that sets the same value as an earlier one replaces it in
+        place; `revert: true` (value back to what the save has) just drops the earlier one."""
+        key = self._same_target(op)
+        old = next((i for i, o in enumerate(self.staged) if key and self._same_target(o) == key), None)
+        if op.get("revert"):
+            if old is not None:
+                del self.staged[old]
+            return self.staged
         self._check(op)
-        self.staged.append(op)
+        if old is not None:
+            self.staged[old] = op
+        else:
+            self.staged.append(op)
         return self.staged
 
     ORDER = {"release": 0, "move": 1, "add": 2, "new": 2, "renumber": 3, "captain": 4}
@@ -775,7 +807,8 @@ class Session:
             if max_age and age > int(max_age):
                 continue
             out.append({"pid": pid, "name": name, "position": POS_NAMES[pos], "age": age,
-                        "rating": round(self.rating(pid)), "speed": A.get(rec, "speed")})
+                        "rating": round(self.rating(pid)), "speed": A.get(rec, "speed"),
+                        "nation": self.nation_team(pid)})
         out.sort(key=lambda r: (-r["rating"], r["age"]))
         return {"total": len(out), "players": out[:limit]}
 

@@ -140,10 +140,11 @@
     </section>
   </main>
 
-  <dialog id="dlg-review" class="dialog">
+  <dialog id="dlg-review" class="dialog review">
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-check"/></svg><span data-i18n="review.title"></span></h2>
     <p class="muted" data-i18n="review.note"></p>
-    <ol id="staged-list" class="staged-list"></ol>
+    <div id="review-summary" class="review-summary"></div>
+    <div id="staged-list" class="staged-list"></div>
     <div id="review-check" class="review-check"></div>
     <div id="apply-progress" class="apply-progress" hidden>
       <div class="bar"><span id="apply-bar"></span></div>
