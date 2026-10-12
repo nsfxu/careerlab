@@ -118,6 +118,9 @@ class Server:
     def unstage(self, index):
         return self._session().unstage(int(index))
 
+    def free_agents(self, position=None, max_age=None, query=""):
+        return self._session().free_agents(position, max_age, query)
+
     def duplicates(self):
         return self._session().duplicates()
 

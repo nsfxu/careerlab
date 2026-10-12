@@ -183,6 +183,7 @@ async function openClub(block) {
     renderSquad();
     $("#btn-manager").disabled = false;
     $("#btn-tactics").disabled = false;
+    $("#btn-free").disabled = false;
     $("#btn-sync").disabled = !state.squad.teamId;
   });
 }
@@ -203,6 +204,7 @@ function renderSquad() {
     if (p.captain) name.append(el("span", { className: "armband", textContent: "C", title: t("captain") }));
     tr.append(el("td", { className: "c-num", textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
       el("td", {}, name), el("td", { className: "c-num", textContent: p.age ?? "" }),
+      el("td", { className: "c-num c-ovr " + (p.rating ? valClass(p.rating) : ""), textContent: p.rating ?? "" }),
       el("td", { className: "c-num", textContent: p.speed ?? "" }));
     tr.onclick = () => openPlayer(p.pid);
     body.append(tr);
@@ -604,6 +606,41 @@ function pickSkill(p) {
   openPicker(t("pick.addSkill", { name: p.name }), missing, ([, label]) => [label, ""],
     ([k, label]) => stage(skillOp(p, k, 1, t("lab.skillOn", { name: p.name, skill: label })), true));
 }
+// ------------------------------------------------------------------ free agents
+
+let freeTimer = null;
+async function openFree() {
+  $("#free-title").textContent = t("free.title", { club: state.squad.name });
+  const pos = $("#free-pos");
+  if (!pos.options.length || pos.dataset.lang !== LANG) {
+    pos.replaceChildren(el("option", { value: "", textContent: t("free.allPositions") }),
+      ...POS_CODES.map((c) => el("option", { value: c, textContent: posLabel(c) })));
+    pos.dataset.lang = LANG;
+  }
+  if (!$("#dlg-free").open) $("#dlg-free").showModal();
+  loadFree();
+}
+
+async function loadFree() {
+  const body = $("#free-body");
+  const r = await guarded(() => call("free_agents", { position: $("#free-pos").value || null,
+    max_age: $("#free-age").value ? Number($("#free-age").value) : null, query: $("#free-q").value }));
+  if (!r) return;
+  const signed = new Set(state.staged.filter((o) => o.op === "add").map((o) => o.pid));
+  body.replaceChildren(...r.players.map((p) => {
+    const btn = el("button", { className: "small ghost", disabled: signed.has(p.pid) }, icon("user-plus"), t(signed.has(p.pid) ? "free.staged" : "free.sign"));
+    btn.onclick = async () => {
+      await stage({ op: "add", pid: p.pid, block: state.block, label: t("lab.add", { name: p.name, club: state.squad.name }) });
+      btn.disabled = true;
+      btn.lastChild.textContent = t("free.staged");
+    };
+    return el("div", { className: "free-row" }, badge(p.position), el("span", { className: "fname", textContent: p.name }),
+      el("span", { className: "muted", textContent: t("detail.years", { n: p.age }) }),
+      el("span", { className: "c-ovr " + valClass(p.rating), textContent: p.rating }), btn);
+  }));
+  $("#free-total").textContent = t("free.total", { shown: r.players.length, n: r.total });
+}
+
 function pickTactics() {
   const here = state.squad;
   openPicker(t("pick.tactics", { club: here.name }), state.clubs.filter((c) => c.block !== state.block && c.manager),
@@ -1036,6 +1073,10 @@ $("#btn-backups").onclick = openBackups;
 $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
 $("#btn-tactics").onclick = pickTactics;
+$("#btn-free").onclick = openFree;
+$("#btn-close-free").onclick = () => $("#dlg-free").close();
+$("#free-pos").onchange = loadFree;
+for (const id of ["#free-age", "#free-q"]) $(id).oninput = () => { clearTimeout(freeTimer); freeTimer = setTimeout(loadFree, 300); };
 $("#btn-sync").onclick = () => openSync(false);
 for (const b of document.querySelectorAll("#sync-source button")) b.onclick = () => openSync(false, b.dataset.src);
 $("#btn-sync-refresh").onclick = () => openSync(true);

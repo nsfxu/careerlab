@@ -158,7 +158,7 @@ class Session:
             rec = self.reg.record(i)
             pos = A.get(rec, "registered_position")
             row.update(position=POS_NAMES[pos] if pos < 13 else "?", age=A.get(rec, "age"),
-                       speed=A.get(rec, "speed"))
+                       speed=A.get(rec, "speed"), rating=round(A.overall_estimate(rec)))
         return row
 
     def squad(self, k):
@@ -356,14 +356,9 @@ class Session:
         return out
 
     def rating(self, pid):
-        """Rough strength from the registry abilities (the game's overall is computed)."""
+        """Estimated overall (the game computes the real one): attributes.overall_estimate."""
         i = self.rec_of.get(pid)
-        if i is None:
-            return 0
-        rec = self.reg.record(i)
-        gk = A.get(rec, "registered_position") == 0
-        vals = [A.get(rec, k) for k in A.ABILITIES if k.startswith("gk_") == gk]
-        return sum(vals) / len(vals)
+        return A.overall_estimate(self.reg.record(i)) if i is not None else 0
 
     MIN_SQUAD = 23
 
@@ -635,6 +630,32 @@ class Session:
                 mgr.slot_removed(k, slot)
             except LookupError:
                 pass
+
+    def free_agents(self, position=None, max_age=None, query="", limit=300):
+        """Players the career knows (registry record, name in the database) who are in no
+        squad, strongest first. Lent spare IDs and your own player are left out."""
+        in_squad = {p for cl in self.c.clubs() for _, p in cl.members}
+        spare_ids = set(load_spares().values())
+        q = (query or "").strip().lower()
+        out = []
+        for i in range(1, self.reg.count):
+            pid = self.reg.pid(i)
+            if pid in in_squad or pid >= CREATED_ID_MIN or pid in spare_ids:
+                continue
+            name = self.db.player_names.get(pid)
+            if not name or (q and q not in name.lower()):
+                continue
+            rec = self.reg.record(i)
+            pos = A.get(rec, "registered_position")
+            if pos > 12 or (position and POS_NAMES[pos] != position):
+                continue
+            age = A.get(rec, "age")
+            if max_age and age > int(max_age):
+                continue
+            out.append({"pid": pid, "name": name, "position": POS_NAMES[pos], "age": age,
+                        "rating": round(self.rating(pid)), "speed": A.get(rec, "speed")})
+        out.sort(key=lambda r: (-r["rating"], r["age"]))
+        return {"total": len(out), "players": out[:limit]}
 
     def duplicates(self):
         """Players the game lists twice in one squad (it does this at season rollover)."""

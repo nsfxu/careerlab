@@ -91,6 +91,16 @@ def style_from_efootballdb(efdb_style, is_gk):
 ABILITIES = [k for k, (_, w, base) in FIELDS.items() if w == 6 and base == 40]
 
 
+def overall_estimate(rec):
+    """Close to the game's overall, which it computes itself (checked against 25 players on
+    screen, mean error under 3): outfield = mean of the 14 best outfield abilities;
+    goalkeepers = mean of the 5 GK abilities minus 7."""
+    if get(rec, "registered_position") == 0:
+        return sum(get(rec, k) for k in ABILITIES if k.startswith("gk_")) / 5 - 7
+    vals = sorted((get(rec, k) for k in ABILITIES if not k.startswith("gk_")), reverse=True)[:14]
+    return sum(vals) / len(vals)
+
+
 def get(rec, name):
     off, width, base = FIELDS[name]
     v = int.from_bytes(bytes(rec[off // 8:(off + width + 7) // 8 + 1]), "little")

@@ -81,6 +81,7 @@
             <input id="player-search" type="search" data-i18n-placeholder="squad.search">
           </div>
           <button id="btn-sync" class="ghost" disabled data-i18n-title="squad.syncTitle"><svg class="i"><use href="#i-sync"/></svg><span data-i18n="squad.sync"></span></button>
+          <button id="btn-free" class="ghost" disabled data-i18n-title="squad.freeTitle"><svg class="i"><use href="#i-user-plus"/></svg><span data-i18n="squad.free"></span></button>
           <button id="btn-tactics" class="ghost" disabled data-i18n-title="squad.tacticsTitle"><svg class="i"><use href="#i-tactics"/></svg><span data-i18n="squad.tactics"></span></button>
           <button id="btn-manager" class="ghost" disabled data-i18n-title="squad.managerTitle"><svg class="i"><use href="#i-whistle"/></svg><span data-i18n="squad.manager"></span></button>
         </div>
@@ -88,7 +89,7 @@
       <div id="search-results" class="search-results hidden"></div>
       <div class="table-wrap">
         <table class="squad-table">
-          <thead><tr><th class="c-num">#</th><th class="c-pos">Pos</th><th data-i18n="col.name"></th><th class="c-num" data-i18n="col.age"></th><th class="c-num" data-i18n="col.speed" data-i18n-title="col.speedTitle"></th></tr></thead>
+          <thead><tr><th class="c-num">#</th><th class="c-pos">Pos</th><th data-i18n="col.name"></th><th class="c-num" data-i18n="col.age"></th><th class="c-num" data-i18n="col.ovr" data-i18n-title="col.ovrTitle"></th><th class="c-num" data-i18n="col.speed" data-i18n-title="col.speedTitle"></th></tr></thead>
           <tbody id="squad-body"></tbody>
         </table>
       </div>
@@ -150,6 +151,21 @@
       <button id="btn-league-refresh" class="ghost"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="league.refresh"></span></button>
       <button id="btn-close-league" class="ghost" data-i18n="cancel"></button>
       <button id="btn-league-stage" class="primary" data-i18n="stage"></button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-free" class="dialog wide">
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-user-plus"/></svg><span id="free-title"></span></h2>
+    <p class="muted" data-i18n="free.note"></p>
+    <div class="free-filters">
+      <select id="free-pos"></select>
+      <label><span data-i18n="free.maxAge"></span> <input id="free-age" type="number" min="16" max="45"></label>
+      <div class="search-box grow"><svg class="i"><use href="#i-search"/></svg><input id="free-q" type="search" data-i18n-placeholder="free.search"></div>
+    </div>
+    <div id="free-body" class="sync-body"></div>
+    <div class="dialog-actions">
+      <span id="free-total" class="muted left"></span>
+      <button id="btn-close-free" class="ghost" data-i18n="close"></button>
     </div>
   </dialog>
 
