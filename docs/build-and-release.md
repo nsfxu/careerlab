@@ -31,9 +31,16 @@ The version is `app/package.json` → `version`. `main.js` picks the frozen engi
 `%LOCALAPPDATA%\CareerLab\config.json` (`gameDir`, `saveDir`), auto-detected when missing
 (drive roots, `FL2026`, `Games\FL2026`, …). The Settings dialog edits it.
 
-## Planned (FEATURES.md section 11)
+## Releases (`.github/workflows/release.yml`)
 
-- GitHub Actions: on tag `v*`, build on `windows-latest` and attach the installer +
-  `latest.yml` to a Release.
+- `git tag v0.3.0 && git push origin v0.3.0` → Actions builds on `windows-latest` (Python 3.12,
+  Node 20, `python build.py`), sets the app version from the tag, and publishes a Release
+  "CareerLab 0.3.0" with the installer, `latest.yml` and the blockmap.
+- *Actions → release → Run workflow* builds without publishing (installer as a run artifact).
+  Verified 2026-10-12: green on a clean runner.
+- Screenshots for the README: `python harness/readme_shots.py` with the app running on CDP 9333.
+
+## Planned
+
 - Auto-update with `electron-updater` from GitHub Releases. The repo is private: needs a
   public releases repo (or a token in the app, which is not acceptable). Waiting on the user.

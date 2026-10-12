@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import struct
+import unicodedata
 from pathlib import Path
 
 from . import attributes as A, created, efdb, profiles, safewrite, validate
@@ -43,6 +45,25 @@ def save_spares(m):
 
 class EditError(RuntimeError):
     pass
+
+
+def _name_tokens(name):
+    n = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z ]+", " ", n).split()
+
+
+def same_person(a, b):
+    """Same player under two IDs? (FL26's patch gave some players their own IDs, e.g. Johan
+    Manzambi is 90286 in FL26 and 174191 on efootballdb.) Full names must match, except
+    that an abbreviated first name ("A. Harriman-Annous") matches by initial + surname."""
+    ta, tb = _name_tokens(a), _name_tokens(b)
+    if not ta or not tb:
+        return False
+    if ta == tb:
+        return True
+    if len(ta) >= 2 and len(tb) >= 2 and (len(ta[0]) == 1 or len(tb[0]) == 1):
+        return ta[0][0] == tb[0][0] and ta[1:] == tb[1:]
+    return False
 
 
 class Session:
@@ -261,6 +282,22 @@ class Session:
             if pid not in target and pid < CREATED_ID_MIN:
                 plan["release"].append({"pid": pid, "name": self.name(pid),
                                         "position": self._player_row(pid).get("position")})
+        # a "new" player who is really one of ours under another ID: keep him, not a twin
+        for it in list(plan["create"]):
+            r = next((r for r in plan["release"] if same_person(it["name"], r["name"])), None)
+            if r is None:
+                continue
+            plan["create"].remove(it)
+            plan["release"].remove(r)
+            plan["keep"].append({**it, "careerPid": r["pid"], "matchedByName": True})
+            n = plan["numbers"].pop(str(it["pid"]), None)
+            if n is not None:
+                plan["numbers"][str(r["pid"])] = n
+                if current_shirt.get(r["pid"]) != n:
+                    plan["renumber"].append({"pid": r["pid"], "name": it["name"], "position": it["position"],
+                                             "from": current_shirt.get(r["pid"]), "to": n})
+            if plan["captain"] and plan["captain"]["pid"] == it["pid"]:
+                plan["captain"]["pid"] = r["pid"]
         return plan
 
     def _is_club(self, k):
@@ -369,6 +406,25 @@ class Session:
                 op.update(name=it["name"], position=it["position"], age=it["age"])
                 size[k] += 1
                 (moves if op["op"] == "move" else adds if op["op"] == "add" else creates).append(op)
+        # a "new" player who is really one of ours under another ID: keep or move him instead
+        for op in list(creates):
+            r = next((r for r in releases if same_person(op["name"], r["name"])), None)
+            if r is None:
+                continue
+            creates.remove(op)
+            releases.remove(r)
+            k, fl = op["block"], r["pid"]
+            if r["block"] == k:
+                clubs[k]["keep"] += 1
+            else:
+                moves.append({"op": "move", "pid": fl, "from": r["block"], "to": k, "kind": "move",
+                              "fromName": names[r["block"]], "name": op["name"], "position": op["position"],
+                              "age": op["age"], "label": f"Move {op['name']}: {names[r['block']]} → {names[k]}"})
+            n = clubs[k]["numbers"].pop(str(op["pid"]), None)
+            if n is not None:
+                clubs[k]["numbers"][str(fl)] = n
+            if clubs[k]["captain"] and clubs[k]["captain"]["pid"] == op["pid"]:
+                clubs[k]["captain"]["pid"] = fl
         # efootballdb squads can be thin (16-18 players): below `min_squad` a club keeps its
         # best players that were to be released, so AI clubs still field a full bench
         for k in blocks:

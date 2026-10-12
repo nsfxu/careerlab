@@ -172,3 +172,12 @@ def test_backup_description():
     assert d["title"] == "Club 1 sync" and d["clubs"] == ["Club 1", "Club 2"]
     assert d["summary"] == "2 moves · 1 release" and d["edits"][0] == "Release A"
     assert S().describe([{"op": "attr", "pid": 5, "label": "X: Speed 70 → 80"}])["title"] == "X: Speed 70 → 80"
+
+
+def test_same_person_across_ids():
+    from fl26.session import same_person
+    assert same_person("Johan Manzambi", "Johan Manzambi")
+    assert same_person("Fabrício Bruno", "Fabricio Bruno")
+    assert same_person("A. Harriman-Annous", "Ayden Harriman-Annous")
+    assert not same_person("Lucas Silva", "Luan Silva")       # same initial, both full: different men
+    assert not same_person("Matheus Pereira", "Matheus Henrique")
