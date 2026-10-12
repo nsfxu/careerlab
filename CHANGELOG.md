@@ -8,9 +8,10 @@
   it back).
 - The edge between the squad table and the player panel can be dragged to resize them
   (double-click resets); the width is remembered.
-- Squad table columns sort on click (#, Pos, Name, Age, Ovr, Vel): first click biggest-first for
-  ratings/age/speed and lowest-first for number/name/position, second reverses, third restores
-  the squad order; remembered between clubs. Your pinned player stays on top.
+- Squad table columns sort on click (#, Pos, Name, Age, Ovr): first click biggest-first for
+  ratings/age and lowest-first for number/name/position, second reverses, third restores
+  the squad order; remembered between clubs. Your pinned player stays on top. The speed
+  (Vel) column is gone.
 - Your own player is pinned at the top of his club's squad table ("Your player" / "All
   players"), like your club in the club list.
 - The player panel only opens when a player is selected (× closes it), so the squad table

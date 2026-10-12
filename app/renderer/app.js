@@ -201,7 +201,7 @@ function renderSquad() {
   const mine = s.players.filter((p) => p.created);
   const rest = sortPlayers(s.players.filter((p) => !p.created));
   markSortHeaders();
-  const group = (key) => el("tr", { className: "group" }, el("td", { colSpan: 6, textContent: t(key) }));
+  const group = (key) => el("tr", { className: "group" }, el("td", { colSpan: 5, textContent: t(key) }));
   if (mine.length) body.append(group("squad.yourPlayer"));
   for (const p of [...mine, ...rest]) {
     if (mine.length && p === rest[0]) body.append(group("squad.allPlayers"));
@@ -211,8 +211,7 @@ function renderSquad() {
     if (p.captain) name.append(el("span", { className: "armband", textContent: "C", title: t("captain") }));
     tr.append(el("td", { className: "c-num", textContent: p.shirt ?? "" }), el("td", {}, badge(p.position)),
       el("td", {}, name), el("td", { className: "c-num", textContent: p.age ?? "" }),
-      el("td", { className: "c-num c-ovr " + (p.rating ? valClass(p.rating) : ""), textContent: p.rating ?? "" }),
-      el("td", { className: "c-num", textContent: p.speed ?? "" }));
+      el("td", { className: "c-num c-ovr " + (p.rating ? valClass(p.rating) : ""), textContent: p.rating ?? "" }));
     tr.onclick = () => openPlayer(p.pid);
     body.append(tr);
   }
@@ -220,10 +219,10 @@ function renderSquad() {
 
 // Column sorting: first click = the natural direction for that column (numbers that mean
 // "better" go biggest first), second flips it, third returns to the squad order.
-const SORT_FIRST = { shirt: "asc", pos: "asc", name: "asc", age: "desc", rating: "desc", speed: "desc" };
+const SORT_FIRST = { shirt: "asc", pos: "asc", name: "asc", age: "desc", rating: "desc" };
 const SORT_VALUE = {
   shirt: (p) => p.shirt, name: (p) => p.name?.toLowerCase(), age: (p) => p.age, rating: (p) => p.rating,
-  speed: (p) => p.speed, pos: (p) => { const i = POS_CODES.indexOf(p.position); return i < 0 ? null : i; },
+  pos: (p) => { const i = POS_CODES.indexOf(p.position); return i < 0 ? null : i; },
 };
 state.sort = (() => { try { return JSON.parse(localStorage.getItem("careerlab.sort")) || null; } catch { return null; } })();
 

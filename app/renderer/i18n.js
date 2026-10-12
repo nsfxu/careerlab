@@ -20,7 +20,7 @@ const STRINGS = {
     "squad.open": "Open a career", "squad.search": "Search any player in the database",
     "squad.sync": "Sync real squad", "squad.syncTitle": "Compare with the real squad on efootballdb.com",
     "squad.manager": "Manager", "squad.managerTitle": "Change this club's manager",
-    "squad.players": "{n} players", "col.name": "Name", "col.age": "Age", "col.speed": "Vel", "col.speedTitle": "Speed (Velocidade)",
+    "squad.players": "{n} players", "col.name": "Name", "col.age": "Age",
     "captain": "Captain",
 
     "detail.empty": "Select a player", "detail.noSquad": "no squad", "detail.yourPlayer": "Your player",
@@ -163,7 +163,7 @@ const STRINGS = {
     "squad.open": "Abra uma carreira", "squad.search": "Buscar qualquer jogador do banco de dados",
     "squad.sync": "Sincronizar elenco real", "squad.syncTitle": "Comparar com o elenco real no efootballdb.com",
     "squad.manager": "Técnico", "squad.managerTitle": "Trocar o técnico deste clube",
-    "squad.players": "{n} jogadores", "col.name": "Nome", "col.age": "Idade", "col.speed": "Vel", "col.speedTitle": "Velocidade",
+    "squad.players": "{n} jogadores", "col.name": "Nome", "col.age": "Idade",
     "captain": "Capitão",
 
     "detail.empty": "Selecione um jogador", "detail.noSquad": "sem clube", "detail.yourPlayer": "Seu jogador",
