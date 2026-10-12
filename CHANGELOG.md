@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.1 — unreleased
+## 2.1.0 — 2026-10-12
 
 - **Game images**: player portraits, club crests and manager photos, read from your own FL26
   install (nothing is downloaded or shipped) — in the club list, squad table, squad header and
