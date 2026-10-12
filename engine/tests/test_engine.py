@@ -193,3 +193,11 @@ def test_pesmaster_parse_squad():
             '<h2>Cruzeiro EC eFootball Lineup</h2>'
             '<a href="/legend/efootball-2022/player/7511/">')            # legends: not squad
     assert parse_squad(page) == [(36943, "Cassio"), (151850, "Joao Marcelo")]
+
+
+@needs
+def test_compare_same_save_is_empty():
+    from fl26.compare import View, compare
+    v = View(CLEAN_BL0)
+    r = compare(v, v, lambda p: str(p), lambda k: f"club {k}", lambda k: True, 120)
+    assert r["empty"] and r["counts"] == {"transfers": 0, "joined": 0, "left": 0, "regens": 0, "managers": 0}

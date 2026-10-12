@@ -145,6 +145,9 @@ async function openSave(path) {
     renderClubs();
     updateStaged();
     $("#btn-league").disabled = false;
+    $("#btn-changes").disabled = false;
+    $("#changes-dot").hidden = !state.summary.changedSinceLast;
+    if (state.summary.changedSinceLast) toast(t("diff.seenToast"));
     if (me && me.block != null) await openClub(me.block);
   });
 }
@@ -770,6 +773,89 @@ async function startup() {
   openSetup();
 }
 
+// ------------------------------------------------------------------ what changed
+
+function fmtWhen(s) {
+  if (!s) return "";
+  const m = /^(\d{4})-?(\d\d)-?(\d\d)[T-](\d\d):?(\d\d)/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : s;
+}
+
+async function openChanges(backupFile = null) {
+  const body = $("#diff-body");
+  body.replaceChildren(el("p", { className: "muted", textContent: t("diff.loading") }));
+  $("#diff-title").textContent = t(backupFile ? "diff.titleBackup" : "diff.titleLastFirst", { when: "" });
+  $("#diff-note").textContent = t(backupFile ? "diff.noteBackup" : "diff.noteLast");
+  $("#dlg-diff").dataset.mode = backupFile ? "backup" : "last";
+  if (!$("#dlg-diff").open) $("#dlg-diff").showModal();
+  const d = await guarded(() => backupFile ? call("compare_backup", { file: backupFile }) : call("since_last"));
+  if (!d) { body.replaceChildren(); return; }
+  if (d.since) $("#diff-title").textContent = t(backupFile ? "diff.titleBackup" : "diff.titleLast", { when: fmtWhen(d.since) });
+  renderChanges(d);
+}
+
+function renderChanges(d) {
+  const body = $("#diff-body");
+  body.replaceChildren();
+  if (d.empty) { body.append(el("p", { className: "muted", textContent: t("diff.nothing") })); return; }
+  const section = (title, n, kids, open = true) => {
+    if (!n) return;
+    const det = el("details", { className: "diff-sec", open }, el("summary", {}, icon("chevron"), el("b", { textContent: title }),
+      el("span", { className: "muted", textContent: ` ${n}` })), ...kids);
+    body.append(det);
+  };
+  const row = (main, side, cls = "") => el("div", { className: "diff-row " + cls }, el("span", { textContent: main }),
+    el("span", { className: "muted", textContent: side || "" }));
+  const list = (items, render, limit = 400) => {
+    const box = el("div", { className: "diff-list" });
+    for (const it of items.slice(0, limit)) box.append(render(it));
+    if (items.length > limit) box.append(row(t("diff.more", { n: items.length - limit })));
+    return box;
+  };
+  const club = (x, k) => x[k] || t("diff.free");
+  const delta = (a, b) => { const n = b - a; return el("span", { className: n > 0 ? "up" : "down", textContent: `${a} → ${b} (${n > 0 ? "+" : ""}${n})` }); };
+
+  if (d.me?.changes.length) {
+    const chips = el("div", { className: "chips" });
+    for (const c of d.me.changes)
+      chips.append(el("span", { className: "chip static" }, `${c.field === "age" ? t("diff.age") : abilName(c.field)} `, delta(c.from, c.to)));
+    section(t("diff.me"), d.me.changes.length, [chips]);
+  }
+  const mc = d.myClub;
+  if (mc && (mc.in.length || mc.out.length || mc.ratings.length)) {
+    const kids = [];
+    if (mc.in.length) kids.push(el("h4", { textContent: t("diff.arrivals") }), list(mc.in, (x) => row(x.name, x.fromName ? t("diff.from", { club: x.fromName }) : t("diff.free"), "in")));
+    if (mc.out.length) kids.push(el("h4", { textContent: t("diff.departures") }), list(mc.out, (x) => row(x.name, x.toName ? t("diff.to", { club: x.toName }) : t("diff.free"), "out")));
+    if (mc.ratings.length) kids.push(el("h4", { textContent: t("diff.ratings") }),
+      list(mc.ratings, (x) => el("div", { className: "diff-row" }, el("span", { textContent: x.name }), delta(x.from, x.to)), 30));
+    section(t("diff.myClub", { club: mc.name }), mc.in.length + mc.out.length + mc.ratings.length, kids);
+  }
+  section(t("diff.managers"), d.managers.length, [list(d.managers, (x) => row(x.club, `${x.from || "–"} → ${x.to || "–"}`))]);
+  if (d.transfers.length) {
+    const filter = el("input", { type: "search", placeholder: t("diff.filter"), className: "diff-filter" });
+    const box = el("div");
+    const draw = () => {
+      const q = filter.value.trim().toLowerCase();
+      const items = q ? d.transfers.filter((x) => `${x.name} ${x.fromName} ${x.toName}`.toLowerCase().includes(q)) : d.transfers;
+      box.replaceChildren(list(items, (x) => row(x.name, `${x.fromName} → ${x.toName}`)));
+    };
+    filter.oninput = draw;
+    draw();
+    section(t("diff.transfers"), d.transfers.length, [filter, box], d.transfers.length <= 60);
+  }
+  section(t("diff.joined"), d.joined.length, [list(d.joined, (x) => row(x.name, t("diff.to", { club: club(x, "toName") })))], false);
+  section(t("diff.left"), d.left.length, [list(d.left, (x) => row(x.name, t("diff.from", { club: club(x, "fromName") })))], false);
+  section(t("diff.regens"), d.regens.length, [list(d.regens, (x) => row(t("diff.regenRow", { name: x.name, club: x.club, from: x.fromAge, to: x.toAge })))], false);
+}
+
+async function closeChanges() {
+  $("#dlg-diff").close();
+  if ($("#dlg-diff").dataset.mode === "last" && !$("#changes-dot").hidden) {
+    await call("accept_snapshot").catch(() => null);       // seen: next time starts from here
+    $("#changes-dot").hidden = true;
+  }
+}
+
 // ------------------------------------------------------------------ updates
 
 let updateState = { status: "idle" };
@@ -809,6 +895,8 @@ async function openBackups() {
     }
     const lead = b.kind === "apply" ? t("bk.before") : "";
     const restore = el("button", { className: "small ghost" }, icon("undo"), t("bk.restore"));
+    const cmp = el("button", { className: "small ghost" }, icon("activity"), t("bk.compare"));
+    cmp.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); $("#dlg-backups").close(); openChanges(b.file); };
     restore.onclick = async (ev) => {
       ev.preventDefault(); ev.stopPropagation();
       if (!confirm(t("bk.confirm", { when }) + (b.kind === "apply" ? t("bk.undoes", { title }) : "") + t("bk.backedUp"))) return;
@@ -819,7 +907,7 @@ async function openBackups() {
       el("div", { className: "bk-text" },
         el("div", {}, el("b", { textContent: lead + title })),
         el("div", { className: "muted bk-sub", textContent: [when, b.summary].filter(Boolean).join("  ·  ") })),
-      restore);
+      el("span", { className: "bk-actions" }, cmp, restore));
     const det = el("details", { className: "bk" }, head);
     if (b.edits?.length) {
       const list = el("ol", { className: "bk-edits" });
@@ -876,6 +964,9 @@ $("#btn-setup-done").onclick = () => { $("#dlg-setup").close(); loadSaves(); };
 $("#dlg-setup").addEventListener("cancel", (e) => { if ($("#btn-setup-done").disabled) e.preventDefault(); });
 for (const b of document.querySelectorAll(".flag")) b.onclick = () => switchLanguage(b.dataset.lang);
 $("#btn-update").onclick = installUpdate;
+$("#btn-changes").onclick = () => openChanges();
+$("#btn-close-diff").onclick = closeChanges;
+$("#dlg-diff").addEventListener("cancel", (e) => { e.preventDefault(); closeChanges(); });
 $("#btn-update-check").onclick = async () => renderUpdate(await window.cl.checkUpdates());
 window.cl.onUpdate(renderUpdate);
 window.cl.updateState().then(renderUpdate);

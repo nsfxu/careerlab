@@ -34,6 +34,7 @@
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/><path d="M12 12v6"/><path d="M9 15l3 3 3-3"/></symbol>
     </defs>
   </svg>
@@ -49,6 +50,7 @@
     <span id="game-state" class="pill"></span>
     <nav class="top-actions">
       <button id="btn-league" class="ghost" disabled data-i18n-title="top.leagueTitle"><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="top.league"></span></button>
+      <button id="btn-changes" class="ghost" disabled data-i18n-title="diff.buttonTitle"><svg class="i"><use href="#i-activity"/></svg><span data-i18n="diff.button"></span><i id="changes-dot" class="dot" hidden></i></button>
       <button id="btn-backups" class="ghost" data-i18n-title="top.backupsTitle"><svg class="i"><use href="#i-history"/></svg><span data-i18n="top.backups"></span></button>
       <button id="btn-setup" class="ghost icon-only" data-i18n-title="top.settingsTitle"><svg class="i"><use href="#i-sliders"/></svg></button>
     </nav>
@@ -144,6 +146,15 @@
       <button id="btn-league-refresh" class="ghost"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="league.refresh"></span></button>
       <button id="btn-close-league" class="ghost" data-i18n="cancel"></button>
       <button id="btn-league-stage" class="primary" data-i18n="stage"></button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-diff" class="dialog wide">
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-activity"/></svg><span id="diff-title"></span></h2>
+    <p class="muted" id="diff-note"></p>
+    <div id="diff-body" class="sync-body diff-body"></div>
+    <div class="dialog-actions">
+      <button id="btn-close-diff" class="primary" data-i18n="close"></button>
     </div>
   </dialog>
 

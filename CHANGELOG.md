@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — unreleased
+
+- **What changed**: see everything the game did to your career since CareerLab last saw it —
+  transfers, signings, departures, manager changes, retired players reborn as youngsters,
+  your club's rating changes and your own player's progress. A red dot on the button when
+  the game has changed the career; your own applies are never counted.
+- Backups: *Compare* shows what changed between a backup and the career now.
+
 ## 1.0.1 — 2026-10-12
 
 - Header: the career and game status no longer wrap onto several lines; the update button
