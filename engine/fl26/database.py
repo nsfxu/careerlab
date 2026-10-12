@@ -4,6 +4,7 @@ Dumps come from `SiderAddons/modules/DBDump.lua` (`<name>.raw` files). Layouts:
 
     player.raw            stride 312    +0x08 playerID  +0x44 name (UTF-8)
     team.raw              stride 0x5FC  +0x00 coachID   +0x08 teamID  +0x170 name
+                          +0x47 bit 7 = national team; +0x37C Portuguese name (nationals)
     playerassignment.raw  stride 16     +0x04 playerID  +0x08 teamID  +0x0C order<<10|shirt
     competitionentry.raw  stride 12     +0x00 teamID    +0x04 entryID +0x08 u8 competitionID
                           (21 = Brasileirão, 9 = Premier League; the ID also names the
@@ -17,7 +18,7 @@ import collections
 import struct
 from pathlib import Path
 
-from . import config
+from . import config, i18n
 from .crypto import Save
 
 DEFAULT_DUMP = None          # None = the configured game folder's dump (see config.py)
@@ -31,14 +32,24 @@ class Database:
     def __init__(self, dump_dir=DEFAULT_DUMP, edit_file=None):
         pl = config.table_file("player", dump_dir).read_bytes()
         self.player_names = {}
+        self.player_nat = {}                  # pid -> nationality (9 bits at bit 233)
         for i in range(len(pl) // 312):
             o = i * 312
-            self.player_names[struct.unpack_from("<I", pl, o + 8)[0]] = _text(pl[o + 0x44:o + 0x44 + 61])
+            pid = struct.unpack_from("<I", pl, o + 8)[0]
+            self.player_names[pid] = _text(pl[o + 0x44:o + 0x44 + 61])
+            self.player_nat[pid] = int.from_bytes(pl[o + 29:o + 32], "little") >> 1 & 0x1FF
         tm = config.table_file("team", dump_dir).read_bytes()
         self.team_names = {}
+        self.national = set()                 # national-team IDs (no fixed ID range)
+        self.team_names_pt = {}
         for i in range(len(tm) // 0x5FC):
             o = i * 0x5FC
-            self.team_names[struct.unpack_from("<I", tm, o + 8)[0]] = _text(tm[o + 0x170:o + 0x1B0])
+            tid = struct.unpack_from("<I", tm, o + 8)[0]
+            self.team_names[tid] = _text(tm[o + 0x170:o + 0x1B0])
+            if tm[o + 0x47] & 0x80:
+                self.national.add(tid)
+                self.team_names_pt[tid] = _text(tm[o + 0x37C:o + 0x37C + 0x46])
+        self._by_nat = None
         pa = config.table_file("playerassignment", dump_dir).read_bytes()
         self.player_teams = collections.defaultdict(list)       # pid -> [teamID]
         for i in range(len(pa) // 16):
@@ -65,7 +76,55 @@ class Database:
         return self.player_names.get(pid)
 
     def team_name(self, tid):
+        if i18n.LANG == "pt" and self.team_names_pt.get(tid):
+            return self.team_names_pt[tid]
         return self.team_names.get(tid)
+
+    def is_national(self, tid):
+        return tid in self.national
+
+    def national_of(self):
+        """{nationality: national teamID}: the nationality most of its database players share."""
+        if self._by_nat is None:
+            votes = collections.defaultdict(collections.Counter)
+            for pid, teams in self.player_teams.items():
+                nat = self.player_nat.get(pid)
+                for t in teams:
+                    if t in self.national and nat is not None:
+                        votes[t][nat] += 1
+            self._by_nat = {}
+            for t, c in sorted(votes.items()):
+                nat, n = c.most_common(1)[0]
+                if n * 2 > sum(c.values()):
+                    self._by_nat.setdefault(nat, t)
+        return self._by_nat
+
+
+def identify_nationals(career, registry, db, ids, min_size=15):
+    """{block: (national teamID, nationality)} for national-team squads.
+
+    They hold the game's own call-ups (re-picked before every international window), so
+    database voting rarely names them; but every member shares one nationality (registry
+    +0x90), which names the team. Clubs already identified are left alone (a Brazilian
+    club can be all-Brazilian too)."""
+    by_nat = db.national_of()
+    out = {}
+    for cl in career.clubs():
+        tid = ids.get(cl.index, (None,))[0]
+        if tid and not db.is_national(tid):
+            continue
+        nats, n = collections.Counter(), 0
+        for h, pid in cl.members:
+            i = h & 0xFFFF
+            if pid < 0x80000000 and i < registry.count and registry.pid(i) == pid:
+                nats[struct.unpack_from("<H", registry.blob, i * 156 + 0x90)[0]] += 1
+                n += 1
+        if n < min_size:
+            continue
+        nat, k = nats.most_common(1)[0]
+        if k >= n - 1 and nat in by_nat:
+            out[cl.index] = (by_nat[nat], nat)
+    return out
 
 
 def competition_teams(dump_dir=DEFAULT_DUMP):

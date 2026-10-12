@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.3.0 — 2026-10-12
+
+- **National teams** (*Nations* tab): every national squad of the career (140 in the test
+  save), named from its players' nationality, your country first. A national team opens like
+  a squad; *Call up* lists the players of that nationality (strongest first, with their club)
+  and *Drop from squad* removes one, your own player included. Call-ups only change the squad
+  list (players keep their clubs) and squads stay between 18 and 23. The game picks a new
+  squad before every international window, so an edit lasts until the next call-up (tested in
+  game: an edit made after the call-up is used in that window's friendly).
+- Applying edits shows a progress bar with the current step (reading, applying edit n of N,
+  checking, backing up and writing, reloading); the review window can't be closed mid-apply.
+- Settings reorganised: General / Game and saves / Tools / About sections; each folder and the
+  database show a Found / Missing / Action needed label; long paths stay on one line (end
+  visible, full path on hover) with an *Open folder* button; the setup explanation and
+  *Check again* only appear while something is missing, otherwise a plain *Done*; version and
+  updates have their own About row.
+- Error messages no longer start with "Error invoking remote method".
+
 ## 2.2.0 — 2026-10-12
 
 - New title bar: CareerLab draws its own window (custom minimize / maximize / close buttons,

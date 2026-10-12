@@ -75,7 +75,8 @@ const state = { save: null, summary: null, clubs: [], block: null, squad: null, 
 
 function toast(msg, error = false) {
   const box = $("#toast");
-  box.textContent = msg;
+  // engine errors arrive wrapped by Electron's IPC: keep only the engine's own message
+  box.textContent = String(msg).replace(/^Error invoking remote method '[^']+': (\w*Error: )?/, "");
   box.className = "toast" + (error ? " error" : "");
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => box.classList.add("hidden"), error ? 7000 : 3500);
@@ -180,6 +181,7 @@ async function openSave(path) {
     renderClubs();
     updateStaged();
     state.leagues = null;
+    state.nations = null;
     closeLeague();
     await restoreTabs(me);
   });
@@ -210,21 +212,61 @@ function setSideTab(tab) {
 }
 
 function renderClubs() {
-  $("#tab-clubs").title = state.clubs.length ? t("clubs.count", { n: state.clubs.length }) : "";
-  $("#club-filter").placeholder = t(state.sideTab === "leagues" ? "leagues.filter" : "clubs.filter");
+  const nClubs = state.clubs.filter((c) => !c.national).length;
+  $("#tab-clubs").title = nClubs ? t("clubs.count", { n: nClubs }) : "";
+  $("#club-filter").placeholder = t({ leagues: "leagues.filter", nations: "nat.filter" }[state.sideTab] || "clubs.filter");
   if (state.sideTab === "leagues") return renderLeagueList();
+  if (state.sideTab === "nations") return renderNationList();
   const q = $("#club-filter").value.trim().toLowerCase();
   const ul = $("#club-list");
   ul.innerHTML = "";
   const myBlock = state.summary?.me?.block;
   const item = clubItem;
-  const shown = state.clubs.filter((c) => !q || c.name.toLowerCase().includes(q) || (c.manager || "").toLowerCase().includes(q));
+  const shown = state.clubs.filter((c) => !c.national
+    && (!q || c.name.toLowerCase().includes(q) || (c.manager || "").toLowerCase().includes(q)));
   const mine = shown.find((c) => c.block === myBlock);
   if (mine && !q) {
     ul.append(el("li", { className: "group", textContent: t("clubs.yours") }), item(mine),
       el("li", { className: "group", textContent: t("clubs.all") }));
   }
   for (const c of shown) if (q || c.block !== myBlock) ul.append(item(c));
+}
+
+// National teams: the game's current call-ups, named by nationality (engine).
+async function loadNations() {
+  if (state.nations || state.nationsLoading || !state.save) return;
+  state.nationsLoading = true;
+  try { state.nations = await call("national_teams"); } catch (e) { toast(e.message || String(e), true); }
+  state.nationsLoading = false;
+  if (state.sideTab === "nations") renderNationList();
+}
+function renderNationList() {
+  const ul = $("#club-list");
+  if (!state.save) return ul.replaceChildren(el("li", { className: "side-note muted", textContent: t("leagues.noSave") }));
+  if (!state.nations) {
+    ul.replaceChildren(el("li", { className: "side-note muted", textContent: t("loading") }));
+    return loadNations();
+  }
+  $("#tab-nations").title = t("nat.count", { n: state.nations.length });
+  const q = $("#club-filter").value.trim().toLowerCase();
+  const shown = state.nations.filter((n) => !q || n.name.toLowerCase().includes(q) || (n.manager || "").toLowerCase().includes(q));
+  ul.innerHTML = "";
+  const item = (n) => {
+    const li = el("li", { className: (n.block === state.block && state.league == null ? "active" : "") },
+      gameImg("flag", n.teamId, "crest-sm"),
+      el("span", { textContent: n.name, className: "name" + (n.mine ? " me" : "") }),
+      el("span", { className: "size", textContent: n.size }));
+    if (n.hasMe) li.querySelector(".name").append(icon("star", "me-star"));
+    li.title = (n.manager ? t("clubs.manager", { name: n.manager }) : "") + (n.hasMe ? "  ·  " + t("nat.youreIn") : "");
+    li.onclick = () => openClub(n.block);
+    li.ondblclick = () => pinTab("club", n.block);
+    return li;
+  };
+  const mine = shown.find((n) => n.mine);
+  if (mine && !q) ul.append(el("li", { className: "group", textContent: t("nat.yours") }), item(mine),
+    el("li", { className: "group", textContent: t("nat.all") }));
+  for (const n of shown) if (q || n !== mine) ul.append(item(n));
+  if (!shown.length) ul.append(el("li", { className: "side-note muted", textContent: t("leagues.noMatch") }));
 }
 
 // Leagues come from efootballdb's league list (cached a week), matched to the career's clubs.
@@ -522,6 +564,10 @@ function renderSquad() {
   meta.innerHTML = "";
   if (s.manager?.name) meta.append(el("span", {}, gameImg("coach", s.manager.id, "coach-sm"), s.manager.name));
   meta.append(el("span", {}, icon("user"), t("squad.players", { n: s.players.length })));
+  // national team: only call-ups; the game re-picks the squad before every international window
+  $(".squad").classList.toggle("national", !!s.national);
+  $("#btn-callup").hidden = !s.national;
+  if (s.national) meta.append(el("span", { className: "nat-note", title: t("nat.noteLong") }, icon("globe"), t("nat.note")));
   const body = $("#squad-body");
   body.innerHTML = "";
   // your own player pinned on top, like your club in the club list
@@ -722,7 +768,13 @@ function renderPlayer() {
       row.append(cap);
     }
     sec.append(row);
-    if (p.kind !== "created") {
+    if (state.squad?.national) {
+      const drop = el("button", { className: "ghost danger" }, icon("user-minus"), t("nat.drop"));
+      drop.onclick = () => stage({ op: "drop", pid: p.pid, block: state.block, label: t("lab.drop", { name: p.name, team: state.squad.name }) });
+      const actions = el("div", { className: "actions" }, drop);
+      actions.style.marginTop = "12px";
+      sec.append(actions);
+    } else if (p.kind !== "created") {
       const actions = el("div", { className: "actions" });
       actions.style.marginTop = "12px";
       const mv = el("button", { className: "ghost" }, icon("move"), t("detail.move"));
@@ -1054,19 +1106,49 @@ async function undoAll() {
   });
 }
 
+// Apply progress: the engine reports its steps; each owns a slice of the bar.
+const PROGRESS_STEPS = { load: [0, 12], apply: [12, 55], check: [55, 68], write: [68, 88], restore: [10, 80], reload: [88, 100] };
+function showProgress(p) {
+  const box = $("#apply-progress");
+  if (box.hidden) return;
+  const [a, b] = PROGRESS_STEPS[p.step] || [0, 100];
+  const pct = p.n ? a + (b - a) * (p.i / p.n) : a;
+  $("#apply-bar").style.width = Math.max(pct, 3) + "%";
+  $("#apply-step").textContent = t("prog." + p.step, { i: p.i + 1, n: p.n });
+}
+window.cl.onProgress(showProgress);
+function setApplying(on) {
+  state.applying = on;
+  const box = $("#apply-progress");
+  box.hidden = !on;
+  $("#apply-bar").style.width = "3%";
+  $("#apply-step").textContent = on ? t("prog.start") : "";
+  for (const id of ["#btn-apply", "#btn-undo-all", "#btn-close-review"]) $(id).disabled = on;
+  $("#btn-apply").classList.toggle("busy", on);
+  $("#btn-apply use").setAttribute("href", on ? "#i-sync" : "#i-save");
+  $("#btn-apply span").textContent = t(on ? "review.applying" : "review.apply");
+  $("#dlg-review").classList.toggle("applying", on);
+  for (const b of document.querySelectorAll("#staged-list button")) b.disabled = on;
+}
+
 async function applyEdits() {
+  setApplying(true);
   await guarded(async () => {
     const r = await call("apply");
+    $("#apply-bar").style.width = "100%";
+    await new Promise((res) => setTimeout(res, 250));
     $("#dlg-review").close();
     state.staged = [];
     updateStaged();
     toast((r.applied === 1 ? t("review.applied1") : t("review.applied", { n: r.applied }))
       + (r.newPlayers ? t("review.newPlayers", { n: r.newPlayers }) : "") + t("review.inBackups"));
     state.clubs = await call("clubs");
+    state.nations = null;
     renderClubs();
     await reopenActive();
     if (state.player) await openPlayer(state.player.pid);
   });
+  setApplying(false);
 }
 
 // ------------------------------------------------------------------ pickers
@@ -1107,8 +1189,12 @@ function pickSkill(p) {
 // ------------------------------------------------------------------ free agents
 
 let freeTimer = null;
-async function openFree() {
-  $("#free-title").textContent = t("free.title", { club: state.squad.name });
+let freeMode = "sign";
+async function openFree(mode = "sign") {
+  freeMode = mode === "callup" ? "callup" : "sign";
+  $("#free-title").textContent = t(freeMode === "callup" ? "nat.callupDialog" : "free.title", { club: state.squad.name, team: state.squad.name });
+  $("#free-note").textContent = t(freeMode === "callup" ? "nat.callupNote" : "free.note");
+  $("#dlg-free").classList.toggle("callup", freeMode === "callup");
   const pos = $("#free-pos");
   if (!pos.options.length || pos.dataset.lang !== LANG) {
     pos.replaceChildren(el("option", { value: "", textContent: t("free.allPositions") }),
@@ -1121,23 +1207,33 @@ async function openFree() {
 
 async function loadFree() {
   const body = $("#free-body");
-  const r = await guarded(() => call("free_agents", { position: $("#free-pos").value || null,
-    max_age: $("#free-age").value ? Number($("#free-age").value) : null, query: $("#free-q").value }));
+  const callup = freeMode === "callup";
+  const filters = { position: $("#free-pos").value || null,
+    max_age: $("#free-age").value ? Number($("#free-age").value) : null, query: $("#free-q").value };
+  const r = await guarded(() => callup ? call("callup_candidates", { block: state.block, ...filters }) : call("free_agents", filters));
   if (!r) return;
-  const signed = new Set(state.staged.filter((o) => o.op === "add").map((o) => o.pid));
+  const kind = callup ? "callup" : "add";
+  const done = new Set(state.staged.filter((o) => o.op === kind && (!callup || o.block === state.block)).map((o) => o.pid));
+  const verb = callup ? "nat.callupShort" : "free.sign";
   body.replaceChildren(...r.players.map((p) => {
-    const btn = el("button", { className: "small ghost", disabled: signed.has(p.pid) }, icon("user-plus"), t(signed.has(p.pid) ? "free.staged" : "free.sign"));
+    const btn = el("button", { className: "small ghost", disabled: done.has(p.pid) }, icon("user-plus"), t(done.has(p.pid) ? "free.staged" : verb));
     btn.onclick = async () => {
-      await stage({ op: "add", pid: p.pid, block: state.block, label: t("lab.add", { name: p.name, club: state.squad.name }) });
+      const before = state.staged.length;
+      await stage(callup
+        ? { op: "callup", pid: p.pid, block: state.block, label: t("lab.callup", { name: p.name, team: state.squad.name }) }
+        : { op: "add", pid: p.pid, block: state.block, label: t("lab.add", { name: p.name, club: state.squad.name }) });
+      if (state.staged.length === before) return;                     // refused (e.g. squad full)
       btn.disabled = true;
       btn.lastChild.textContent = t("free.staged");
     };
-    return el("div", { className: "free-row" }, badge(p.position),
-      el("span", { className: "fname pname" }, gameImg("player", p.pid, "face-sm"), p.name),
+    const name = el("span", { className: "fname pname" }, gameImg("player", p.pid, "face-sm"), p.name);
+    if (p.created) name.append(icon("star", "me-star"));
+    return el("div", { className: "free-row" + (callup ? " with-club" : "") }, badge(p.position), name,
+      ...(callup ? [el("span", { className: "muted fclub", textContent: p.club || t("nat.noClub") })] : []),
       el("span", { className: "muted", textContent: t("detail.years", { n: p.age }) }),
       el("span", { className: "c-ovr " + valClass(p.rating), textContent: p.rating }), btn);
   }));
-  $("#free-total").textContent = t("free.total", { shown: r.players.length, n: r.total });
+  $("#free-total").textContent = t(callup ? "nat.total" : "free.total", { shown: r.players.length, n: r.total });
 }
 
 function pickTactics() {
@@ -1200,6 +1296,12 @@ function addOffer(r) {
   const btn = el("button", { className: "primary" }, icon("user-plus"), t("search.addTo", { club: state.squad.name }));
   actions.className = "actions section";
   actions.style.marginTop = "14px";
+  if (state.squad?.national) {
+    btn.lastChild.textContent = t("nat.callupTo", { team: state.squad.name });
+    btn.onclick = () => stage({ op: "callup", pid: r.pid, block: state.block, label: t("lab.callup", { name: r.name, team: state.squad.name }) });
+    actions.append(btn);
+    return $("#detail").append(actions);
+  }
   btn.onclick = () => r.blocks.length
     ? stage({ op: "move", pid: r.pid, from: r.blocks[0].block, to: state.block, label: t("lab.move", { name: r.name, from: r.blocks[0].name, to: state.squad.name }) })
     : stage({ op: "add", pid: r.pid, block: state.block, label: t("lab.add", { name: r.name, club: state.squad.name }) });
@@ -1392,9 +1494,22 @@ async function stageLeague() {
 async function refreshSetup() {
   const st = await guarded(() => call("setup_status"));
   if (!st) return null;
-  const step = (id, ok) => { $(id).className = "setup-step " + (ok ? "ok" : "bad"); };
-  $("#setup-game").textContent = st.gameDir || t("setup.gameNotFound");
-  step("#step-game", !!st.gameDir);
+  // each item: a Found / Missing / Action needed pill; the row turns red only when missing
+  const step = (id, pill, status) => {
+    $(id).className = "set-row" + (status === "bad" ? " bad" : "");
+    const el_ = $(pill);
+    el_.className = "set-pill " + status;
+    el_.textContent = t({ ok: "set.found", bad: "set.missing", warn: "set.action" }[status]);
+  };
+  const path = (id, value, fallback) => {
+    const box = $(id);
+    box.replaceChildren(value ? el("bdi", { textContent: value }) : fallback);   // bdi: path stays LTR in the rtl box
+    box.title = value || "";
+    box.classList.toggle("set-path", !!value);
+  };
+  path("#setup-game", st.gameDir, t("setup.gameNotFound"));
+  step("#step-game", "#pill-game", st.gameDir ? "ok" : "bad");
+  $("#btn-open-game").hidden = !st.gameDir;
   let db;
   if (!st.gameDir) db = t("setup.dbNeedsGame");
   else if (st.dumpOk) db = t("setup.dbFound");
@@ -1402,11 +1517,18 @@ async function refreshSetup() {
   else if (st.moduleInstalled) db = t("setup.dbInstalled");
   else db = t("setup.dbMissing");
   $("#setup-db").textContent = db;
-  step("#step-db", st.dumpOk);
+  step("#step-db", "#pill-db", st.dumpOk ? "ok" : st.gameDir && st.siderInstalled ? "warn" : "bad");
   $("#btn-setup-module").hidden = st.dumpOk || !st.siderInstalled || st.moduleInstalled;
-  $("#setup-saves").textContent = st.saveDir + (st.saveDirOk ? "" : t("setup.notFound"));
-  step("#step-saves", st.saveDirOk);
-  $("#btn-setup-done").disabled = !(st.gameDir && st.dumpOk && st.saveDirOk);
+  path("#setup-saves", st.saveDir, "");
+  step("#step-saves", "#pill-saves", st.saveDirOk ? "ok" : "bad");
+  $("#btn-open-saves").hidden = !st.saveDirOk;
+  state.setup = st;
+  // first run (something missing): explain, offer Check again; afterwards a plain Done
+  const ready = !!(st.gameDir && st.dumpOk && st.saveDirOk);
+  $("#btn-setup-done").disabled = !ready;
+  $("#setup-note").hidden = ready;
+  $("#btn-setup-check").hidden = ready;
+  $("#btn-setup-done").textContent = t(state.save ? "set.done" : "setup.continue");
   return st;
 }
 
@@ -1470,6 +1592,7 @@ async function repairDupes() {
 async function openSetup() {
   refreshTools();
   window.cl.version().then((v) => { $("#setup-version").textContent = `CareerLab ${v}`; });
+  renderUpdate();
   markFlags();
   await refreshSetup();
   if (!$("#dlg-setup").open) $("#dlg-setup").showModal();
@@ -1494,7 +1617,7 @@ let updateState = { status: "idle" };
 function renderUpdate(st = updateState) {
   updateState = st;
   const v = st.version || "";
-  $("#update-status").textContent = t("update." + st.status, { v, p: st.percent ?? 0, e: st.error || "" });
+  $("#update-status").textContent = t("update." + st.status, { v, p: st.percent ?? 0, e: st.error || "" }) || t("update.idleLong");
   $("#btn-update-check").hidden = st.status === "disabled" || st.status === "checking" || st.status === "downloading";
   const btn = $("#btn-update");
   btn.hidden = !(st.status === "ready" || st.status === "downloading");
@@ -1597,13 +1720,15 @@ $("#player-search").oninput = onSearch;
 $("#btn-review").onclick = openReview;
 $("#btn-close-review").onclick = () => $("#dlg-review").close();
 $("#btn-apply").onclick = applyEdits;
+$("#dlg-review").addEventListener("cancel", (e) => { if (state.applying) e.preventDefault(); });
 $("#btn-undo-all").onclick = undoAll;
 $("#btn-close-pick").onclick = () => $("#dlg-pick").close();
 $("#btn-backups").onclick = openBackups;
 $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
 $("#btn-tactics").onclick = pickTactics;
-$("#btn-free").onclick = openFree;
+$("#btn-free").onclick = () => openFree("sign");
+$("#btn-callup").onclick = () => openFree("callup");
 for (const th of document.querySelectorAll("#squad-head th")) th.onclick = () => clickSort(th.dataset.sort);
 $("#btn-close-free").onclick = () => $("#dlg-free").close();
 $("#free-pos").onchange = loadFree;
@@ -1627,6 +1752,8 @@ $("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", t("setup.pickG
 $("#btn-setup-saves").onclick = () => chooseFolder("set_save_dir", t("setup.pickSaves"));
 $("#btn-setup-module").onclick = () => guarded(async () => { await call("install_dump_module"); await refreshSetup(); toast(t("setup.readerInstalled")); });
 $("#btn-setup-check").onclick = refreshSetup;
+$("#btn-open-game").onclick = () => state.setup?.gameDir && window.cl.reveal(state.setup.gameDir);
+$("#btn-open-saves").onclick = () => state.setup?.saveDir && window.cl.reveal(state.setup.saveDir);
 $("#btn-setup-done").onclick = () => { $("#dlg-setup").close(); loadSaves(); };
 $("#dlg-setup").addEventListener("cancel", (e) => { if ($("#btn-setup-done").disabled) e.preventDefault(); });
 for (const b of document.querySelectorAll(".flag")) b.onclick = () => switchLanguage(b.dataset.lang);

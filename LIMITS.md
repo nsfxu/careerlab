@@ -192,6 +192,29 @@ starting squad again (Leo Aragão, Gabriel Rojas, Matías Viña…, created Nico
 **Duplicate repair (2026-10-12):** on the post-rollover save the game had listed 11 players twice
 (8 clubs); keeping the first entry and remapping manager slots clears all 11, validator clean. [file]
 
+## National teams (E24, 2026-10-12)
+
+National teams are ordinary squad blocks (23 players; 71 in slot 1, blocks ~584–729) holding
+the **game's own call-ups**, so they rarely match the database and `identify_blocks` leaves
+most unnamed. Each one is a single nationality (registry `+0x90`), which names it: Brazil (146)
+= block 681, already listing Giu. Editing is squad-only (release/add on the block); players
+stay at their clubs, the validator is clean.
+
+- An edited squad loads: Base de dados > América do Sul > Brasil showed the two swapped-in
+  Cruzeiro players and not the two removed. [game]
+- **The game re-picks the whole squad at each call-up** (before an international window):
+  by 29/8 Brazil was rebuilt — our two out, the removed two back, plus changes of its own
+  (Vinícius Júnior, Alisson out). An edit does not survive the next call-up. [game]
+- **An edit made after the call-up holds for that window:** re-applied on 31/8, the Brazil x
+  Senegal friendly's Plano de jogo listed both swapped-in players (Giu started as captain). [game]
+
+So national-team editing is "this call-up": apply it after the squad is announced and before
+the window's matches.
+
+In the app (Nations tab): 140 national squads named in slot 1 (team record `+0x47` bit 7
+marks national teams; IDs are not a range). Call-up/drop applied from the app kept the
+player's club and registry club context (Vinícius Júnior: Real Madrid + Brazil). [file]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -252,4 +275,5 @@ the second copy. Impact in game unknown.
 | E22 | roles = XI players only | no effect except captain → takers are AI-picked |
 | league | Brasileirão synced from the app UI (307 edits) | squads as planned; styles + faces OK after fixes |
 | E23 | Giu profile, 22 registry styles, tactics copy | all shown; style names read for the registry numbering |
+| E24 | Brazil call-up: 2 out, 2 Cruzeiro players in | shown in game; replaced at the next call-up; an edit after the call-up is used in the friendly |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

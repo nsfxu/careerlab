@@ -28,6 +28,10 @@ function startEngine() {
   readline.createInterface({ input: engine.stdout }).on("line", (line) => {
     let msg;
     try { msg = JSON.parse(line); } catch { return; }
+    if (msg.event === "progress") {                 // long calls report their steps (apply, restore)
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("engine-progress", msg);
+      return;
+    }
     const p = pending.get(msg.id);
     if (!p) return;
     pending.delete(msg.id);

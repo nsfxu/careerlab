@@ -16,7 +16,8 @@ from pathlib import Path
 from . import attributes as A, created, efdb, i18n, pesmaster, profiles, safewrite, validate
 from .i18n import tr
 from .career import CREATED_ID_MIN, Career
-from .database import DEFAULT_DUMP, Database, identify_blocks
+from . import progress
+from .database import DEFAULT_DUMP, Database, identify_blocks, identify_nationals
 from .editfile import EditFile, load_db_tables
 from .managers import Managers
 from .registry import REC, Registry
@@ -82,6 +83,9 @@ class Session:
         self.reg = Registry(self.c)
         self.mgr = Managers(self.c)
         self.ids = identify_blocks(self.c, self.reg, self.db)
+        self.nationals = identify_nationals(self.c, self.reg, self.db, self.ids)
+        for k, (tid, _) in self.nationals.items():
+            self.ids[k] = (tid, 1.0)
         self.rec_of = {self.reg.pid(i): i for i in range(self.reg.count)}
         try:
             self.created_base = created.locate(self.c)
@@ -118,9 +122,8 @@ class Session:
 
     def my_block(self):
         blocks = self.c.club_of(0x800000BA)
-        # his club, not a representative squad: national teams have IDs under 100
-        return next((k for k in blocks if (self.ids.get(k, (None,))[0] or 0) >= 100),
-                    blocks[0] if blocks else None)
+        # his club, not his national team or a representative squad
+        return next((k for k in blocks if self._is_club(k)), blocks[0] if blocks else None)
 
     def summary(self):
         me = None
@@ -142,8 +145,80 @@ class Session:
             except LookupError:
                 coach = ""
             out.append({"block": cl.index, "teamId": tid, "name": self.club_name(cl.index),
-                        "confidence": conf, "size": len(cl.members), "manager": coach})
+                        "confidence": conf, "size": len(cl.members), "manager": coach,
+                        "national": cl.index in self.nationals})
         return out
+
+    def my_nationality(self):
+        if self.created_base is None:
+            return None
+        return created.get(self.c, self.created_base, "nationality")
+
+    def national_teams(self):
+        """National-team squads (the game's current call-ups), your country first."""
+        mine = self.my_nationality()
+        out = []
+        for k, (tid, nat) in self.nationals.items():
+            cl = self.c.club(k)
+            try:
+                coach = self.mgr.get(k)[1]
+            except LookupError:
+                coach = ""
+            out.append({"block": k, "teamId": tid, "name": self.club_name(k), "nationality": nat,
+                        "size": len(cl.members), "manager": coach, "mine": nat == mine,
+                        "hasMe": any(p >= CREATED_ID_MIN for p in cl.pids)})
+        out.sort(key=lambda x: (not x["mine"], x["name"]))
+        return out
+
+    def nationality(self, pid):
+        if pid >= CREATED_ID_MIN:
+            return self.my_nationality()
+        i = self.rec_of.get(pid)
+        return struct.unpack_from("<H", self.reg.record(i), 0x90)[0] if i is not None else None
+
+    def callup_candidates(self, block, position=None, max_age=None, query="", limit=300):
+        """Players of the team's nationality the career knows, not in its squad, strongest
+        first, with their club. Your own player is included when he qualifies."""
+        block = int(block)
+        if block not in self.nationals:
+            raise EditError(tr("err.notNational"))
+        nat = self.nationals[block][1]
+        here = set(self.c.club(block).pids)
+        spare_ids = set(load_spares().values())
+        clubs = {}
+        for cl in self.c.clubs():
+            if self._is_club(cl.index):
+                for _, p in cl.members:
+                    clubs.setdefault(p, cl.index)
+        q = (query or "").strip().lower()
+        out = []
+        if self.created_base is not None and self.my_nationality() == nat and 0x800000BA not in here:
+            r = self._player_row(0x800000BA)
+            if not q or q in r["name"].lower():
+                k = clubs.get(0x800000BA)
+                out.append({**r, "club": self.club_name(k) if k is not None else None,
+                            "rating": round(r.get("rating") or 0)})
+        for i in range(1, self.reg.count):
+            pid = self.reg.pid(i)
+            if pid in here or pid >= CREATED_ID_MIN or pid in spare_ids:
+                continue
+            rec = self.reg.record(i)
+            if struct.unpack_from("<H", rec, 0x90)[0] != nat:
+                continue
+            name = self.db.player_names.get(pid)
+            if not name or (q and q not in name.lower()):
+                continue
+            pos = A.get(rec, "registered_position")
+            if pos > 12 or (position and POS_NAMES[pos] != position):
+                continue
+            age = A.get(rec, "age")
+            if max_age and age > int(max_age):
+                continue
+            k = clubs.get(pid)
+            out.append({"pid": pid, "name": name, "position": POS_NAMES[pos], "age": age,
+                        "rating": round(self.rating(pid)), "club": self.club_name(k) if k is not None else None})
+        out.sort(key=lambda r: (-r["rating"], r["age"] or 0))
+        return {"total": len(out), "players": out[:limit]}
 
     def _player_row(self, pid, handle=None, shirt=None):
         row = {"pid": pid, "name": self.name(pid), "shirt": shirt, "handle": handle,
@@ -184,7 +259,8 @@ class Session:
         for i, r in enumerate(rows):
             r["captain"] = (i == cap)
         return {"block": k, "name": self.club_name(k), "teamId": self.ids.get(k, (None,))[0],
-                "manager": {"id": coach[0], "name": coach[1]}, "players": rows}
+                "manager": {"id": coach[0], "name": coach[1]}, "players": rows,
+                "national": k in self.nationals}
 
     def player(self, pid):
         row = self._player_row(pid)
@@ -343,7 +419,8 @@ class Session:
         return plan
 
     def _is_club(self, k):
-        return (self.ids.get(k, (None,))[0] or 0) >= 100      # national teams are < 100
+        tid = self.ids.get(k, (None,))[0]
+        return bool(tid) and not self.db.is_national(tid)
 
     def leagues(self):
         """efootballdb leagues whose clubs this career holds (at least half of them)."""
@@ -590,8 +667,10 @@ class Session:
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
                         "manager_set", "tactics_copy", "shirt", "new", "renumber", "captain",
-                        "dedupe"):
+                        "dedupe", "callup", "drop"):
             raise EditError(tr("err.unknownEdit", kind=kind))
+        if kind in ("callup", "drop"):
+            return self._check_national(op)
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
             raise EditError(tr("err.createdNotMoved"))
         if kind == "add" and pid not in self.rec_of:
@@ -604,6 +683,35 @@ class Session:
                 1 for o in self.staged if o["op"] == "move" and o.get("from") == to)
             if len(self.c.club(to).members) + planned + 1 > 40:
                 raise EditError(tr("err.max40"))
+
+    NATIONAL_MIN, NATIONAL_MAX = 18, 23
+
+    def _check_national(self, op):
+        """Call-ups only change the squad list (players keep their clubs). The squad stays
+        between 18 and 23: the size the game picks; bigger squads are untested in game."""
+        k, pid = int(op["block"]), op["pid"]
+        if k not in self.nationals:
+            raise EditError(tr("err.notNational"))
+        members = set(self.c.club(k).pids)
+        for o in self.staged:
+            if o.get("block") == k and o["op"] == "callup":
+                members.add(o["pid"])
+            elif o.get("block") == k and o["op"] == "drop":
+                members.discard(o["pid"])
+        if op["op"] == "callup":
+            if pid in members:
+                raise EditError(tr("err.alreadyCalled"))
+            if pid < CREATED_ID_MIN and pid not in self.rec_of:
+                raise EditError(tr("err.noRecord"))
+            if self.nationality(pid) != self.nationals[k][1]:
+                raise EditError(tr("err.wrongNationality"))
+            if len(members) + 1 > self.NATIONAL_MAX:
+                raise EditError(tr("err.nationalMax", n=self.NATIONAL_MAX))
+        else:
+            if pid not in members:
+                raise EditError(tr("err.notCalled"))
+            if len(members) - 1 < self.NATIONAL_MIN:
+                raise EditError(tr("err.nationalMin", n=self.NATIONAL_MIN))
 
     # -------------------------------------------------------------------- apply
 
@@ -739,7 +847,9 @@ class Session:
         # each destination club's context donor, taken before releases can empty a squad
         donor = {k: profiles.mate_index(c, reg, k)
                 for k in {o["block"] for o in self.staged if o["op"] == "new"}}
-        for op in self._expand_moves(self.staged):
+        ops = self._expand_moves(self.staged)
+        for n_done, op in enumerate(ops):
+            progress.emit("apply", n_done, len(ops), force=n_done == 0)
             kind = op["op"]
             if kind == "new":
                 real = int(op["pid"])
@@ -783,6 +893,10 @@ class Session:
                 self._add(c, mgr, op["block"], pid, op.get("shirt"), h)
             elif kind == "release":
                 self._release(c, mgr, op["block"], op["pid"])
+            elif kind == "drop":                      # national squad: list only
+                self._release(c, mgr, op["block"], op["pid"])
+            elif kind == "callup":                    # national squad: list only, club untouched
+                self._add(c, mgr, op["block"], op["pid"], None, c.handle_of(op["pid"]))
             elif kind == "_out":
                 self._release(c, mgr, op["from"], op["pid"])
             elif kind in ("add", "move", "_in"):
@@ -861,10 +975,12 @@ class Session:
     def apply(self):
         if not self.staged:
             raise EditError(tr("err.nothing"))
+        progress.emit("load")
         c = Career.load(self.path)
         edit = self._edit_file()
         before = validate.check(c)
         new_spares = self._apply_ops(c, Registry(c), Managers(c), edit)
+        progress.emit("check")
         new = validate.new_problems(before, validate.check(c))
         if new:
             raise EditError(tr("err.refused")
@@ -873,7 +989,9 @@ class Session:
         meta = self.describe()
         if new_spares:            # option file first: a renamed spare is harmless on its own
             safewrite.write_file(edit, label, meta={**meta, "title": tr("desc.optionFile", n=len(new_spares), title=meta["title"])})
+        progress.emit("write")
         backup = safewrite.write(c, label, meta=meta)
+        progress.emit("reload")
         if new_spares:
             m = load_spares()
             m.update(new_spares)
@@ -904,7 +1022,9 @@ class Session:
         return "apply" if "careerlab" in name else "other"
 
     def restore(self, file):
+        progress.emit("restore")
         safewrite.restore(self.path, file)
+        progress.emit("reload")
         self.staged = []
         self.reload()
         return self.summary()

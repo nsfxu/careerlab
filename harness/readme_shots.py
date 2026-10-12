@@ -72,7 +72,7 @@ def main():
     run = lambda code: p.js(PRELUDE + code)
 
     lang = sys.argv[1] if len(sys.argv) > 1 else "en"          # README screenshots are English
-    run(f"await until(() => state.clubs.length && state.squad); setSideTab('clubs'); if (LANG !== '{lang}') {{ await switchLanguage('{lang}'); await w(800); }}"
+    run(f"await until(() => state.clubs.length && (state.squad || state.league)); setSideTab('clubs'); await openClub(state.summary.me.block, true); await w(1200); if (LANG !== '{lang}') {{ await switchLanguage('{lang}'); await w(800); }}"
         "await row((r) => r.textContent.includes('Matheus Pereira'));")
     p.shot("01-squad-and-player")
 
@@ -95,7 +95,12 @@ def main():
         "await until(() => $('#league-total').textContent); await w(500);")
     p.shot("05-league-sync")
 
-    run("$('#btn-close-league').click(); setSideTab('clubs'); await club('Cruzeiro'); await w(3500); $('#btn-backups').click(); await w(1200);"
+    run("$('#btn-close-league').click(); setSideTab('nations'); await until(() => state.nations);"
+        "await openClub(state.nations.find((n) => n.mine).block); await w(1500); $('#btn-callup').click();"
+        "await until(() => document.querySelectorAll('#free-body .free-row').length); await w(1200);")
+    p.shot("11-national-teams")
+
+    run("$('#btn-close-free').click(); setSideTab('clubs'); await club('Cruzeiro'); await w(3500); $('#btn-backups').click(); await w(1200);"
         "const b = document.querySelector('.bk'); if (b) b.open = true; await w(300);")
     p.shot("06-backups")
 

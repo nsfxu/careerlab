@@ -583,3 +583,53 @@ body.league-mode .squad > .table-wrap { display: none !important; }
   body:not(.clubs-collapsed) .side-tab .i { display: none; }
   .side-tab { padding: 5px 6px; }
 }
+
+/* national teams */
+.squad.national #btn-sync, .squad.national #btn-free, .squad.national #btn-tactics, .squad.national #btn-manager { display: none; }
+.nat-note { color: #f2b247; }
+.nat-note .i { color: #f2b247; }
+.free-row.with-club { grid-template-columns: 48px minmax(0, 1.3fr) minmax(0, 1fr) 70px 44px auto; }
+.free-row .fclub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.free-row .me-star { color: var(--red-glow); width: 14px; height: 14px; }
+/* three side tabs: only the active one keeps its icon */
+body:not(.clubs-collapsed) .side-tab:not(.on) .i { display: none; }
+.side-tab { padding: 5px 6px; gap: 5px; font-size: 12.5px; }
+@media (max-width: 1250px) { .side-tab { padding: 5px 4px; font-size: 12px; } }
+
+/* apply progress */
+.apply-progress { margin: 12px 0 4px; }
+.apply-progress .bar { height: 6px; border-radius: 3px; background: var(--panel-3); overflow: hidden; }
+.apply-progress .bar span { display: block; height: 100%; width: 3%; border-radius: 3px; transition: width .25s ease;
+  background: linear-gradient(90deg, var(--red), var(--red-glow)); box-shadow: 0 0 8px #e3243f88; }
+.apply-progress .bar span { background-size: 200% 100%; animation: bar-shine 1.2s linear infinite;
+  background-image: linear-gradient(90deg, var(--red) 0%, var(--red-glow) 50%, var(--red) 100%); }
+@keyframes bar-shine { from { background-position: 200% 0; } to { background-position: 0 0; } }
+.apply-progress #apply-step { margin-top: 7px; font-size: 12.5px; }
+#btn-apply.busy .i { animation: spin 1s linear infinite; }
+#btn-apply.busy { opacity: .85 !important; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.dialog.applying .staged-list { opacity: .6; }
+
+/* settings */
+.dialog.settings { width: min(640px, 94vw); }
+.setup-note { margin: 4px 0 6px; }
+.set-title { margin: 18px 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.set-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; background: #ffffff03; }
+.set-row.bad { border-color: #6a1d26; background: #1f0c10; }
+.set-icon { width: 18px; height: 18px; color: var(--muted); }
+.set-logo { width: 20px; height: 20px; }
+.set-text { min-width: 0; }
+.set-text b { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.set-text .muted { font-size: 12px; margin-top: 2px; }
+/* long paths: one line, the end kept visible (…\2026\save), full path on hover */
+.set-path { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; direction: rtl; text-align: left; }
+.set-actions { display: flex; gap: 6px; align-items: center; }
+.set-actions button.small { height: 28px; }
+.set-pill { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 9px; font-size: 10.5px;
+  font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
+.set-pill:empty { display: none; }
+.set-pill.ok { color: #7fd38b; background: #12261a; }
+.set-pill.bad { color: #ff8a8a; background: #3a1018; }
+.set-pill.warn { color: #f2b247; background: #2a2210; }
+.dialog.settings .flags .flag { height: 30px; }

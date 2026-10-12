@@ -85,6 +85,7 @@
           <span class="side-tabs">
             <button id="tab-clubs" class="side-tab on" data-tab="clubs"><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title" class="clubs-label"></span></button>
             <button id="tab-leagues" class="side-tab" data-tab="leagues"><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="leagues.title" class="clubs-label"></span></button>
+            <button id="tab-nations" class="side-tab" data-tab="nations" data-i18n-title="nat.titleLong"><svg class="i"><use href="#i-globe"/></svg><span data-i18n="nat.title" class="clubs-label"></span></button>
           </span>
           <button id="btn-clubs-toggle" class="ghost icon-only small clubs-toggle" data-i18n-title="clubs.collapse"><svg class="i"><use href="#i-sidebar"/></svg></button></h2>
         <div class="search-box">
@@ -110,6 +111,7 @@
             <svg class="i"><use href="#i-search"/></svg>
             <input id="player-search" type="search" data-i18n-placeholder="squad.search">
           </div>
+          <button id="btn-callup" class="primary" hidden data-i18n-title="nat.callupTitle"><svg class="i"><use href="#i-user-plus"/></svg><span data-i18n="nat.callup"></span></button>
           <button id="btn-sync" class="ghost" disabled data-i18n-title="squad.syncTitle"><svg class="i"><use href="#i-sync"/></svg><span data-i18n="squad.sync"></span></button>
           <button id="btn-free" class="ghost" disabled data-i18n-title="squad.freeTitle"><svg class="i"><use href="#i-user-plus"/></svg><span data-i18n="squad.free"></span></button>
           <button id="btn-tactics" class="ghost" disabled data-i18n-title="squad.tacticsTitle"><svg class="i"><use href="#i-tactics"/></svg><span data-i18n="squad.tactics"></span></button>
@@ -143,6 +145,10 @@
     <p class="muted" data-i18n="review.note"></p>
     <ol id="staged-list" class="staged-list"></ol>
     <div id="review-check" class="review-check"></div>
+    <div id="apply-progress" class="apply-progress" hidden>
+      <div class="bar"><span id="apply-bar"></span></div>
+      <div id="apply-step" class="muted"></div>
+    </div>
     <div class="dialog-actions">
       <button id="btn-undo-all" class="ghost danger left" data-i18n-title="review.undoAllTitle"><svg class="i"><use href="#i-x"/></svg><span data-i18n="review.undoAll"></span></button>
       <button id="btn-close-review" class="ghost" data-i18n="close"></button>
@@ -195,7 +201,7 @@
 
   <dialog id="dlg-free" class="dialog wide">
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-user-plus"/></svg><span id="free-title"></span></h2>
-    <p class="muted" data-i18n="free.note"></p>
+    <p id="free-note" class="muted" data-i18n="free.note"></p>
     <div class="free-filters">
       <select id="free-pos"></select>
       <label><span data-i18n="free.maxAge"></span> <input id="free-age" type="number" min="16" max="45"></label>
@@ -215,12 +221,14 @@
     <div class="dialog-actions"><button id="btn-close-backups" class="ghost" data-i18n="close"></button></div>
   </dialog>
 
-  <dialog id="dlg-setup" class="dialog">
+  <dialog id="dlg-setup" class="dialog settings">
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sliders"/></svg><span data-i18n="setup.title"></span></h2>
-    <p class="muted" data-i18n="setup.note"></p>
-    <div class="setup-step lang-step">
-      <svg class="i step-icon"><use href="#i-globe"/></svg>
-      <div><b data-i18n="setup.language"></b></div>
+    <p id="setup-note" class="muted setup-note" data-i18n="setup.note"></p>
+
+    <h3 class="set-title" data-i18n="set.general"></h3>
+    <div class="set-row">
+      <svg class="i set-icon"><use href="#i-globe"/></svg>
+      <div class="set-text"><b data-i18n="setup.language"></b></div>
       <div class="flags">
         <button class="flag" data-lang="pt" title="Português (Brasil)" aria-label="Português (Brasil)">
           <svg viewBox="0 0 28 20"><rect width="28" height="20" fill="#009c3b"/><path d="M14 2.2 25.6 10 14 17.8 2.4 10z" fill="#ffdf00"/><circle cx="14" cy="10" r="4.6" fill="#002776"/><path d="M9.6 9.1c2.9-.5 6.1.2 8.7 1.9" stroke="#fff" stroke-width=".9" fill="none"/></svg>
@@ -232,40 +240,58 @@
         </button>
       </div>
     </div>
-    <div class="setup-step" id="step-game">
-      <svg class="i step-icon"><use href="#i-gamepad"/></svg>
-      <div><b data-i18n="setup.game"></b><div class="muted path" id="setup-game"></div></div>
-      <button id="btn-setup-game" class="ghost"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="setup.choose"></span></button>
+
+    <h3 class="set-title" data-i18n="set.gameSaves"></h3>
+    <div class="set-row" id="step-game">
+      <svg class="i set-icon"><use href="#i-gamepad"/></svg>
+      <div class="set-text"><b><span data-i18n="setup.game"></span><span id="pill-game" class="set-pill"></span></b>
+        <div class="muted set-path" id="setup-game"></div></div>
+      <span class="set-actions">
+        <button id="btn-open-game" class="ghost icon-only small" data-i18n-title="set.openFolder"><svg class="i"><use href="#i-folder"/></svg></button>
+        <button id="btn-setup-game" class="ghost small" data-i18n="set.change"></button>
+      </span>
     </div>
-    <div class="setup-step" id="step-db">
-      <svg class="i step-icon"><use href="#i-database"/></svg>
-      <div><b data-i18n="setup.db"></b><div class="muted" id="setup-db"></div></div>
-      <button id="btn-setup-module" class="ghost" data-i18n="setup.installReader"></button>
+    <div class="set-row" id="step-db">
+      <svg class="i set-icon"><use href="#i-database"/></svg>
+      <div class="set-text"><b><span data-i18n="setup.db"></span><span id="pill-db" class="set-pill"></span></b>
+        <div class="muted" id="setup-db"></div></div>
+      <span class="set-actions"><button id="btn-setup-module" class="primary small" data-i18n="setup.installReader"></button></span>
     </div>
-    <div class="setup-step" id="step-saves">
-      <svg class="i step-icon"><use href="#i-save"/></svg>
-      <div><b data-i18n="setup.saves"></b><div class="muted path" id="setup-saves"></div></div>
-      <button id="btn-setup-saves" class="ghost"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="setup.choose"></span></button>
+    <div class="set-row" id="step-saves">
+      <svg class="i set-icon"><use href="#i-save"/></svg>
+      <div class="set-text"><b><span data-i18n="setup.saves"></span><span id="pill-saves" class="set-pill"></span></b>
+        <div class="muted set-path" id="setup-saves"></div></div>
+      <span class="set-actions">
+        <button id="btn-open-saves" class="ghost icon-only small" data-i18n-title="set.openFolder"><svg class="i"><use href="#i-folder"/></svg></button>
+        <button id="btn-setup-saves" class="ghost small" data-i18n="set.change"></button>
+      </span>
     </div>
-    <h3 class="tools-title" data-i18n="tools.title"></h3>
-    <div class="setup-step tool-step">
-      <svg class="i step-icon"><use href="#i-save"/></svg>
-      <div><b data-i18n="tools.export"></b><div class="muted" data-i18n="tools.exportNote"></div></div>
-      <span class="tool-actions">
+
+    <h3 class="set-title" data-i18n="tools.title"></h3>
+    <div class="set-row">
+      <svg class="i set-icon"><use href="#i-save"/></svg>
+      <div class="set-text"><b data-i18n="tools.export"></b><div class="muted" data-i18n="tools.exportNote"></div></div>
+      <span class="set-actions">
         <button id="btn-export-club" class="ghost small" data-i18n="tools.exportClub"></button>
         <button id="btn-export-all" class="ghost small" data-i18n="tools.exportAll"></button>
       </span>
     </div>
-    <div class="setup-step tool-step">
-      <svg class="i step-icon"><use href="#i-shield"/></svg>
-      <div><b data-i18n="tools.dupes"></b><div class="muted" id="dupes-note"></div></div>
-      <button id="btn-dedupe" class="ghost small" data-i18n="tools.repair"></button>
+    <div class="set-row">
+      <svg class="i set-icon"><use href="#i-shield"/></svg>
+      <div class="set-text"><b data-i18n="tools.dupes"></b><div class="muted" id="dupes-note"></div></div>
+      <span class="set-actions"><button id="btn-dedupe" class="ghost small" data-i18n="tools.repair"></button></span>
     </div>
+
+    <h3 class="set-title" data-i18n="set.about"></h3>
+    <div class="set-row">
+      <img src="../res/icon.png" alt="" class="set-logo">
+      <div class="set-text"><b id="setup-version"></b><div class="muted" id="update-status"></div></div>
+      <span class="set-actions"><button id="btn-update-check" class="ghost small"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="update.check"></span></button></span>
+    </div>
+
     <div class="dialog-actions">
-      <span class="muted left setup-version"><span id="setup-version"></span> · <span id="update-status"></span>
-        <button id="btn-update-check" class="ghost small" data-i18n="update.check"></button></span>
       <button id="btn-setup-check" class="ghost" data-i18n="setup.check"></button>
-      <button id="btn-setup-done" class="primary" data-i18n="setup.continue"></button>
+      <button id="btn-setup-done" class="primary" data-i18n="set.done"></button>
     </div>
   </dialog>
 

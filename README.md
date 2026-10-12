@@ -76,6 +76,14 @@ as FL26 has them.
 
 ![Leagues tab](docs/screenshots/10-leagues.png)
 
+**National teams.** The *Nations* tab lists every national squad in the career, your
+country first. *Call up* brings in any player of that nationality (he stays at his club) and
+*Drop from squad* removes one — your own player too. The game picks a new squad before every
+international window, so these edits last until its next call-up: make them once the squad
+is announced.
+
+![National teams](docs/screenshots/11-national-teams.png)
+
 **Tabs.** Every club and league you open gets a tab over the middle panel, like a code
 editor: a single click opens a preview tab that the next one replaces, a double-click keeps
 it, and a dot marks clubs with staged edits. Ctrl+W closes, Ctrl+Tab switches, drag to

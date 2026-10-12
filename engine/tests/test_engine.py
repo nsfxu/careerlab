@@ -210,3 +210,43 @@ def test_match_competition_prefers_the_league_over_a_cup():
     assert match_competition(league, comps) == 9
     assert match_competition({500, 501}, comps) is None
     assert match_competition(league, {120: league, 119: league}) == 119     # league before its cup
+
+
+@pytest.fixture(scope="module")
+def nat_session():
+    from fl26.database import Database
+    from fl26.session import Session
+    try:
+        db = Database(None, None)
+    except FileNotFoundError:
+        pytest.skip("no FL26 database dump")
+    return Session(CLEAN_BL0, db)
+
+
+@needs
+def test_national_teams_named_by_nationality(nat_session):
+    s = nat_session
+    teams = {t["name"]: t for t in s.national_teams()}
+    assert len(teams) > 100 and "Brazil" in teams and "Senegal" in teams
+    br = teams["Brazil"]
+    assert br["nationality"] == 146 and br["size"] == 23
+    assert s._is_club(s.my_block())                          # his club, never his country
+    assert not any(c["national"] for c in s.clubs() if c["name"] == "Cruzeiro EC")
+
+
+@needs
+def test_callup_rules(nat_session):
+    from fl26.session import EditError
+    s = nat_session
+    br = next(t for t in s.national_teams() if t["name"] == "Brazil")
+    k = br["block"]
+    outsider = next(p for p in s.c.club(k).pids if p < 0x80000000)
+    cand = s.callup_candidates(k)["players"][0]["pid"]
+    with pytest.raises(EditError):                           # squad of 23 is full
+        s._check({"op": "callup", "block": k, "pid": cand})
+    foreign = next(p for p in s.rec_of if p < 0x80000000 and s.nationality(p) not in (146, None))
+    with pytest.raises(EditError):
+        s._check({"op": "callup", "block": k, "pid": foreign})
+    s.staged = [{"op": "drop", "block": k, "pid": outsider}]
+    s._check({"op": "callup", "block": k, "pid": cand})      # room after a drop
+    s.staged = []

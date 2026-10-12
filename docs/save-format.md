@@ -24,7 +24,13 @@ pairs, then a u16 shirt-number array at `+0x14E`, the squad count at `+0x2DA`, o
 `+0x140`, `+0x144` mirrors the coach ID. The three length fields must agree. The cap is the
 40 slots (the old "starting size" limit was wrong). Which block is which club is not stored
 plainly: `database.identify_blocks` votes using registry club fields and database assignments.
-National teams have team IDs < 100.
+National teams have no fixed ID range (Brazil 45, Ghana 1058, Serbia 1550): the database
+team record flags them (`+0x47` bit 7, 142 teams) and holds their Portuguese name at
+`+0x37C`. Their squad blocks hold the game's own call-ups (re-picked before every
+international window), so `database.identify_nationals` names them by the one nationality
+their members share (registry `+0x90`), matched to the national team most of whose database
+players have it. Call-ups/drops (`callup`/`drop` edits) change only the squad list, never the
+record's club context.
 
 ## Player registry (`registry.py`, `attributes.py`)
 

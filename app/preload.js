@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld("cl", {
   onUpdate: (cb) => ipcRenderer.on("update", (_e, st) => cb(st)),
   win: (action) => ipcRenderer.invoke("win", action),
   onWinState: (cb) => ipcRenderer.on("win-state", (_e, st) => cb(st)),
+  onProgress: (cb) => ipcRenderer.on("engine-progress", (_e, p) => cb(p)),
 });

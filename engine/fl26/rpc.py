@@ -132,6 +132,12 @@ class Server:
     def free_agents(self, position=None, max_age=None, query=""):
         return self._session().free_agents(position, max_age, query)
 
+    def national_teams(self):
+        return self._session().national_teams()
+
+    def callup_candidates(self, block, position=None, max_age=None, query=""):
+        return self._session().callup_candidates(block, position, max_age, query)
+
     def duplicates(self):
         return self._session().duplicates()
 
@@ -165,6 +171,8 @@ def main():
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     out = sys.stdout
     sys.stdout = sys.stderr                      # stray prints must never corrupt the pipe
+    from . import progress
+    progress.out = out
     for line in sys.stdin:
         line = line.strip()
         if not line:

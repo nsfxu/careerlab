@@ -51,6 +51,13 @@ S = {
         "count.renumber": ("squad renumbered", "squads renumbered"), "count.captain": ("captain", "captains"),
         "count.tactics_copy": ("tactics copy", "tactics copies"),
         "count.dedupe": ("squad repaired", "squads repaired"),
+        "count.callup": ("call-up", "call-ups"), "count.drop": ("player dropped", "players dropped"),
+        "err.notNational": "That squad is not a national team.",
+        "err.alreadyCalled": "He is already in the squad.",
+        "err.notCalled": "He is not in the squad.",
+        "err.wrongNationality": "Only players of the team's nationality can be called up.",
+        "err.nationalMax": "National squads hold up to {n} players: drop someone first.",
+        "err.nationalMin": "National squads need at least {n} players.",
     },
     "pt": {
         "err.notClub": "este elenco não foi identificado como um clube, então não pode ser sincronizado",
@@ -100,6 +107,13 @@ S = {
         "count.renumber": ("elenco renumerado", "elencos renumerados"), "count.captain": ("capitão", "capitães"),
         "count.tactics_copy": ("cópia de táticas", "cópias de táticas"),
         "count.dedupe": ("elenco reparado", "elencos reparados"),
+        "count.callup": ("convocação", "convocações"), "count.drop": ("jogador cortado", "jogadores cortados"),
+        "err.notNational": "Esse elenco não é de uma seleção.",
+        "err.alreadyCalled": "Ele já está no elenco.",
+        "err.notCalled": "Ele não está no elenco.",
+        "err.wrongNationality": "Só jogadores da nacionalidade da seleção podem ser convocados.",
+        "err.nationalMax": "Seleções têm no máximo {n} jogadores: corte alguém antes.",
+        "err.nationalMin": "Seleções precisam de pelo menos {n} jogadores.",
     },
 }
 
