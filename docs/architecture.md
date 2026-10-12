@@ -33,6 +33,8 @@
 | `editfile.py` | `EDIT00000000` (option file) player table: rename a spare player |
 | `profiles.py` | Build a registry record from efootballdb data; spare-ID picking; face donors |
 | `efdb.py` | efootballdb client (team squads, players, league list), cached in `%LOCALAPPDATA%\CareerLab\efdb-cache` |
+| `pesmaster.py` | pesmaster.com squad page parser, the second opinion in club sync |
+| `i18n.py` | Engine text in English and pt-BR (`tr()`), set by the `set_language` RPC |
 | `validate.py` | Consistency checks; `new_problems(before, after)` is the apply gate |
 | `safewrite.py` | Game-running check, backup (+ `.json` description), write, verify, restore |
 | `config.py` | Game folder, saves folder, dump location (`%LOCALAPPDATA%\CareerLab\config.json`), DBDump module install |
