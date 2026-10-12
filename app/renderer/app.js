@@ -197,8 +197,14 @@ function renderSquad() {
   meta.append(el("span", {}, icon("user"), t("squad.players", { n: s.players.length })));
   const body = $("#squad-body");
   body.innerHTML = "";
-  for (const p of s.players) {
-    const tr = el("tr", { className: (p.created ? "created " : "") + (state.player?.pid === p.pid ? "active" : "") });
+  // your own player pinned on top, like your club in the club list
+  const mine = s.players.filter((p) => p.created);
+  const rest = s.players.filter((p) => !p.created);
+  const group = (key) => el("tr", { className: "group" }, el("td", { colSpan: 6, textContent: t(key) }));
+  if (mine.length) body.append(group("squad.yourPlayer"));
+  for (const p of [...mine, ...rest]) {
+    if (mine.length && p === rest[0]) body.append(group("squad.allPlayers"));
+    const tr = el("tr", { className: (p.created ? "created pinned " : "") + (state.player?.pid === p.pid ? "active" : "") });
     const name = el("span", { className: "pname", textContent: p.name });
     if (p.created) name.prepend(icon("star", "me-star"));
     if (p.captain) name.append(el("span", { className: "armband", textContent: "C", title: t("captain") }));

@@ -393,3 +393,11 @@ body.clubs-collapsed .clubs:hover { border-color: var(--panel-3); }
 /* collapsed strip: icons centred (beats the expanded header's margin rule) */
 body.clubs-collapsed .clubs .panel-head h2 .clubs-toggle { margin: 0; width: 30px; height: 30px; padding: 0; justify-content: center; }
 body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
+
+/* squad table: your player pinned on top (same pattern as the club list) */
+.squad-table tr.group { cursor: default; }
+.squad-table tr.group:hover { background: none; }
+.squad-table tr.group td { padding: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--dim); border-bottom: 0; }
+.squad-table tr.pinned { background: var(--red-soft); box-shadow: inset 3px 0 0 var(--red-glow); }
+.squad-table tr.pinned:hover { background: #c8102e33; }
