@@ -6,6 +6,7 @@ but outside the folder the game scans.
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from datetime import datetime
@@ -30,17 +31,34 @@ def backup_dir(save_path):
     return save_path.parent.parent / "backup" / save_path.name
 
 
-def backup(save_path, label):
+META = ".json"
+
+
+def backup(save_path, label, meta=None):
+    """Copy the save aside. `meta` (what is about to change) goes to <backup>.json."""
     save_path = Path(save_path)
     dest = backup_dir(save_path) / f"{datetime.now():%Y%m%d-%H%M%S}-{label}"
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(save_path, dest)
+    if meta:
+        dest.with_name(dest.name + META).write_text(
+            json.dumps({"created": datetime.now().isoformat(timespec="seconds"), **meta},
+                       ensure_ascii=False, indent=1), encoding="utf-8")
     return dest
 
 
 def list_backups(save_path):
     d = backup_dir(save_path)
-    return sorted(d.iterdir(), reverse=True) if d.exists() else []
+    if not d.exists():
+        return []
+    return sorted((p for p in d.iterdir() if p.is_file() and not p.name.endswith(META)), reverse=True)
+
+
+def read_meta(backup_file):
+    try:
+        return json.loads(Path(str(backup_file) + META).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
 
 
 def restore(save_path, backup_file):
@@ -48,11 +66,16 @@ def restore(save_path, backup_file):
         raise WriteRefused("the game is running")
     save_path = Path(save_path)
     Save.load(backup_file)                       # refuse a file that does not decrypt
-    backup(save_path, "before-restore")
+    m = read_meta(backup_file) or {}
+    stamp = Path(backup_file).name[:15]
+    backup(save_path, "before-restore", {
+        "kind": "restore",
+        "title": f"Before restoring the backup of {stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]}",
+        "summary": m.get("title", ""), "edits": []})
     shutil.copy2(backup_file, save_path)
 
 
-def write_file(obj, label, dest=None):
+def write_file(obj, label, dest=None, meta=None):
     """Like `write`, for anything with `.d` (decrypted payload), `.path` and `.to_bytes()`
     -- the option file included."""
     if game_running():
@@ -60,7 +83,7 @@ def write_file(obj, label, dest=None):
     dest = Path(dest or obj.path)
     expected = bytes(obj.d)
     blob = obj.to_bytes()
-    saved = backup(dest, label)
+    saved = backup(dest, label, meta)
     dest.write_bytes(blob)
     if Save.load(dest).data != expected:
         shutil.copy2(saved, dest)
@@ -68,14 +91,14 @@ def write_file(obj, label, dest=None):
     return saved
 
 
-def write(career, label, dest=None):
+def write(career, label, dest=None, meta=None):
     """Encrypt `career` to `dest` (default: where it was loaded from). Returns the backup."""
     if game_running():
         raise WriteRefused("the game is running; it holds the save in memory and would overwrite us")
     dest = Path(dest or career.path)
     expected = bytes(career.d)
     blob = career.to_bytes()
-    saved = backup(dest, label)
+    saved = backup(dest, label, meta)
     dest.write_bytes(blob)
     if Save.load(dest).data != expected:
         shutil.copy2(saved, dest)

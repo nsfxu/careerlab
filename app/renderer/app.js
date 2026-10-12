@@ -329,13 +329,10 @@ function stageAbility(p, k, value, original) {
 
 async function stage(op, keepPlayer = false) {
   await guarded(async () => {
-    const { label, ...clean } = op;
-    state.staged = await call("stage", { op: clean });
-    state.labels = state.labels || [];
-    state.labels[state.staged.length - 1] = label;
+    state.staged = await call("stage", { op });
     updateStaged();
     if (keepPlayer && state.player) renderPlayer();
-    toast(label + " (staged)");
+    if (!op.source) toast(op.label + " (staged)");
   });
 }
 
@@ -351,12 +348,11 @@ async function openReview() {
     const undo = el("button", { className: "small ghost", title: "Remove this edit" }, icon("undo"), "Undo");
     undo.onclick = async () => {
       state.staged = await call("unstage", { index: i });
-      state.labels.splice(i, 1);
       updateStaged();
       state.staged.length ? openReview() : $("#dlg-review").close();
       if (state.player) renderPlayer();
     };
-    ol.append(el("li", {}, el("div", {}, el("span", { textContent: state.labels?.[i] || JSON.stringify(op) }), undo)));
+    ol.append(el("li", {}, el("div", {}, el("span", { textContent: op.label || op.op }), undo)));
   });
   const chk = $("#review-check");
   chk.className = "review-check muted";
@@ -375,14 +371,25 @@ async function openReview() {
   }
 }
 
+async function undoAll() {
+  if (!state.staged.length) return;
+  if (!confirm(`Remove all ${state.staged.length} staged edits? Nothing has been written yet, so the save is not touched.`)) return;
+  await guarded(async () => {
+    state.staged = await call("unstage_all");
+    updateStaged();
+    $("#dlg-review").close();
+    if (state.player) renderPlayer();
+    toast("All staged edits removed");
+  });
+}
+
 async function applyEdits() {
   await guarded(async () => {
     const r = await call("apply");
     $("#dlg-review").close();
     state.staged = [];
-    state.labels = [];
     updateStaged();
-    toast(`Applied ${r.applied} edits${r.newPlayers ? ` (${r.newPlayers} players new to FL26)` : ""}. Backup: ${r.backup.split("\\").slice(-2).join("\\")}`);
+    toast(`Applied ${r.applied} edit${r.applied === 1 ? "" : "s"}${r.newPlayers ? ` (${r.newPlayers} players new to FL26)` : ""}. The career as it was is in Backups.`);
     state.clubs = await call("clubs");
     renderClubs();
     if (state.block != null) await openClub(state.block);
@@ -548,7 +555,7 @@ async function stageSync() {
   if (p._captainCb?.checked && p.captain)
     ops.push({ op: "captain", block: p.block, pid: p.captain.pid, label: `${team} captain: ${p.captain.name}` });
   $("#dlg-sync").close();
-  for (const op of ops) await stage(op);
+  for (const op of ops) await stage({ ...op, source: `${team} sync` });
   toast(`${ops.length} sync edits staged — review and apply when ready`);
 }
 
@@ -630,10 +637,8 @@ async function stageLeague() {
   const ops = leagueOps();
   if (!ops.length) return;
   await guarded(async () => {
-    const r = await call("stage_many", { ops });
-    state.labels = state.labels || [];
-    const start = r.staged.length - r.order.length;
-    r.order.forEach((o, i) => { state.labels[start + i] = o.label; });
+    const source = `${leaguePlan.league} sync`;
+    const r = await call("stage_many", { ops: ops.map((o) => ({ ...o, source })) });
     state.staged = r.staged;
     updateStaged();
     $("#dlg-league").close();
@@ -690,21 +695,40 @@ async function openBackups() {
   if (!rows) return;
   const ul = $("#backup-list");
   ul.innerHTML = "";
-  if (!rows.length) ul.append(el("li", { textContent: "No backups yet" }));
+  if (!rows.length) ul.append(el("li", { className: "muted", textContent: "No backups yet" }));
   for (const b of rows) {
-    const restore = el("button", { className: "small ghost" }, icon("undo"), "Restore");
-    restore.onclick = async (ev) => {
-      ev.stopPropagation();
-      if (!confirm(`Restore ${b.name}? The current save is backed up first.`)) return;
-      await guarded(async () => { await call("restore", { file: b.file }); $("#dlg-backups").close(); await openSave(state.save); toast("Backup restored"); });
-    };
-    // 20261011-193531-careerlab-307-edits -> "11/10/2026 19:35" + "307 edits"
+    // 20261011-193531-careerlab-307-edits -> "11/10/2026 19:35"
     const m = b.name.match(/^(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)\d\d-(.*)$/);
     const when = m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : b.name;
-    const what = m ? m[6].replace(/^careerlab-/, "").replace(/-/g, " ").replace(/^restore$/, "before a restore") : "";
-    const li = el("li", { title: "Double-click to show the file" },
-      el("span", { className: "pname" }, icon("history"), el("span", { textContent: when }), el("span", { className: "muted", textContent: what })), restore);
-    li.ondblclick = () => window.cl.reveal(b.file);
+    const rest = m ? m[6] : b.name;
+    let title = b.title;
+    if (!title) {                                       // made before descriptions existed
+      const n = rest.match(/careerlab-(\d+)-edits/);
+      title = b.kind === "restore" ? "Before a restore" : n ? `${n[1]} edits` : rest.replace(/-/g, " ");
+    }
+    const lead = b.kind === "apply" ? "Before: " : "";
+    const restore = el("button", { className: "small ghost" }, icon("undo"), "Restore");
+    restore.onclick = async (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (!confirm(`Restore the save as it was on ${when}?${b.kind === "apply" ? `\nThis undoes: ${title}.` : ""}\nThe current save is backed up first.`)) return;
+      await guarded(async () => { await call("restore", { file: b.file }); $("#dlg-backups").close(); await openSave(state.save); toast("Backup restored"); });
+    };
+    const head = el("summary", { className: "bk-head" },
+      icon(b.kind === "restore" ? "undo" : b.kind === "apply" ? "history" : "save"),
+      el("div", { className: "bk-text" },
+        el("div", {}, el("b", { textContent: lead + title })),
+        el("div", { className: "muted bk-sub", textContent: [when, b.summary].filter(Boolean).join("  ·  ") })),
+      restore);
+    const det = el("details", { className: "bk" }, head);
+    if (b.edits?.length) {
+      const list = el("ol", { className: "bk-edits" });
+      for (const e of b.edits.slice(0, 300)) list.append(el("li", { textContent: e }));
+      if (b.edits.length > 300) list.append(el("li", { className: "muted", textContent: `…and ${b.edits.length - 300} more` }));
+      if (b.clubs?.length) det.append(el("div", { className: "muted bk-clubs", textContent: `Clubs: ${b.clubs.join(", ")}` }));
+      det.append(list);
+    } else head.classList.add("plain");
+    head.ondblclick = () => window.cl.reveal(b.file);
+    const li = el("li", { title: "Click to see the edits · double-click to show the file" }, det);
     ul.append(li);
   }
   $("#dlg-backups").showModal();
@@ -727,6 +751,7 @@ $("#player-search").oninput = onSearch;
 $("#btn-review").onclick = openReview;
 $("#btn-close-review").onclick = () => $("#dlg-review").close();
 $("#btn-apply").onclick = applyEdits;
+$("#btn-undo-all").onclick = undoAll;
 $("#btn-close-pick").onclick = () => $("#dlg-pick").close();
 $("#btn-backups").onclick = openBackups;
 $("#btn-close-backups").onclick = () => $("#dlg-backups").close();

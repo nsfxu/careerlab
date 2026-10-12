@@ -153,3 +153,22 @@ def test_config_prefers_newest_dump_copy(tmp_path):
     assert config.table_file("team", tmp_path).name == "team.raw"
     assert not config.dump_ok(tmp_path)               # playerassignment/appearance missing
     assert config.asset("DBDump.lua").exists()
+
+
+def test_backup_description():
+    from fl26.session import Session
+
+    class S(Session):
+        def __init__(self):
+            pass
+
+        def club_name(self, k):
+            return f"Club {k}"
+
+    s = S()
+    d = s.describe([{"op": "release", "block": 1, "source": "Club 1 sync", "label": "Release A"},
+                    {"op": "move", "from": 1, "to": 2, "source": "Club 1 sync"},
+                    {"op": "move", "from": 2, "to": 1, "source": "Club 1 sync"}])
+    assert d["title"] == "Club 1 sync" and d["clubs"] == ["Club 1", "Club 2"]
+    assert d["summary"] == "2 moves · 1 release" and d["edits"][0] == "Release A"
+    assert S().describe([{"op": "attr", "pid": 5, "label": "X: Speed 70 → 80"}])["title"] == "X: Speed 70 → 80"

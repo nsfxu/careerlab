@@ -260,3 +260,21 @@ button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px
 button:focus:not(:focus-visible) { outline: none; }
 ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline: none; }
 .dialog h2:focus { outline: none; }
+
+/* backups */
+#backup-list li { padding: 0; cursor: default; display: block; }
+#backup-list li:hover { background: none; }
+.bk { border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; }
+.bk-head { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px;
+  cursor: pointer; list-style: none; border-radius: 8px; }
+.bk-head::-webkit-details-marker { display: none; }
+.bk-head:hover { background: var(--panel-2); }
+.bk-head.plain { cursor: default; }
+.bk-head > .i { color: var(--muted); }
+.bk-text { min-width: 0; }
+.bk-text b { font-weight: 600; }
+.bk-sub { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk[open] .bk-head { border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0; }
+.bk-clubs { font-size: 12px; padding: 8px 14px 0 40px; }
+.bk-edits { margin: 6px 0 10px; padding: 0 14px 0 58px; max-height: 220px; overflow: auto; font-size: 12px; color: #cfccc8; }
+.bk-edits li { padding: 1px 0; }

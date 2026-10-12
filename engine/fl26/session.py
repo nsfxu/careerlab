@@ -432,7 +432,7 @@ class Session:
         return self.staged
 
     ORDER = {"release": 0, "move": 1, "add": 2, "new": 2, "renumber": 3, "captain": 4}
-    UI_ONLY = ("label", "kind", "name", "position", "age", "absent", "fromName")
+    UI_ONLY = ("kind", "name", "position", "age", "absent", "fromName")   # `label`, `source` are kept
 
     def stage_many(self, ops):
         """Stage a batch (a league sync) in a safe order: releases, moves, arrivals, then
@@ -452,6 +452,50 @@ class Session:
     def unstage(self, index):
         del self.staged[index]
         return self.staged
+
+    def unstage_all(self):
+        self.staged = []
+        return self.staged
+
+    # how each kind of edit is counted in a backup's description
+    COUNT_AS = {"move": ("move", "moves"), "release": ("release", "releases"),
+                "add": ("free player added", "free players added"), "new": ("new player", "new players"),
+                "attr": ("rating edit", "rating edits"), "created": ("edit to your player", "edits to your player"),
+                "manager_swap": ("manager change", "manager changes"), "manager_set": ("manager change", "manager changes"),
+                "shirt": ("shirt number", "shirt numbers"), "renumber": ("squad renumbered", "squads renumbered"),
+                "captain": ("captain", "captains")}
+
+    def describe(self, ops=None):
+        """What a batch of edits does, for the backup taken before it is applied:
+        {kind, title, summary, counts, clubs, edits}."""
+        ops = self.staged if ops is None else ops
+        counts = {}
+        for o in ops:
+            k = self.COUNT_AS.get(o["op"], (o["op"], o["op"]))[1]
+            counts[k] = counts.get(k, 0) + 1
+        singular = {pl: one for one, pl in self.COUNT_AS.values()}
+        blocks = set()
+        for o in ops:
+            for key in ("block", "from", "to", "a", "b"):
+                if isinstance(o.get(key), int):
+                    blocks.add(o[key])
+        clubs = sorted(self.club_name(k) for k in blocks)
+        summary = " · ".join(f"{n} {singular.get(k, k) if n == 1 else k}"
+                             for k, n in sorted(counts.items(), key=lambda kv: -kv[1]))
+        sources = []
+        for o in ops:
+            if o.get("source") and o["source"] not in sources:
+                sources.append(o["source"])
+        if sources and sum(1 for o in ops if o.get("source")) * 2 >= len(ops):
+            title = " + ".join(sources[:2]) + (f" + {len(sources) - 2} more" if len(sources) > 2 else "")
+        elif len(ops) == 1:
+            title = ops[0].get("label") or summary
+        elif len(clubs) == 1:
+            title = f"{len(ops)} edits at {clubs[0]}"
+        else:
+            title = f"{len(ops)} edits across {len(clubs)} clubs" if clubs else f"{len(ops)} edits"
+        return {"kind": "apply", "title": title, "summary": summary, "counts": counts,
+                "clubs": clubs, "edits": [o.get("label") or o["op"] for o in ops]}
 
     def _check(self, op):
         kind = op.get("op")
@@ -661,9 +705,10 @@ class Session:
             raise EditError("refused: the edits would introduce problems: "
                             + "; ".join(str(p) for p in new[:5]))
         label = f"careerlab-{len(self.staged)}-edits"
+        meta = self.describe()
         if new_spares:            # option file first: a renamed spare is harmless on its own
-            safewrite.write_file(edit, label)
-        backup = safewrite.write(c, label)
+            safewrite.write_file(edit, label, meta={**meta, "title": f"Option file: {len(new_spares)} players new to FL26 ({meta['title']})"})
+        backup = safewrite.write(c, label, meta=meta)
         if new_spares:
             m = load_spares()
             m.update(new_spares)
@@ -677,8 +722,21 @@ class Session:
     # ------------------------------------------------------------------ backups
 
     def backups(self):
-        return [{"file": str(p), "name": p.name, "size": p.stat().st_size}
-                for p in safewrite.list_backups(self.path)]
+        out = []
+        for p in safewrite.list_backups(self.path):
+            m = safewrite.read_meta(p) or {}
+            out.append({"file": str(p), "name": p.name, "size": p.stat().st_size,
+                        "kind": m.get("kind") or self._kind_from_name(p.name),
+                        "title": m.get("title"), "summary": m.get("summary", ""),
+                        "clubs": m.get("clubs", []), "edits": m.get("edits", [])})
+        return out
+
+    @staticmethod
+    def _kind_from_name(name):
+        """Backups made before descriptions existed: guess from the file name."""
+        if "before-restore" in name:
+            return "restore"
+        return "apply" if "careerlab" in name else "other"
 
     def restore(self, file):
         safewrite.restore(self.path, file)

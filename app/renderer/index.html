@@ -101,6 +101,7 @@
     <ol id="staged-list" class="staged-list"></ol>
     <div id="review-check" class="review-check"></div>
     <div class="dialog-actions">
+      <button id="btn-undo-all" class="ghost danger left" title="Remove every staged edit"><svg class="i"><use href="#i-x"/></svg>Undo all</button>
       <button id="btn-close-review" class="ghost">Close</button>
       <button id="btn-apply" class="primary"><svg class="i"><use href="#i-save"/></svg>Apply to save</button>
     </div>
@@ -148,7 +149,7 @@
 
   <dialog id="dlg-backups" class="dialog">
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-history"/></svg>Backups</h2>
-    <p class="muted">Every apply makes one. Restoring also backs up the current file first.</p>
+    <p class="muted">Every apply first saves a copy of the career as it was, so you can go back. Restoring also backs up the current file first.</p>
     <ul id="backup-list" class="pick-list"></ul>
     <div class="dialog-actions"><button id="btn-close-backups" class="ghost">Close</button></div>
   </dialog>

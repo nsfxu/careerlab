@@ -2,6 +2,7 @@
 
 Editor for a **Football Life 2026 Become a Legend career already in progress**.
 
+- `CLAUDE.md` + `docs/` — how the project works, rules, testing, build (start here, human or AI)
 - `FEATURES.md` — what the app will do (agreed feature list)
 - `LIMITS.md` — what is possible and how each claim was verified in game (E01–E16)
 - `engine/fl26/` — save format engine: crypto, career squads, player registry,

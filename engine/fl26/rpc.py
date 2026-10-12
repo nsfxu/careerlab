@@ -114,6 +114,9 @@ class Server:
     def unstage(self, index):
         return self._session().unstage(int(index))
 
+    def unstage_all(self):
+        return self._session().unstage_all()
+
     def staged(self):
         return self._session().staged
 
