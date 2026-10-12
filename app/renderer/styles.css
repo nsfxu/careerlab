@@ -283,3 +283,11 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
   background: var(--panel-2); margin-bottom: 6px; }
 .cross.good { color: #7fd38b; background: #12261a; }
 .cross.warn { color: #f2b247; background: #2a2210; }
+
+/* language flags */
+.lang-step { grid-template-columns: 22px 1fr auto; }
+.flags { display: flex; gap: 8px; }
+.flag { padding: 5px 10px 5px 6px; gap: 7px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; }
+.flag svg { width: 28px; height: 20px; border-radius: 3px; box-shadow: 0 0 0 1px #0006; }
+.flag:hover { background: var(--panel-2); }
+.flag.on { border-color: var(--red-glow); color: var(--text); background: var(--red-soft); }

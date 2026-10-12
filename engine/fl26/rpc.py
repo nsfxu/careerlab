@@ -12,7 +12,8 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import config, safewrite
+from . import config, i18n, safewrite
+from .i18n import tr
 from .database import DEFAULT_DUMP, Database
 from .session import Session
 
@@ -29,7 +30,7 @@ class Server:
 
     def _session(self):
         if self.s is None:
-            raise RuntimeError("no career is open")
+            raise RuntimeError(tr("err.noCareer"))
         return self.s
 
     # ------------------------------------------------------------------ methods
@@ -38,6 +39,9 @@ class Server:
         return {"pong": True}
 
     # first-run setup: where the game is, and the database dump CareerLab reads
+
+    def set_language(self, lang):
+        return {"lang": i18n.set_lang(lang)}
 
     def setup_status(self):
         return config.status()
@@ -49,7 +53,7 @@ class Server:
 
     def set_save_dir(self, path):
         if not Path(path).is_dir():
-            raise RuntimeError("that folder does not exist")
+            raise RuntimeError(tr("err.noFolder"))
         cfg = config.load()
         cfg["saveDir"] = str(Path(path))
         config.save(cfg)

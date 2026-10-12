@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .crypto import Save
+from .i18n import tr
 
 
 class WriteRefused(RuntimeError):
@@ -63,14 +64,14 @@ def read_meta(backup_file):
 
 def restore(save_path, backup_file):
     if game_running():
-        raise WriteRefused("the game is running")
+        raise WriteRefused(tr("err.gameRunning"))
     save_path = Path(save_path)
     Save.load(backup_file)                       # refuse a file that does not decrypt
     m = read_meta(backup_file) or {}
     stamp = Path(backup_file).name[:15]
     backup(save_path, "before-restore", {
         "kind": "restore",
-        "title": f"Before restoring the backup of {stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]}",
+        "title": tr("desc.beforeRestore", when=f"{stamp[6:8]}/{stamp[4:6]} {stamp[9:11]}:{stamp[11:13]}"),
         "summary": m.get("title", ""), "edits": []})
     shutil.copy2(backup_file, save_path)
 
@@ -79,7 +80,7 @@ def write_file(obj, label, dest=None, meta=None):
     """Like `write`, for anything with `.d` (decrypted payload), `.path` and `.to_bytes()`
     -- the option file included."""
     if game_running():
-        raise WriteRefused("the game is running")
+        raise WriteRefused(tr("err.gameRunning"))
     dest = Path(dest or obj.path)
     expected = bytes(obj.d)
     blob = obj.to_bytes()
@@ -87,14 +88,14 @@ def write_file(obj, label, dest=None, meta=None):
     dest.write_bytes(blob)
     if Save.load(dest).data != expected:
         shutil.copy2(saved, dest)
-        raise WriteRefused(f"{dest.name} did not verify after writing; restored the backup")
+        raise WriteRefused(tr("err.notVerified", name=dest.name))
     return saved
 
 
 def write(career, label, dest=None, meta=None):
     """Encrypt `career` to `dest` (default: where it was loaded from). Returns the backup."""
     if game_running():
-        raise WriteRefused("the game is running; it holds the save in memory and would overwrite us")
+        raise WriteRefused(tr("err.gameRunningSave"))
     dest = Path(dest or career.path)
     expected = bytes(career.d)
     blob = career.to_bytes()
@@ -102,5 +103,5 @@ def write(career, label, dest=None, meta=None):
     dest.write_bytes(blob)
     if Save.load(dest).data != expected:
         shutil.copy2(saved, dest)
-        raise WriteRefused(f"{dest.name} did not verify after writing; restored the backup")
+        raise WriteRefused(tr("err.notVerified", name=dest.name))
     return saved

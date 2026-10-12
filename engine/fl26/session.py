@@ -13,7 +13,8 @@ import struct
 import unicodedata
 from pathlib import Path
 
-from . import attributes as A, created, efdb, pesmaster, profiles, safewrite, validate
+from . import attributes as A, created, efdb, i18n, pesmaster, profiles, safewrite, validate
+from .i18n import tr
 from .career import CREATED_ID_MIN, Career
 from .database import DEFAULT_DUMP, Database, identify_blocks
 from .editfile import EditFile, load_db_tables
@@ -236,10 +237,9 @@ class Session:
         """Bring a club's squad to efootballdb's: keep, move in, add, create, release."""
         tid = self.ids.get(block, (None,))[0]
         if not tid:
-            raise EditError("this squad is not identified as a club, so it cannot be synced")
+            raise EditError(tr("err.notClub"))
         if efdb.made_up(tid, refresh=refresh):
-            raise EditError("eFootball has no player licence for this club (its squad is invented "
-                            "names), so efootballdb cannot sync it: FL26's own squad is kept")
+            raise EditError(tr("err.madeUp"))
         rows = efdb.squad(tid, refresh=refresh)
         squad_pids = set(self.c.club(block).pids)
         where = {}
@@ -350,7 +350,7 @@ class Session:
         captain), listed under its destination club."""
         lg = next((x for x in self.leagues() if x["id"] == int(comp_id)), None)
         if lg is None:
-            raise EditError("this league is not part of the career")
+            raise EditError(tr("err.noLeague"))
         names = {k: self.club_name(k) for k in lg["blocks"]}
         made_up = [k for k in lg["blocks"] if efdb.made_up(self.ids[k][0], refresh=refresh)]
         blocks = [k for k in lg["blocks"] if k not in made_up]
@@ -369,7 +369,7 @@ class Session:
                 pid = self.career_pid(real)
                 name = p.get("player_name") or f"#{real}"
                 if pid in target_of:              # listed by two clubs (loan): first wins
-                    skipped.append(f"{name}: listed by {names[target_of[pid]]} and {names[k]}")
+                    skipped.append(tr("skip.twoClubs", name=name, a=names[target_of[pid]], b=names[k]))
                     continue
                 target_of[pid] = k
                 target[k].append(pid)
@@ -386,7 +386,7 @@ class Session:
                 if pid < CREATED_ID_MIN and target_of.get(pid) is None:
                     releases.append({"op": "release", "pid": pid, "block": k, "kind": "release",
                                      "name": self.name(pid),
-                                     "label": f"Release {self.name(pid)} from {names[k]}"})
+                                     "label": tr("lab.release", name=self.name(pid), club=names[k])})
                     size[k] -= 1
         for k in blocks:
             for pid in target[k]:
@@ -399,17 +399,17 @@ class Session:
                     frm = src[0]
                     op = {"op": "move", "pid": pid, "from": frm, "to": k, "kind": "move",
                           "fromName": self.club_name(frm),
-                          "label": f"Move {it['name']}: {self.club_name(frm)} → {names[k]}"}
+                          "label": tr("lab.move", name=it["name"], src=self.club_name(frm), dst=names[k])}
                     if frm in size:
                         size[frm] -= 1
                 elif self.status(it["real"]) == "record":
                     op = {"op": "add", "pid": pid, "block": k, "kind": "add",
-                          "label": f"Add {it['name']} to {names[k]}"}
+                          "label": tr("lab.add", name=it["name"], club=names[k])}
                 else:
                     absent = self.status(it["real"]) != "db"
                     op = {"op": "new", "pid": it["real"], "block": k, "shirt": it["shirt"],
                           "kind": "create", "absent": absent,
-                          "label": f"Create {it['name']} at {names[k]}" + (" (new to FL26)" if absent else "")}
+                          "label": tr("lab.create", name=it["name"], club=names[k]) + (tr("lab.newToFl26") if absent else "")}
                 op.update(name=it["name"], position=it["position"], age=it["age"])
                 size[k] += 1
                 (moves if op["op"] == "move" else adds if op["op"] == "add" else creates).append(op)
@@ -426,7 +426,7 @@ class Session:
             else:
                 moves.append({"op": "move", "pid": fl, "from": r["block"], "to": k, "kind": "move",
                               "fromName": names[r["block"]], "name": op["name"], "position": op["position"],
-                              "age": op["age"], "label": f"Move {op['name']}: {names[r['block']]} → {names[k]}"})
+                              "age": op["age"], "label": tr("lab.move", name=op["name"], src=names[r["block"]], dst=names[k])})
             n = clubs[k]["numbers"].pop(str(op["pid"]), None)
             if n is not None:
                 clubs[k]["numbers"][str(fl)] = n
@@ -449,7 +449,7 @@ class Session:
                     cut = next((o for o in reversed(lst) if o.get("to", o.get("block")) == k), None)
                     if cut:
                         lst.remove(cut)
-                        skipped.append(f"{cut['name']}: {names[k]} would exceed 40 players")
+                        skipped.append(tr("skip.over40", name=cut["name"], club=names[k]))
                         if cut["op"] == "move" and cut["from"] in size:
                             size[cut["from"]] += 1
                         break
@@ -471,7 +471,7 @@ class Session:
                 for real, n in cl["numbers"].items() if n not in reserved)
             if cl["numbers"] and renumber:
                 cl["ops"].append({"op": "renumber", "block": k, "numbers": cl["numbers"],
-                                  "kind": "numbers", "label": f"{names[k]}: real shirt numbers"})
+                                  "kind": "numbers", "label": tr("lab.numbers", club=names[k])})
             if cl["captain"] and not arrivals:
                 cap = self.career_pid(cl["captain"]["pid"])
                 try:
@@ -482,7 +482,7 @@ class Session:
             if cl["captain"]:
                 cl["ops"].append({"op": "captain", "block": k, "pid": cl["captain"]["pid"],
                                   "kind": "captain",
-                                  "label": f"{names[k]} captain: {cl['captain']['name']}"})
+                                  "label": tr("lab.captain", club=names[k], name=cl["captain"]["name"])})
             del cl["numbers"]
         return {"league": lg["name"], "id": lg["id"], "clubs": [clubs[k] for k in blocks],
                 "skipped": skipped, "madeUp": [names[k] for k in made_up], "minSquad": min_squad}
@@ -520,43 +520,33 @@ class Session:
         self.staged = []
         return self.staged
 
-    # how each kind of edit is counted in a backup's description
-    COUNT_AS = {"move": ("move", "moves"), "release": ("release", "releases"),
-                "add": ("free player added", "free players added"), "new": ("new player", "new players"),
-                "attr": ("rating edit", "rating edits"), "created": ("edit to your player", "edits to your player"),
-                "manager_swap": ("manager change", "manager changes"), "manager_set": ("manager change", "manager changes"),
-                "shirt": ("shirt number", "shirt numbers"), "renumber": ("squad renumbered", "squads renumbered"),
-                "captain": ("captain", "captains")}
-
     def describe(self, ops=None):
         """What a batch of edits does, for the backup taken before it is applied:
-        {kind, title, summary, counts, clubs, edits}."""
+        {kind, title, summary, counts, clubs, edits}, in the current language."""
         ops = self.staged if ops is None else ops
         counts = {}
         for o in ops:
-            k = self.COUNT_AS.get(o["op"], (o["op"], o["op"]))[1]
+            k = "manager" if o["op"].startswith("manager") else o["op"]
             counts[k] = counts.get(k, 0) + 1
-        singular = {pl: one for one, pl in self.COUNT_AS.values()}
         blocks = set()
         for o in ops:
             for key in ("block", "from", "to", "a", "b"):
                 if isinstance(o.get(key), int):
                     blocks.add(o[key])
         clubs = sorted(self.club_name(k) for k in blocks)
-        summary = " · ".join(f"{n} {singular.get(k, k) if n == 1 else k}"
-                             for k, n in sorted(counts.items(), key=lambda kv: -kv[1]))
+        summary = " · ".join(i18n.count(k, n) for k, n in sorted(counts.items(), key=lambda kv: -kv[1]))
         sources = []
         for o in ops:
             if o.get("source") and o["source"] not in sources:
                 sources.append(o["source"])
         if sources and sum(1 for o in ops if o.get("source")) * 2 >= len(ops):
-            title = " + ".join(sources[:2]) + (f" + {len(sources) - 2} more" if len(sources) > 2 else "")
+            title = " + ".join(sources[:2]) + (tr("desc.more", n=len(sources) - 2) if len(sources) > 2 else "")
         elif len(ops) == 1:
             title = ops[0].get("label") or summary
         elif len(clubs) == 1:
-            title = f"{len(ops)} edits at {clubs[0]}"
+            title = tr("desc.atClub", n=len(ops), club=clubs[0])
         else:
-            title = f"{len(ops)} edits across {len(clubs)} clubs" if clubs else f"{len(ops)} edits"
+            title = tr("desc.acrossClubs", n=len(ops), c=len(clubs)) if clubs else tr("desc.edits", n=len(ops))
         return {"kind": "apply", "title": title, "summary": summary, "counts": counts,
                 "clubs": clubs, "edits": [o.get("label") or o["op"] for o in ops]}
 
@@ -565,11 +555,11 @@ class Session:
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
                         "manager_set", "shirt", "new", "renumber", "captain"):
-            raise EditError(f"unknown edit {kind}")
+            raise EditError(tr("err.unknownEdit", kind=kind))
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
-            raise EditError("the created character is not moved by squad tools")
+            raise EditError(tr("err.createdNotMoved"))
         if kind == "add" and pid not in self.rec_of:
-            raise EditError("this player has no career record: use create instead")
+            raise EditError(tr("err.noRecord"))
         if kind in ("add", "move", "new"):
             to = op.get("to", op.get("block"))
             planned = sum(1 for o in self.staged if o.get("to", o.get("block")) == to
@@ -577,7 +567,7 @@ class Session:
                 1 for o in self.staged if o["op"] == "release" and o.get("block") == to) - sum(
                 1 for o in self.staged if o["op"] == "move" and o.get("from") == to)
             if len(self.c.club(to).members) + planned + 1 > 40:
-                raise EditError("a squad holds at most 40 players")
+                raise EditError(tr("err.max40"))
 
     # -------------------------------------------------------------------- apply
 
@@ -650,7 +640,7 @@ class Session:
                 pid = spares.get(real) or new_spares.get(real)
                 if pid is None and real in self.db.player_names:
                     if real in rec_of:
-                        raise EditError(f"{p.get('player_name')} already has a career record")
+                        raise EditError(tr("err.hasRecord", name=p.get("player_name")))
                     h = profiles.build_new_player(c, reg, real, op["block"], p, gap,
                                                   mate=donor[op["block"]])
                     rec_of[real] = h & 0xFFFF
@@ -658,7 +648,7 @@ class Session:
                     continue
                 if pid is None:                       # FL26 lacks him: lend a spare ID
                     if edit is None:
-                        raise EditError("creating a player FL26 lacks needs the option file")
+                        raise EditError(tr("err.needsEdit"))
                     edit_pids = {struct.unpack_from("<I", edit.d, 0x7C + k * 0x138)[0]
                                  for k in range(edit.count)}
                     pid, si = profiles.pick_spare(c, reg, self.db, edit_pids,
@@ -678,7 +668,7 @@ class Session:
                 else:                                 # already lent earlier: reuse the spare
                     si = rec_of.get(pid)
                     if si is None:
-                        raise EditError(f"the spare ID {pid} for {real} has no career record")
+                        raise EditError(tr("err.spareNoRecord", pid=pid, real=real))
                     for k in c.club_of(pid):
                         self._release(c, mgr, k, pid)
                 h = profiles.adopt_spare(c, reg, si, op["block"], p, gap, mate=donor[op["block"]])
@@ -758,19 +748,19 @@ class Session:
 
     def apply(self):
         if not self.staged:
-            raise EditError("nothing staged")
+            raise EditError(tr("err.nothing"))
         c = Career.load(self.path)
         edit = self._edit_file()
         before = validate.check(c)
         new_spares = self._apply_ops(c, Registry(c), Managers(c), edit)
         new = validate.new_problems(before, validate.check(c))
         if new:
-            raise EditError("refused: the edits would introduce problems: "
+            raise EditError(tr("err.refused")
                             + "; ".join(str(p) for p in new[:5]))
         label = f"careerlab-{len(self.staged)}-edits"
         meta = self.describe()
         if new_spares:            # option file first: a renamed spare is harmless on its own
-            safewrite.write_file(edit, label, meta={**meta, "title": f"Option file: {len(new_spares)} players new to FL26 ({meta['title']})"})
+            safewrite.write_file(edit, label, meta={**meta, "title": tr("desc.optionFile", n=len(new_spares), title=meta["title"])})
         backup = safewrite.write(c, label, meta=meta)
         if new_spares:
             m = load_spares()

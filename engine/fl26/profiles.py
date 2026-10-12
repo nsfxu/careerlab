@@ -11,6 +11,7 @@ import struct
 
 from . import attributes as A
 from .registry import REC
+from .i18n import tr
 
 # registry ability -> efootballdb field (correlation-matched over 285 players, r 0.77-0.99)
 ABILITY_SOURCE = {
@@ -99,7 +100,7 @@ def pick_spare(career, registry, db, edit_pids, exclude=()):
         if best is None or score < best[0]:
             best = (score, pid, i)
     if best is None:
-        raise ValueError("no spare database player left")
+        raise ValueError(tr("err.noSpare"))
     return best[1], best[2]
 
 
@@ -117,7 +118,7 @@ def adopt_spare(career, registry, spare_index, block, efdb_player, gap, mate=Non
     m = mate_index(career, registry, block)
     mates = [m if m is not None else mate]
     if mates[0] is None:
-        raise ValueError("destination squad has no usable teammate record")
+        raise ValueError(tr("err.noMate"))
     i = spare_index
     old = registry.record(i)
     rec = bytearray(record_from_efdb(efdb_player, registry.record(mates[0]), gap))
@@ -132,7 +133,7 @@ def build_new_player(career, registry, pid, block, efdb_player, gap, tag=None, m
     m = mate_index(career, registry, block)
     mates = [x for x in (m if m is not None else mate,) if x is not None]
     if not mates:
-        raise ValueError("destination squad has no usable teammate record")
+        raise ValueError(tr("err.noMate"))
     template = registry.record(mates[0])
     tag = tag if tag is not None else (registry.handle(registry.count - 1) >> 16)
     h = registry.append(mates[0], pid, tag)

@@ -33,6 +33,7 @@
       <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/><path d="M12 12v6"/><path d="M9 15l3 3 3-3"/></symbol>
     </defs>
   </svg>
@@ -41,26 +42,26 @@
     <div class="brand"><img src="../res/icon.png" alt="" class="brand-logo">Career<b>Lab</b></div>
     <div class="save-box">
       <svg class="i"><use href="#i-save"/></svg>
-      <select id="save-picker" title="Career save"></select>
+      <select id="save-picker" data-i18n-title="top.saveTitle"></select>
     </div>
     <div id="career-info" class="career-info"></div>
     <div class="spacer"></div>
     <span id="game-state" class="pill"></span>
     <nav class="top-actions">
-      <button id="btn-league" class="ghost" disabled title="Sync every club of a league with efootballdb.com"><svg class="i"><use href="#i-trophy"/></svg><span>Sync league</span></button>
-      <button id="btn-backups" class="ghost" title="Backups of this save"><svg class="i"><use href="#i-history"/></svg><span>Backups</span></button>
-      <button id="btn-setup" class="ghost icon-only" title="Settings: game folder, saves folder, database"><svg class="i"><use href="#i-sliders"/></svg></button>
+      <button id="btn-league" class="ghost" disabled data-i18n-title="top.leagueTitle"><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="top.league"></span></button>
+      <button id="btn-backups" class="ghost" data-i18n-title="top.backupsTitle"><svg class="i"><use href="#i-history"/></svg><span data-i18n="top.backups"></span></button>
+      <button id="btn-setup" class="ghost icon-only" data-i18n-title="top.settingsTitle"><svg class="i"><use href="#i-sliders"/></svg></button>
     </nav>
-    <button id="btn-review" class="primary" disabled><svg class="i"><use href="#i-check"/></svg>Review &amp; apply <span id="staged-count" class="count">0</span></button>
+    <button id="btn-review" class="primary" disabled><svg class="i"><use href="#i-check"/></svg><span data-i18n="top.review"></span> <span id="staged-count" class="count">0</span></button>
   </header>
 
   <main class="layout">
     <aside class="clubs panel">
       <div class="panel-head">
-        <h2><svg class="i"><use href="#i-shield"/></svg>Clubs <span id="club-count" class="muted head-count"></span></h2>
+        <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title"></span> <span id="club-count" class="muted head-count"></span></h2>
         <div class="search-box">
           <svg class="i"><use href="#i-search"/></svg>
-          <input id="club-filter" type="search" placeholder="Filter clubs or managers">
+          <input id="club-filter" type="search" data-i18n-placeholder="clubs.filter">
         </div>
       </div>
       <ul id="club-list" class="club-list"></ul>
@@ -69,41 +70,41 @@
     <section class="squad panel">
       <div class="panel-head squad-head">
         <div class="squad-title">
-          <h2 id="squad-name">Open a career</h2>
+          <h2 id="squad-name" data-i18n="squad.open"></h2>
           <div id="squad-manager" class="muted squad-meta"></div>
         </div>
         <div class="squad-tools">
           <div class="search-box grow">
             <svg class="i"><use href="#i-search"/></svg>
-            <input id="player-search" type="search" placeholder="Search any player in the database">
+            <input id="player-search" type="search" data-i18n-placeholder="squad.search">
           </div>
-          <button id="btn-sync" class="ghost" disabled title="Compare with the real squad on efootballdb.com"><svg class="i"><use href="#i-sync"/></svg><span>Sync real squad</span></button>
-          <button id="btn-manager" class="ghost" disabled title="Change this club's manager"><svg class="i"><use href="#i-whistle"/></svg><span>Manager</span></button>
+          <button id="btn-sync" class="ghost" disabled data-i18n-title="squad.syncTitle"><svg class="i"><use href="#i-sync"/></svg><span data-i18n="squad.sync"></span></button>
+          <button id="btn-manager" class="ghost" disabled data-i18n-title="squad.managerTitle"><svg class="i"><use href="#i-whistle"/></svg><span data-i18n="squad.manager"></span></button>
         </div>
       </div>
       <div id="search-results" class="search-results hidden"></div>
       <div class="table-wrap">
         <table class="squad-table">
-          <thead><tr><th class="c-num">#</th><th class="c-pos">Pos</th><th>Name</th><th class="c-num">Age</th><th class="c-num" title="Velocidade">Vel</th></tr></thead>
+          <thead><tr><th class="c-num">#</th><th class="c-pos">Pos</th><th data-i18n="col.name"></th><th class="c-num" data-i18n="col.age"></th><th class="c-num" data-i18n="col.speed" data-i18n-title="col.speedTitle"></th></tr></thead>
           <tbody id="squad-body"></tbody>
         </table>
       </div>
     </section>
 
     <section class="detail panel">
-      <div id="detail" class="detail-empty"><svg class="i big"><use href="#i-user"/></svg><span>Select a player</span></div>
+      <div id="detail" class="detail-empty"><svg class="i big"><use href="#i-user"/></svg><span data-i18n="detail.empty"></span></div>
     </section>
   </main>
 
   <dialog id="dlg-review" class="dialog">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-check"/></svg>Staged edits</h2>
-    <p class="muted">Nothing is written until you press Apply. A backup of the save is made first, in the <code>backup</code> folder beside your saves.</p>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-check"/></svg><span data-i18n="review.title"></span></h2>
+    <p class="muted" data-i18n="review.note"></p>
     <ol id="staged-list" class="staged-list"></ol>
     <div id="review-check" class="review-check"></div>
     <div class="dialog-actions">
-      <button id="btn-undo-all" class="ghost danger left" title="Remove every staged edit"><svg class="i"><use href="#i-x"/></svg>Undo all</button>
-      <button id="btn-close-review" class="ghost">Close</button>
-      <button id="btn-apply" class="primary"><svg class="i"><use href="#i-save"/></svg>Apply to save</button>
+      <button id="btn-undo-all" class="ghost danger left" data-i18n-title="review.undoAllTitle"><svg class="i"><use href="#i-x"/></svg><span data-i18n="review.undoAll"></span></button>
+      <button id="btn-close-review" class="ghost" data-i18n="close"></button>
+      <button id="btn-apply" class="primary"><svg class="i"><use href="#i-save"/></svg><span data-i18n="review.apply"></span></button>
     </div>
   </dialog>
 
@@ -111,29 +112,27 @@
     <h2 tabindex="-1" autofocus id="pick-title"></h2>
     <div class="search-box">
       <svg class="i"><use href="#i-search"/></svg>
-      <input id="pick-filter" type="search" placeholder="Filter">
+      <input id="pick-filter" type="search" data-i18n-placeholder="pick.filter">
     </div>
     <ul id="pick-list" class="pick-list"></ul>
     <label id="pick-option" class="pick-option hidden"><input type="checkbox" id="pick-check"> <span></span></label>
-    <div class="dialog-actions"><button id="btn-close-pick" class="ghost">Cancel</button></div>
+    <div class="dialog-actions"><button id="btn-close-pick" class="ghost" data-i18n="cancel"></button></div>
   </dialog>
 
   <dialog id="dlg-sync" class="dialog wide">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sync"/></svg><span id="sync-title">Sync with efootballdb</span></h2>
-    <p class="muted">Real squad from efootballdb.com (same player IDs as FL26). Untick anything you want to leave as it is.
-      Players FL26 doesn't have are created with their real ratings and a lookalike face.</p>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sync"/></svg><span id="sync-title"></span></h2>
+    <p class="muted" data-i18n="sync.note"></p>
     <div id="sync-body" class="sync-body"></div>
     <div class="dialog-actions">
-      <button id="btn-sync-refresh" class="ghost left"><svg class="i"><use href="#i-cloud"/></svg>Refresh from efootballdb</button>
-      <button id="btn-close-sync" class="ghost">Cancel</button>
-      <button id="btn-sync-stage" class="primary">Stage selected</button>
+      <button id="btn-sync-refresh" class="ghost left"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="sync.refresh"></span></button>
+      <button id="btn-close-sync" class="ghost" data-i18n="cancel"></button>
+      <button id="btn-sync-stage" class="primary" data-i18n="stage"></button>
     </div>
   </dialog>
 
   <dialog id="dlg-league" class="dialog wide">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-trophy"/></svg>Sync a whole league</h2>
-    <p class="muted">Every club's real squad from efootballdb.com in one go. Players changing clubs inside the league are moved, never lost.
-      Your own player is never touched. Untick a club to leave it as it is.</p>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="league.title"></span></h2>
+    <p class="muted" data-i18n="league.note"></p>
     <div class="league-head">
       <select id="league-picker"></select>
       <div id="league-kinds" class="league-kinds"></div>
@@ -141,45 +140,60 @@
     <div id="league-body" class="sync-body"></div>
     <div class="dialog-actions">
       <span id="league-total" class="muted league-total"></span>
-      <button id="btn-league-refresh" class="ghost"><svg class="i"><use href="#i-cloud"/></svg>Refresh</button>
-      <button id="btn-close-league" class="ghost">Cancel</button>
-      <button id="btn-league-stage" class="primary">Stage selected</button>
+      <button id="btn-league-refresh" class="ghost"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="league.refresh"></span></button>
+      <button id="btn-close-league" class="ghost" data-i18n="cancel"></button>
+      <button id="btn-league-stage" class="primary" data-i18n="stage"></button>
     </div>
   </dialog>
 
   <dialog id="dlg-backups" class="dialog">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-history"/></svg>Backups</h2>
-    <p class="muted">Every apply first saves a copy of the career as it was, so you can go back. Restoring also backs up the current file first.</p>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-history"/></svg><span data-i18n="bk.title"></span></h2>
+    <p class="muted" data-i18n="bk.note"></p>
     <ul id="backup-list" class="pick-list"></ul>
-    <div class="dialog-actions"><button id="btn-close-backups" class="ghost">Close</button></div>
+    <div class="dialog-actions"><button id="btn-close-backups" class="ghost" data-i18n="close"></button></div>
   </dialog>
 
   <dialog id="dlg-setup" class="dialog">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sliders"/></svg>Set up CareerLab</h2>
-    <p class="muted">CareerLab needs your Football Life 2026 folder (for the player database) and your saves folder.</p>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sliders"/></svg><span data-i18n="setup.title"></span></h2>
+    <p class="muted" data-i18n="setup.note"></p>
+    <div class="setup-step lang-step">
+      <svg class="i step-icon"><use href="#i-globe"/></svg>
+      <div><b data-i18n="setup.language"></b></div>
+      <div class="flags">
+        <button class="flag" data-lang="pt" title="Português (Brasil)" aria-label="Português (Brasil)">
+          <svg viewBox="0 0 28 20"><rect width="28" height="20" fill="#009c3b"/><path d="M14 2.2 25.6 10 14 17.8 2.4 10z" fill="#ffdf00"/><circle cx="14" cy="10" r="4.6" fill="#002776"/><path d="M9.6 9.1c2.9-.5 6.1.2 8.7 1.9" stroke="#fff" stroke-width=".9" fill="none"/></svg>
+          <span>PT-BR</span>
+        </button>
+        <button class="flag" data-lang="en" title="English (US)" aria-label="English (US)">
+          <svg viewBox="0 0 28 20"><rect width="28" height="20" fill="#fff"/><g fill="#b22234"><rect width="28" height="1.54"/><rect y="3.08" width="28" height="1.54"/><rect y="6.15" width="28" height="1.54"/><rect y="9.23" width="28" height="1.54"/><rect y="12.31" width="28" height="1.54"/><rect y="15.38" width="28" height="1.54"/><rect y="18.46" width="28" height="1.54"/></g><rect width="12" height="10.77" fill="#3c3b6e"/><g fill="#fff"><circle cx="2.4" cy="2.2" r=".55"/><circle cx="6" cy="2.2" r=".55"/><circle cx="9.6" cy="2.2" r=".55"/><circle cx="4.2" cy="4.4" r=".55"/><circle cx="7.8" cy="4.4" r=".55"/><circle cx="2.4" cy="6.6" r=".55"/><circle cx="6" cy="6.6" r=".55"/><circle cx="9.6" cy="6.6" r=".55"/><circle cx="4.2" cy="8.8" r=".55"/><circle cx="7.8" cy="8.8" r=".55"/></g></svg>
+          <span>EN-US</span>
+        </button>
+      </div>
+    </div>
     <div class="setup-step" id="step-game">
       <svg class="i step-icon"><use href="#i-gamepad"/></svg>
-      <div><b>Game folder</b><div class="muted path" id="setup-game"></div></div>
-      <button id="btn-setup-game" class="ghost"><svg class="i"><use href="#i-folder"/></svg>Choose…</button>
+      <div><b data-i18n="setup.game"></b><div class="muted path" id="setup-game"></div></div>
+      <button id="btn-setup-game" class="ghost"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="setup.choose"></span></button>
     </div>
     <div class="setup-step" id="step-db">
       <svg class="i step-icon"><use href="#i-database"/></svg>
-      <div><b>Player database</b><div class="muted" id="setup-db"></div></div>
-      <button id="btn-setup-module" class="ghost">Install database reader</button>
+      <div><b data-i18n="setup.db"></b><div class="muted" id="setup-db"></div></div>
+      <button id="btn-setup-module" class="ghost" data-i18n="setup.installReader"></button>
     </div>
     <div class="setup-step" id="step-saves">
       <svg class="i step-icon"><use href="#i-save"/></svg>
-      <div><b>Saves folder</b><div class="muted path" id="setup-saves"></div></div>
-      <button id="btn-setup-saves" class="ghost"><svg class="i"><use href="#i-folder"/></svg>Choose…</button>
+      <div><b data-i18n="setup.saves"></b><div class="muted path" id="setup-saves"></div></div>
+      <button id="btn-setup-saves" class="ghost"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="setup.choose"></span></button>
     </div>
     <div class="dialog-actions">
       <span class="muted left" id="setup-version"></span>
-      <button id="btn-setup-check" class="ghost">Check again</button>
-      <button id="btn-setup-done" class="primary">Continue</button>
+      <button id="btn-setup-check" class="ghost" data-i18n="setup.check"></button>
+      <button id="btn-setup-done" class="primary" data-i18n="setup.continue"></button>
     </div>
   </dialog>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

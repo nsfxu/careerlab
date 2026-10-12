@@ -18,6 +18,8 @@ import sys
 import time
 from pathlib import Path
 
+from .i18n import tr
+
 HOME = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab"
 CONFIG = HOME / "config.json"
 GAME_EXE = "FL_2026.exe"
@@ -65,7 +67,7 @@ def game_dir():
 
 def set_game_dir(p):
     if not is_game_dir(p):
-        raise ValueError(f"{GAME_EXE} is not in that folder")
+        raise ValueError(tr("err.noExe", exe=GAME_EXE))
     cfg = load()
     cfg["gameDir"] = str(Path(p))
     save(cfg)

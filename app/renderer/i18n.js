@@ -1,0 +1,256 @@
+// CareerLab interface text, English and Brazilian Portuguese.
+// Game terms (positions, ability and skill names) are not here: they stay in FL26's
+// Portuguese in both languages, so they always match what the game shows.
+// Static text in index.html uses data-i18n / data-i18n-placeholder / data-i18n-title.
+
+const STRINGS = {
+  en: {
+    "top.league": "Sync league", "top.leagueTitle": "Sync every club of a league with efootballdb.com",
+    "top.backups": "Backups", "top.backupsTitle": "Backups of this save",
+    "top.settingsTitle": "Settings: language, game folder, saves folder, database",
+    "top.review": "Review & apply", "top.saveTitle": "Career save",
+    "save.option": "Slot {n}  ·  saved {d}", "save.none": "No Become a Legend saves found", "loading": "Loading…",
+    "game.running": "Game running — saving disabled", "game.closed": "Game closed", "game.closeFirst": "Close the game first",
+
+    "clubs.title": "Clubs", "clubs.filter": "Filter clubs or managers", "clubs.yours": "Your club",
+    "clubs.all": "All clubs", "clubs.manager": "Manager: {name}",
+
+    "squad.open": "Open a career", "squad.search": "Search any player in the database",
+    "squad.sync": "Sync real squad", "squad.syncTitle": "Compare with the real squad on efootballdb.com",
+    "squad.manager": "Manager", "squad.managerTitle": "Change this club's manager",
+    "squad.players": "{n} players", "col.name": "Name", "col.age": "Age", "col.speed": "Vel", "col.speedTitle": "Speed (Velocidade)",
+    "captain": "Captain",
+
+    "detail.empty": "Select a player", "detail.noSquad": "no squad", "detail.yourPlayer": "Your player",
+    "detail.shirtNumber": "Shirt number", "detail.years": "{n} yrs", "detail.skills": "Skills",
+    "detail.chipRemove": "Click to remove", "detail.chipAddBack": "Click to add back", "detail.addSkill": "Add skill",
+    "detail.club": "Club · {club}", "detail.number": "Number",
+    "detail.captainTitle": "Wears the armband when he is in the starting XI", "detail.makeCaptain": "Make captain",
+    "detail.move": "Move to club…", "detail.release": "Release",
+    "err.shirtRange": "Shirt numbers go from 1 to 99", "err.abilityRange": "Abilities go from 40 to 99",
+
+    "lab.shirt": "{name}: shirt {from} → {to}", "lab.shirtFree": " ({owner} gets a free number)",
+    "lab.captain": "{club} captain: {name}", "lab.move": "Move {name}: {from} → {to}",
+    "lab.release": "Release {name} from {club}", "lab.ability": "{name}: {ability} {from} → {to}",
+    "lab.skillOn": "{name}: {skill} on", "lab.skillOff": "{name}: {skill} off",
+    "lab.managerSwap": "Managers: {a} → {here}, {b} → {there} (with tactics)",
+    "lab.managerSet": "{club} manager: {from} → {to} (keep {club}'s tactics)",
+    "lab.add": "Add {name} to {club}", "lab.create": "Create {name} at {club}", "lab.newToFl26": " (new to FL26)",
+    "lab.numbers": "{club}: real shirt numbers", "lab.source": "{club} sync",
+    "staged": "{label} (staged)",
+
+    "review.title": "Staged edits",
+    "review.note": "Nothing is written until you press Apply. A backup of the save is made first, in the backup folder beside your saves.",
+    "review.undo": "Undo", "review.undoTitle": "Remove this edit", "review.checking": "Checking the edits against the save…",
+    "review.refused": "These edits would break the save and will be refused: ", "review.passed": "Check passed: no new problems.",
+    "review.undoAll": "Undo all", "review.undoAllTitle": "Remove every staged edit",
+    "review.undoAllConfirm": "Remove all {n} staged edits? Nothing has been written yet, so the save is not touched.",
+    "review.undoAllDone": "All staged edits removed", "close": "Close", "cancel": "Cancel", "review.apply": "Apply to save",
+    "review.applied": "Applied {n} edits", "review.applied1": "Applied 1 edit", "review.newPlayers": " ({n} players new to FL26)",
+    "review.inBackups": ". The career as it was is in Backups.",
+
+    "pick.filter": "Filter", "pick.players": "{n} players", "pick.addSkill": "Add a skill to {name}",
+    "pick.manager": "New manager for {club} (swap with another club)",
+    "pick.managerOption": "Bring the manager's tactics and formation (otherwise only the name changes)",
+    "pick.moveTo": "Move {name} to",
+
+    "search.none": "No players found", "search.free": "free / no squad", "search.notInCareer": "not in this career yet",
+    "search.createConfirm": "{name} is not in this career yet. Create him at {club} with his efootballdb ratings?",
+    "search.addTo": "Add to {club}",
+
+    "sync.title": "Sync {club} with efootballdb",
+    "sync.note": "Real squad from efootballdb.com (same player IDs as FL26). Untick anything you want to leave as it is. Players FL26 doesn't have are created with their real ratings and a lookalike face.",
+    "sync.fetching": "Fetching the real squad…",
+    "cc.error": "{source} could not be checked ({error}).", "cc.agree": "{source} lists the same {n} players.",
+    "cc.alsoLists": "also lists {names}", "cc.notList": "does not list {names}",
+    "cc.differ": "Second opinion: {source} {bits}. The plan follows efootballdb.",
+    "sync.moveIn": "Move in", "sync.moveInNote": "currently at another club in your career",
+    "sync.add": "Add", "sync.addNote": "known to the career, without a club",
+    "sync.create": "Create", "sync.createNote": "new to this career",
+    "sync.release": "Release", "sync.releaseNote": "not in the real squad any more",
+    "sync.numbers": "Shirt numbers", "sync.numbersNote": "players already here who change number",
+    "sync.from": "from {club}", "sync.freePlayer": "free player", "sync.absentTag": "not in FL26: lookalike face",
+    "sync.dbTag": "in FL26 database", "sync.becomesFree": "becomes a free agent",
+    "sync.numbersAll": " Give every player his real shirt number (new arrivals included)",
+    "sync.captainCb": " Make {name} captain (real captain; wears the armband when he starts)",
+    "sync.takers": "Set-piece takers are chosen by the AI manager in Become a Legend, so they are not synced.",
+    "sync.alreadyMatch": "{n} players already match.", "sync.realCoach": "Real coach: {name} (change it with \"Manager\").",
+    "sync.refresh": "Refresh from efootballdb", "stage": "Stage selected",
+    "sync.staged": "{n} sync edits staged — review and apply when ready",
+
+    "league.title": "Sync a whole league",
+    "league.note": "Every club's real squad from efootballdb.com in one go. Players changing clubs inside the league are moved, never lost. Your own player is never touched. Untick a club to leave it as it is.",
+    "kind.release": "Releases", "kind.move": "Moves", "kind.add": "Free players", "kind.create": "New players",
+    "kind.numbers": "Shirt numbers", "kind.captain": "Captains",
+    "league.reading": "Reading efootballdb's league list…", "league.option": "{name} ({c}/{t} clubs)",
+    "league.yours": " — your league", "league.none": "No efootballdb league matches this career's clubs.",
+    "league.fetching": "Fetching every squad (one request per club, cached for a day)…",
+    "league.fetchingAgain": "Fetching every squad again (one request per club)…",
+    "league.in": "→ in", "league.free": "+ free", "league.new": "+ new", "league.out": "− out",
+    "league.upToDate": "Up to date", "league.match": "{n} already match",
+    "league.kept": "Kept so the squad stays at {n}+: {names}",
+    "league.madeUp": "Left as they are: {clubs}. eFootball has no player licence there (invented names), so FL26's own squad is kept.",
+    "league.skipped": "Skipped: ",
+    "league.footer": "Players FL26 lacks borrow a little-known player's ID and the face of a player of the same nationality. Coaches and set-piece takers are not synced.",
+    "league.total": "{n} edits selected", "league.allMatch": "Every club already matches efootballdb",
+    "league.staged": "{n} league edits staged — review and apply when ready", "league.refresh": "Refresh",
+
+    "setup.title": "Settings",
+    "setup.note": "CareerLab needs your Football Life 2026 folder (for the player database) and your saves folder.",
+    "setup.language": "Language", "setup.game": "Game folder", "setup.gameNotFound": "Not found: choose the folder that has FL_2026.exe",
+    "setup.db": "Player database", "setup.dbNeedsGame": "Needs the game folder first.",
+    "setup.dbFound": "Found (written by the game through Sider).",
+    "setup.dbNoSider": "Sider is not installed in this game folder, so the database cannot be read.",
+    "setup.dbInstalled": "Reader installed. Start FL2026 once, wait for the main menu, close it, then press Check again.",
+    "setup.dbMissing": "Not found yet. Install the reader (a read-only Sider module), then start the game once.",
+    "setup.installReader": "Install database reader", "setup.saves": "Saves folder", "setup.notFound": " (not found)",
+    "setup.choose": "Choose…", "setup.check": "Check again", "setup.continue": "Continue",
+    "setup.pickGame": "Football Life 2026 folder (with FL_2026.exe)", "setup.pickSaves": "Become a Legend saves folder",
+    "setup.readerInstalled": "Database reader installed: start the game once",
+
+    "bk.title": "Backups",
+    "bk.note": "Every apply first saves a copy of the career as it was, so you can go back. Restoring also backs up the current file first.",
+    "bk.none": "No backups yet", "bk.beforeRestore": "Before a restore", "bk.nEdits": "{n} edits", "bk.before": "Before: ",
+    "bk.restore": "Restore", "bk.confirm": "Restore the save as it was on {when}?", "bk.undoes": "\nThis undoes: {title}.",
+    "bk.backedUp": "\nThe current save is backed up first.", "bk.restored": "Backup restored",
+    "bk.more": "…and {n} more", "bk.clubs": "Clubs: {list}", "bk.itemTitle": "Click to see the edits · double-click to show the file",
+  },
+
+  pt: {
+    "top.league": "Sincronizar liga", "top.leagueTitle": "Sincronizar todos os clubes de uma liga com o efootballdb.com",
+    "top.backups": "Backups", "top.backupsTitle": "Backups deste save",
+    "top.settingsTitle": "Configurações: idioma, pasta do jogo, pasta dos saves, banco de dados",
+    "top.review": "Revisar e aplicar", "top.saveTitle": "Save da carreira",
+    "save.option": "Slot {n}  ·  salvo {d}", "save.none": "Nenhum save do Rumo ao Estrelato encontrado", "loading": "Carregando…",
+    "game.running": "Jogo aberto — gravação bloqueada", "game.closed": "Jogo fechado", "game.closeFirst": "Feche o jogo primeiro",
+
+    "clubs.title": "Clubes", "clubs.filter": "Filtrar clubes ou técnicos", "clubs.yours": "Seu clube",
+    "clubs.all": "Todos os clubes", "clubs.manager": "Técnico: {name}",
+
+    "squad.open": "Abra uma carreira", "squad.search": "Buscar qualquer jogador do banco de dados",
+    "squad.sync": "Sincronizar elenco real", "squad.syncTitle": "Comparar com o elenco real no efootballdb.com",
+    "squad.manager": "Técnico", "squad.managerTitle": "Trocar o técnico deste clube",
+    "squad.players": "{n} jogadores", "col.name": "Nome", "col.age": "Idade", "col.speed": "Vel", "col.speedTitle": "Velocidade",
+    "captain": "Capitão",
+
+    "detail.empty": "Selecione um jogador", "detail.noSquad": "sem clube", "detail.yourPlayer": "Seu jogador",
+    "detail.shirtNumber": "Número da camisa", "detail.years": "{n} anos", "detail.skills": "Habilidades do jogador",
+    "detail.chipRemove": "Clique para remover", "detail.chipAddBack": "Clique para adicionar de volta", "detail.addSkill": "Adicionar habilidade",
+    "detail.club": "Clube · {club}", "detail.number": "Número",
+    "detail.captainTitle": "Usa a braçadeira quando está entre os titulares", "detail.makeCaptain": "Tornar capitão",
+    "detail.move": "Transferir para…", "detail.release": "Dispensar",
+    "err.shirtRange": "Os números de camisa vão de 1 a 99", "err.abilityRange": "Os atributos vão de 40 a 99",
+
+    "lab.shirt": "{name}: camisa {from} → {to}", "lab.shirtFree": " ({owner} recebe um número livre)",
+    "lab.captain": "{club}: capitão {name}", "lab.move": "Transferir {name}: {from} → {to}",
+    "lab.release": "{club}: dispensar {name}", "lab.ability": "{name}: {ability} {from} → {to}",
+    "lab.skillOn": "{name}: {skill} adicionada", "lab.skillOff": "{name}: {skill} removida",
+    "lab.managerSwap": "Técnicos: {a} → {here}, {b} → {there} (com táticas)",
+    "lab.managerSet": "{club}: técnico {from} → {to} (mantém as táticas do {club})",
+    "lab.add": "{club}: contratar {name}", "lab.create": "{club}: criar {name}", "lab.newToFl26": " (novo no FL26)",
+    "lab.numbers": "{club}: números reais", "lab.source": "Sincronização: {club}",
+    "staged": "{label} (na fila)",
+
+    "review.title": "Alterações na fila",
+    "review.note": "Nada é gravado até você clicar em Aplicar. Antes, é feito um backup do save na pasta backup, ao lado dos seus saves.",
+    "review.undo": "Desfazer", "review.undoTitle": "Remover esta alteração", "review.checking": "Conferindo as alterações com o save…",
+    "review.refused": "Estas alterações quebrariam o save e serão recusadas: ", "review.passed": "Verificação aprovada: nenhum problema novo.",
+    "review.undoAll": "Desfazer tudo", "review.undoAllTitle": "Remover todas as alterações da fila",
+    "review.undoAllConfirm": "Remover as {n} alterações da fila? Nada foi gravado ainda, então o save não é alterado.",
+    "review.undoAllDone": "Todas as alterações foram removidas", "close": "Fechar", "cancel": "Cancelar", "review.apply": "Aplicar no save",
+    "review.applied": "{n} alterações aplicadas", "review.applied1": "1 alteração aplicada", "review.newPlayers": " ({n} jogadores novos no FL26)",
+    "review.inBackups": ". A carreira como estava fica em Backups.",
+
+    "pick.filter": "Filtrar", "pick.players": "{n} jogadores", "pick.addSkill": "Adicionar habilidade a {name}",
+    "pick.manager": "Novo técnico para {club} (troca com outro clube)",
+    "pick.managerOption": "Levar as táticas e a formação do técnico (senão só o nome muda)",
+    "pick.moveTo": "Transferir {name} para",
+
+    "search.none": "Nenhum jogador encontrado", "search.free": "livre / sem clube", "search.notInCareer": "ainda não está nesta carreira",
+    "search.createConfirm": "{name} ainda não está nesta carreira. Criá-lo no {club} com os atributos do efootballdb?",
+    "search.addTo": "Adicionar ao {club}",
+
+    "sync.title": "Sincronizar {club} com o efootballdb",
+    "sync.note": "Elenco real do efootballdb.com (mesmos IDs de jogador do FL26). Desmarque o que quiser deixar como está. Jogadores que o FL26 não tem são criados com os atributos reais e um rosto parecido.",
+    "sync.fetching": "Buscando o elenco real…",
+    "cc.error": "Não foi possível conferir no {source} ({error}).", "cc.agree": "O {source} lista os mesmos {n} jogadores.",
+    "cc.alsoLists": "também lista {names}", "cc.notList": "não lista {names}",
+    "cc.differ": "Segunda opinião: o {source} {bits}. O plano segue o efootballdb.",
+    "sync.moveIn": "Chegam", "sync.moveInNote": "hoje em outro clube da sua carreira",
+    "sync.add": "Contratar", "sync.addNote": "conhecidos da carreira, sem clube",
+    "sync.create": "Criar", "sync.createNote": "novos nesta carreira",
+    "sync.release": "Dispensar", "sync.releaseNote": "não estão mais no elenco real",
+    "sync.numbers": "Números de camisa", "sync.numbersNote": "jogadores do elenco que mudam de número",
+    "sync.from": "do {club}", "sync.freePlayer": "jogador livre", "sync.absentTag": "não está no FL26: rosto parecido",
+    "sync.dbTag": "no banco do FL26", "sync.becomesFree": "fica sem clube",
+    "sync.numbersAll": " Dar a cada jogador o número real (inclusive os que chegam)",
+    "sync.captainCb": " Tornar {name} capitão (capitão real; usa a braçadeira quando é titular)",
+    "sync.takers": "No Rumo ao Estrelato os cobradores de bola parada são escolhidos pelo técnico (IA), por isso não são sincronizados.",
+    "sync.alreadyMatch": "{n} jogadores já estão certos.", "sync.realCoach": "Técnico real: {name} (troque em \"Técnico\").",
+    "sync.refresh": "Atualizar do efootballdb", "stage": "Colocar na fila",
+    "sync.staged": "{n} alterações da sincronização na fila — revise e aplique quando quiser",
+
+    "league.title": "Sincronizar uma liga inteira",
+    "league.note": "O elenco real de cada clube, do efootballdb.com, de uma vez. Jogadores que trocaram de clube dentro da liga são transferidos, nunca perdidos. O seu jogador nunca é alterado. Desmarque um clube para deixá-lo como está.",
+    "kind.release": "Dispensas", "kind.move": "Transferências", "kind.add": "Jogadores livres", "kind.create": "Jogadores novos",
+    "kind.numbers": "Números de camisa", "kind.captain": "Capitães",
+    "league.reading": "Lendo a lista de ligas do efootballdb…", "league.option": "{name} ({c}/{t} clubes)",
+    "league.yours": " — sua liga", "league.none": "Nenhuma liga do efootballdb corresponde aos clubes desta carreira.",
+    "league.fetching": "Buscando todos os elencos (uma consulta por clube, guardada por um dia)…",
+    "league.fetchingAgain": "Buscando todos os elencos de novo (uma consulta por clube)…",
+    "league.in": "→ chegam", "league.free": "+ livres", "league.new": "+ novos", "league.out": "− saem",
+    "league.upToDate": "Em dia", "league.match": "{n} já estão certos",
+    "league.kept": "Mantidos para o elenco ficar com {n}+: {names}",
+    "league.madeUp": "Deixados como estão: {clubs}. O eFootball não tem licença de jogadores desses clubes (nomes inventados), então o elenco do próprio FL26 é mantido.",
+    "league.skipped": "Ignorados: ",
+    "league.footer": "Jogadores que o FL26 não tem usam o ID de um jogador pouco conhecido e o rosto de um jogador da mesma nacionalidade. Técnicos e cobradores de bola parada não são sincronizados.",
+    "league.total": "{n} alterações selecionadas", "league.allMatch": "Todos os clubes já batem com o efootballdb",
+    "league.staged": "{n} alterações da liga na fila — revise e aplique quando quiser", "league.refresh": "Atualizar",
+
+    "setup.title": "Configurações",
+    "setup.note": "O CareerLab precisa da pasta do Football Life 2026 (para o banco de jogadores) e da pasta dos seus saves.",
+    "setup.language": "Idioma", "setup.game": "Pasta do jogo", "setup.gameNotFound": "Não encontrada: escolha a pasta que tem o FL_2026.exe",
+    "setup.db": "Banco de jogadores", "setup.dbNeedsGame": "Precisa da pasta do jogo primeiro.",
+    "setup.dbFound": "Encontrado (gravado pelo jogo através do Sider).",
+    "setup.dbNoSider": "O Sider não está instalado nesta pasta do jogo, então o banco não pode ser lido.",
+    "setup.dbInstalled": "Leitor instalado. Abra o FL2026 uma vez, espere o menu principal, feche e clique em Verificar de novo.",
+    "setup.dbMissing": "Ainda não encontrado. Instale o leitor (um módulo do Sider que só lê) e abra o jogo uma vez.",
+    "setup.installReader": "Instalar leitor do banco", "setup.saves": "Pasta dos saves", "setup.notFound": " (não encontrada)",
+    "setup.choose": "Escolher…", "setup.check": "Verificar de novo", "setup.continue": "Continuar",
+    "setup.pickGame": "Pasta do Football Life 2026 (com o FL_2026.exe)", "setup.pickSaves": "Pasta dos saves do Rumo ao Estrelato",
+    "setup.readerInstalled": "Leitor do banco instalado: abra o jogo uma vez",
+
+    "bk.title": "Backups",
+    "bk.note": "Cada aplicação salva antes uma cópia da carreira como estava, para você poder voltar. Restaurar também faz backup do arquivo atual antes.",
+    "bk.none": "Nenhum backup ainda", "bk.beforeRestore": "Antes de uma restauração", "bk.nEdits": "{n} alterações", "bk.before": "Antes de: ",
+    "bk.restore": "Restaurar", "bk.confirm": "Restaurar o save como estava em {when}?", "bk.undoes": "\nIsto desfaz: {title}.",
+    "bk.backedUp": "\nAntes, é feito backup do save atual.", "bk.restored": "Backup restaurado",
+    "bk.more": "…e mais {n}", "bk.clubs": "Clubes: {list}", "bk.itemTitle": "Clique para ver as alterações · clique duas vezes para mostrar o arquivo",
+  },
+};
+
+let LANG = (() => {
+  try {
+    const saved = localStorage.getItem("careerlab.lang");
+    if (saved === "en" || saved === "pt") return saved;
+  } catch {}
+  return (navigator.language || "").toLowerCase().startsWith("pt") ? "pt" : "en";
+})();
+
+function t(key, vars = {}) {
+  const s = STRINGS[LANG][key] ?? STRINGS.en[key] ?? key;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+}
+
+function applyStatic(root = document) {
+  for (const e of root.querySelectorAll("[data-i18n]")) e.textContent = t(e.dataset.i18n);
+  for (const e of root.querySelectorAll("[data-i18n-placeholder]")) e.placeholder = t(e.dataset.i18nPlaceholder);
+  for (const e of root.querySelectorAll("[data-i18n-title]")) e.title = t(e.dataset.i18nTitle);
+  document.documentElement.lang = LANG === "pt" ? "pt-BR" : "en";
+}
+
+function setLang(lang) {
+  LANG = lang;
+  try { localStorage.setItem("careerlab.lang", lang); } catch {}
+  applyStatic();
+}
