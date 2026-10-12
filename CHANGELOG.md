@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.2.0 — 2026-10-12
+
+- New title bar: CareerLab draws its own window (custom minimize / maximize / close buttons,
+  drag anywhere on the bar, double-click to maximize) with an angled red brand plate.
+- The save picker, player name and club are one career switcher (crest, player, club and
+  slot; click it for the list of saves).
+- Quieter header: the game status is a small icon with a green dot while the game is closed
+  and a red "Game running" label only when saving is blocked; Backups and Settings are icon
+  buttons (names on hover).
+- **Leagues tab** beside Clubs: every league of the career (yours first) with FL26's own
+  league emblems. Clicking a league shows it in the middle panel: its clubs (click one to open
+  its squad), managers, squad sizes and a *Sync league* button. It replaces the title bar's
+  "Sync league" button.
+- **Tabs** over the middle panel, like VS Code: every club and league you open gets a tab. A
+  single click opens a preview tab (italic) that the next click replaces; double-click (or
+  staging an edit for that club) keeps it. A dot marks clubs with staged edits. Close with
+  the ×, a middle-click or Ctrl+W; Ctrl+Tab / Ctrl+Shift+Tab switch; drag to reorder. The
+  tabs are remembered per save.
+
 ## 2.1.0 — 2026-10-12
 
 - **Game images**: player portraits, club crests and manager photos, read from your own FL26

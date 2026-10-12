@@ -70,7 +70,8 @@ const abilName = (k) => (LANG === "en" ? ABIL_EN : ABIL_PT)[k];
 const skillNames = () => (LANG === "en" ? SKILL_EN : SKILL_NAMES);
 const posLabel = (pos) => (LANG === "en" ? pos : POS_PT[pos]) || pos || "?";
 
-const state = { save: null, summary: null, clubs: [], block: null, squad: null, player: null, staged: [] };
+const state = { save: null, summary: null, clubs: [], block: null, squad: null, player: null, staged: [],
+  sideTab: "clubs", leagues: null, league: null, tabs: [], activeTab: null };
 
 function toast(msg, error = false) {
   const box = $("#toast");
@@ -102,7 +103,8 @@ function icon(name, cls = "") {
 // Game images from the user's own install (climg:// is served by the main process); a
 // placeholder takes over when the game has no image for that ID.
 function gameImg(kind, id, cls = "") {
-  const fallback = () => el("span", { className: `gimg ph g-${kind} ${cls}` }, icon(kind === "flag" ? "shield" : "user"));
+  const fallback = () => el("span", { className: `gimg ph g-${kind} ${cls}` },
+    icon(kind === "flag" ? "shield" : kind === "league" ? "trophy" : "user"));
   if (id == null || id === "" || id === 0) return fallback();
   const img = el("img", { className: `gimg g-${kind} ${cls}`, src: `climg://${kind}/${id}`, loading: "lazy", alt: "", draggable: false });
   img.onerror = () => img.replaceWith(fallback());
@@ -126,58 +128,96 @@ async function loadSaves() {
 
 async function loadSaveOptions() {
   const r = await call("list_saves");
-  const sel = $("#save-picker");
-  sel.innerHTML = "";
-  for (const s of r.saves) {
-    const d = new Date(s.modified * 1000).toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    const n = /^BL0*(\d+)$/.exec(s.slot);
-    sel.append(el("option", { value: s.path, textContent: n ? t("save.option", { n: Number(n[1]) + 1, d }) : s.slot, title: s.path }));
-  }
-  if (!r.saves.length) sel.append(el("option", { textContent: t("save.none") }));
+  state.saves = r.saves;
+  renderCareerChip();
   return r;
 }
 
+// "BL00000000" -> "Slot 1"; saved time as dd/mm/yyyy hh:mm
+const slotName = (s) => { const n = /^BL0*(\d+)$/.exec(s.slot); return n ? t("save.slot", { n: Number(n[1]) + 1 }) : s.slot; };
+const savedAt = (s) => new Date(s.modified * 1000).toLocaleString([], { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+// The career switcher: crest, player and club of the open save; the menu lists the saves.
+function renderCareerChip() {
+  const saves = state.saves || [];
+  const cur = saves.find((s) => s.path === state.save);
+  const me = state.summary?.me;
+  const tid = me ? teamOf(me.block) : null;
+  $("#career-crest").replaceChildren(tid ? gameImg("flag", tid, "crest-md") : icon("save"));
+  $("#career-name").textContent = me ? me.name : cur ? slotName(cur) : saves.length ? t("loading") : t("save.none");
+  $("#career-sub").textContent = [me?.club, cur && slotName(cur)].filter(Boolean).join("  ·  ");
+  $("#career-chip").title = [me && `${me.name} · ${me.age} · ${me.club || ""}`, cur && t("save.option", { n: slotName(cur), d: savedAt(cur) })]
+    .filter(Boolean).join("\n");
+  $("#career-chip").disabled = !saves.length;
+  const ul = $("#save-list");
+  ul.replaceChildren(...saves.map((s) => {
+    const li = el("li", { className: s.path === state.save ? "on" : "", title: s.path },
+      icon(s.path === state.save ? "check" : "save"),
+      el("span", {}, el("b", { textContent: slotName(s) }), el("span", { className: "muted", textContent: t("save.saved", { d: savedAt(s) }) })));
+    li.onclick = () => { closeSaveMenu(); if (s.path !== state.save) openSave(s.path); };
+    return li;
+  }));
+}
+function closeSaveMenu() { $("#save-menu").hidden = true; $("#career-chip").classList.remove("open"); }
+function toggleSaveMenu() {
+  const menu = $("#save-menu");
+  menu.hidden = !menu.hidden;
+  $("#career-chip").classList.toggle("open", !menu.hidden);
+}
+
 async function openSave(path) {
+  state.restoring = true;                 // keep this save's remembered tabs until they are read
+  state.tabs = [];
+  state.activeTab = null;
   await guarded(async () => {
     $("#squad-name").textContent = t("loading");
     state.summary = await call("open_save", { path });
     state.save = path;
     state.staged = [];
     const me = state.summary.me;
-    const info = $("#career-info");
-    info.innerHTML = "";
-    if (me) {
-      const text = el("span", { className: "ci-text" }, el("b", { textContent: me.name }), ` · ${me.age} · ${me.club || ""}`);
-      info.append(icon("user"), text);
-      info.title = `${me.name} · ${me.age} · ${me.club || ""}`;
-    }
     state.clubs = await call("clubs");
-    if (me && teamOf(me.block)) $("#career-info .ci-text")?.append(" ", gameImg("flag", teamOf(me.block), "crest-xs"));
+    renderCareerChip();
     renderClubs();
     updateStaged();
-    $("#btn-league").disabled = false;
-    if (me && me.block != null) await openClub(me.block);
+    state.leagues = null;
+    closeLeague();
+    await restoreTabs(me);
   });
+  state.restoring = false;
 }
 
 // ------------------------------------------------------------------ clubs
 
+function clubItem(c) {
+  const myBlock = state.summary?.me?.block;
+  const li = el("li", { className: c.block === state.block && state.league == null ? "active" : "" },
+    gameImg("flag", c.teamId, "crest-sm"),
+    el("span", { textContent: c.name, className: "name" + (c.block === myBlock ? " me" : "") }),
+    el("span", { className: "size", textContent: c.size }));
+  if (c.block === myBlock) li.querySelector(".name").prepend(icon("star", "me-star"));
+  li.title = c.manager ? t("clubs.manager", { name: c.manager }) : "";
+  li.onclick = () => openClub(c.block);
+  li.ondblclick = () => pinTab("club", c.block);
+  return li;
+}
+
+// The side panel shows either the club list or the league list (tabs in its header).
+function setSideTab(tab) {
+  state.sideTab = tab;
+  store.set("careerlab.sideTab", tab);
+  for (const b of document.querySelectorAll(".side-tab")) b.classList.toggle("on", b.dataset.tab === tab);
+  renderClubs();
+}
+
 function renderClubs() {
+  $("#tab-clubs").title = state.clubs.length ? t("clubs.count", { n: state.clubs.length }) : "";
+  $("#club-filter").placeholder = t(state.sideTab === "leagues" ? "leagues.filter" : "clubs.filter");
+  if (state.sideTab === "leagues") return renderLeagueList();
   const q = $("#club-filter").value.trim().toLowerCase();
   const ul = $("#club-list");
   ul.innerHTML = "";
   const myBlock = state.summary?.me?.block;
-  $("#club-count").textContent = state.clubs.length ? state.clubs.length : "";
-  const item = (c) => {
-    const li = el("li", { className: c.block === state.block ? "active" : "" },
-      gameImg("flag", c.teamId, "crest-sm"),
-      el("span", { textContent: c.name, className: "name" + (c.block === myBlock ? " me" : "") }),
-      el("span", { className: "size", textContent: c.size }));
-    if (c.block === myBlock) li.querySelector(".name").prepend(icon("star", "me-star"));
-    li.title = c.manager ? t("clubs.manager", { name: c.manager }) : "";
-    li.onclick = () => openClub(c.block);
-    return li;
-  };
+  const item = clubItem;
   const shown = state.clubs.filter((c) => !q || c.name.toLowerCase().includes(q) || (c.manager || "").toLowerCase().includes(q));
   const mine = shown.find((c) => c.block === myBlock);
   if (mine && !q) {
@@ -187,10 +227,127 @@ function renderClubs() {
   for (const c of shown) if (q || c.block !== myBlock) ul.append(item(c));
 }
 
-async function openClub(block) {
+// Leagues come from efootballdb's league list (cached a week), matched to the career's clubs.
+function ensureLeagues() {
+  if (state.leagues) return Promise.resolve(state.leagues);
+  if (!state.leaguesP) {
+    state.leaguesP = call("leagues").then((l) => (state.leagues = l)).finally(() => { state.leaguesP = null; });
+    state.leaguesP.then(renderTabs, () => {});
+  }
+  return state.leaguesP;
+}
+async function loadLeagueList() {
+  if (state.leagues || !state.save) return;
+  try {
+    await ensureLeagues();
+  } catch (e) {
+    state.leaguesError = e.message || String(e);
+  }
+  if (state.sideTab === "leagues") renderLeagueList();
+}
+
+function renderLeagueList() {
+  const ul = $("#club-list");
+  const note = (key, extra) => ul.replaceChildren(el("li", { className: "side-note muted", textContent: t(key, extra) }));
+  if (!state.save) return note("leagues.noSave");
+  if (!state.leagues) {
+    if (state.leaguesError) { note("leagues.error", { e: state.leaguesError }); state.leaguesError = null; return; }
+    note("league.reading");
+    return loadLeagueList();
+  }
+  $("#tab-leagues").title = t("leagues.count", { n: state.leagues.length });
+  if (!state.leagues.length) return note("league.none");
+  const q = $("#club-filter").value.trim().toLowerCase();
+  const byBlock = new Map(state.clubs.map((c) => [c.block, c]));
+  ul.innerHTML = "";
+  let group = null;
+  for (const lg of state.leagues) {
+    const clubs = lg.blocks.map((b) => byBlock.get(b)).filter(Boolean);
+    if (q && !lg.name.toLowerCase().includes(q) && !clubs.some((c) => c.name.toLowerCase().includes(q))) continue;
+    const g = lg.mine ? "leagues.yours" : "leagues.all";
+    if (g !== group && !q) { ul.append(el("li", { className: "group", textContent: t(g) })); group = g; }
+    const li = el("li", { className: "league-row" + (lg.id === state.league ? " active" : "") + (lg.mine ? " mine" : "") },
+      gameImg("league", lg.emblem, "emblem-sm"),
+      el("span", { className: "name" }, el("span", { className: "lg-name", textContent: lg.name }),
+        el("span", { className: "lg-sub" },
+          el("span", { className: "lg-crests" }, ...clubs.slice(0, 5).map((c) => gameImg("flag", c.teamId, "crest-xs"))),
+          el("span", { className: "size", textContent: t("leagues.clubs", { c: lg.clubs, t: lg.total }) }))));
+    li.title = lg.name;
+    li.onclick = () => openLeague(lg.id);
+    li.ondblclick = () => pinTab("league", lg.id);
+    ul.append(li);
+  }
+  if (!ul.children.length) note("leagues.noMatch");
+}
+
+// A league in the middle panel (instead of a squad): its clubs and the sync button.
+async function openLeague(id, pin = false) {
+  ensureTab("league", id, pin);
+  state.league = id;
+  document.body.classList.add("league-mode");
+  closePlayer();
+  renderClubs();
+  if (!state.leagues) {
+    $("#league-view").replaceChildren(el("p", { className: "muted league-loading", textContent: t("league.reading") }));
+    await guarded(ensureLeagues);
+    if (state.league !== id) return;
+  }
+  renderLeagueView();
+}
+function closeLeague() {
+  state.league = null;
+  document.body.classList.remove("league-mode");
+}
+
+function renderLeagueView() {
+  const lg = state.leagues?.find((x) => x.id === state.league);
+  const box = $("#league-view");
+  if (!lg) return box.replaceChildren();
+  const myBlock = state.summary?.me?.block;
+  const byBlock = new Map(state.clubs.map((c) => [c.block, c]));
+  const clubs = lg.blocks.map((b) => byBlock.get(b)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  const players = clubs.reduce((n, c) => n + (c.size || 0), 0);
+  const sync = el("button", { className: "primary league-sync-big", title: t("leagues.syncTitle", { name: lg.name }) },
+    icon("sync"), t("leagues.syncWide"));
+  sync.onclick = () => openLeagues(lg.id);
+  const body = el("tbody");
+  for (const c of clubs) {
+    const name = el("span", { className: "pname" }, gameImg("flag", c.teamId, "crest-sm"), c.name);
+    if (c.block === myBlock) name.append(icon("star", "me-star"));
+    const tr = el("tr", { className: c.block === myBlock ? "mine" : "" },
+      el("td", {}, name),
+      el("td", { className: "muted" }, c.manager || "–"),
+      el("td", { className: "c-num", textContent: c.size }));
+    tr.title = t("leagues.openClub", { name: c.name });
+    tr.onclick = () => openClub(c.block);
+    tr.ondblclick = () => pinTab("club", c.block);
+    body.append(tr);
+  }
+  box.replaceChildren(
+    el("div", { className: "panel-head league-view-head" },
+      el("div", { className: "squad-title" },
+        gameImg("league", lg.emblem, "emblem-lg"),
+        el("div", {},
+          el("h2", { textContent: lg.name }),
+          el("div", { className: "muted squad-meta" },
+            el("span", {}, icon("shield"), t("leagues.inCareer", { c: lg.clubs, t: lg.total })),
+            el("span", {}, icon("user"), t("squad.players", { n: players }))))),
+      el("div", { className: "league-view-sync" }, sync, el("span", { className: "muted", textContent: t("leagues.syncNote") }))),
+    el("div", { className: "table-wrap" },
+      el("table", { className: "squad-table league-table" },
+        el("thead", {}, el("tr", {}, el("th", { textContent: t("leagues.colClub") }), el("th", { textContent: t("leagues.colManager") }),
+          el("th", { className: "c-num", textContent: t("leagues.colPlayers") }))),
+        body)));
+}
+
+async function openClub(block, pin = false) {
+  ensureTab("club", block, pin);
   await guarded(async () => {
+    const squad = await call("squad", { block });
+    if (state.activeTab !== tabKey("club", block)) return;          // another tab took over meanwhile
+    closeLeague();
     state.block = block;
-    state.squad = await call("squad", { block });
+    state.squad = squad;
     renderClubs();
     renderSquad();
     $("#btn-manager").disabled = false;
@@ -198,6 +355,163 @@ async function openClub(block) {
     $("#btn-free").disabled = false;
     $("#btn-sync").disabled = !state.squad.teamId;
   });
+}
+
+// ------------------------------------------------------------------ tabs (clubs and leagues, like VS Code)
+// A single click opens a preview tab (italic) that the next single click replaces; a
+// double-click, or staging an edit for that club, keeps it. Tabs are remembered per save.
+
+const tabKey = (kind, id) => `${kind}:${id}`;
+const activeTab = () => state.tabs.find((x) => x.key === state.activeTab);
+
+function ensureTab(kind, id, pin = false) {
+  const key = tabKey(kind, id);
+  let tab = state.tabs.find((x) => x.key === key);
+  if (!tab) {
+    tab = { key, kind, id, preview: !pin };
+    const pi = state.tabs.findIndex((x) => x.preview);
+    if (!pin && pi >= 0) state.tabs[pi] = tab;                       // the preview is replaced in place
+    else state.tabs.splice(state.tabs.findIndex((x) => x.key === state.activeTab) + 1, 0, tab);
+  } else if (pin) tab.preview = false;
+  state.activeTab = key;
+  saveTabs();
+  renderTabs();
+}
+function pinTab(kind, id) {
+  const tab = state.tabs.find((x) => x.key === tabKey(kind, id));
+  if (tab) { tab.preview = false; saveTabs(); renderTabs(); }
+}
+function activateTab(tab) {
+  return tab.kind === "club" ? openClub(tab.id) : openLeague(tab.id);
+}
+// after an apply: redraw whatever the active tab shows
+async function reopenActive() {
+  const tab = activeTab();
+  if (!tab) return;
+  if (tab.kind === "league") renderLeagueView();
+  else await openClub(tab.id);
+}
+function closeTab(key) {
+  const i = state.tabs.findIndex((x) => x.key === key);
+  if (i < 0) return;
+  state.tabs.splice(i, 1);
+  if (key === state.activeTab) {
+    const next = state.tabs[i] || state.tabs[i - 1];
+    if (next) activateTab(next);
+    else showNothing();
+  }
+  saveTabs();
+  renderTabs();
+}
+function cycleTab(step) {
+  if (state.tabs.length < 2) return;
+  const i = state.tabs.findIndex((x) => x.key === state.activeTab);
+  activateTab(state.tabs[(i + step + state.tabs.length) % state.tabs.length]);
+}
+// every tab closed: an empty middle panel
+function showNothing() {
+  state.activeTab = null;
+  closeLeague();
+  state.block = null;
+  state.squad = null;
+  closePlayer();
+  $("#squad-name").textContent = t("squad.pick");
+  $("#squad-crest").replaceChildren();
+  $("#squad-manager").replaceChildren();
+  $("#squad-body").replaceChildren();
+  for (const b of ["#btn-sync", "#btn-free", "#btn-tactics", "#btn-manager"]) $(b).disabled = true;
+  renderClubs();
+}
+
+// clubs touched by staged edits ("unsaved", like a modified file)
+function dirtyBlocks() {
+  const out = new Set();
+  for (const op of state.staged) for (const k of [op.block, op.from, op.to]) if (k != null) out.add(k);
+  return out;
+}
+
+function renderTabs() {
+  const bar = $("#tabs");
+  const dirty = dirtyBlocks();
+  const clubOf = new Map(state.clubs.map((c) => [c.block, c]));
+  const myBlock = state.summary?.me?.block;
+  bar.replaceChildren();
+  bar.hidden = !state.tabs.length;
+  for (const tab of state.tabs) {
+    let label, image, isDirty;
+    if (tab.kind === "club") {
+      const c = clubOf.get(tab.id);
+      label = c ? c.name : t("tabs.club", { n: tab.id });
+      image = gameImg("flag", c?.teamId, "crest-xs");
+      isDirty = dirty.has(tab.id);
+    } else {
+      const lg = state.leagues?.find((x) => x.id === tab.id);
+      label = lg ? lg.name : "…";
+      image = gameImg("league", lg?.emblem, "emblem-xs");
+      isDirty = !!lg && lg.blocks.some((b) => dirty.has(b));
+    }
+    if (isDirty) tab.preview = false;
+    const close = el("button", { className: "tab-close", title: t("tabs.close") }, icon("x"));
+    close.onclick = (e) => { e.stopPropagation(); closeTab(tab.key); };
+    const div = el("div", {
+      className: "tab" + (tab.key === state.activeTab ? " active" : "") + (tab.preview ? " preview" : "") + (isDirty ? " dirty" : "")
+        + (tab.kind === "club" && tab.id === myBlock ? " mine" : ""),
+      title: label + (isDirty ? "  ·  " + t("tabs.dirty") : tab.preview ? "  ·  " + t("tabs.preview") : ""),
+      draggable: true, role: "tab" }, image, el("span", { className: "tab-label", textContent: label }), close);
+    div.onclick = () => { if (tab.key !== state.activeTab) activateTab(tab); };
+    div.ondblclick = () => { tab.preview = false; saveTabs(); renderTabs(); };
+    div.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); closeTab(tab.key); } };
+    div.onmousedown = (e) => { if (e.button === 1) e.preventDefault(); };          // no autoscroll
+    div.ondragstart = (e) => { e.dataTransfer.setData("text/plain", tab.key); e.dataTransfer.effectAllowed = "move"; div.classList.add("dragging"); };
+    div.ondragend = () => div.classList.remove("dragging");
+    div.ondragover = (e) => {
+      e.preventDefault();
+      const r = div.getBoundingClientRect();
+      div.classList.toggle("drop-before", e.clientX < r.left + r.width / 2);
+      div.classList.toggle("drop-after", e.clientX >= r.left + r.width / 2);
+    };
+    div.ondragleave = () => div.classList.remove("drop-before", "drop-after");
+    div.ondrop = (e) => {
+      e.preventDefault();
+      const after = div.classList.contains("drop-after");
+      div.classList.remove("drop-before", "drop-after");
+      const from = state.tabs.findIndex((x) => x.key === e.dataTransfer.getData("text/plain"));
+      if (from < 0) return;
+      const [moved] = state.tabs.splice(from, 1);
+      let to = state.tabs.findIndex((x) => x.key === tab.key);
+      if (to < 0) to = state.tabs.length; else if (after) to += 1;
+      state.tabs.splice(to, 0, moved);
+      saveTabs();
+      renderTabs();
+    };
+    bar.append(div);
+  }
+  bar.querySelector(".tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+function saveTabs() {
+  if (!state.save || state.restoring) return;
+  store.set("careerlab.tabs:" + state.save, JSON.stringify({
+    tabs: state.tabs.map(({ kind, id, preview }) => ({ kind, id, preview })), active: state.activeTab }));
+}
+async function restoreTabs(me) {
+  let saved = null;
+  try { saved = JSON.parse(store.get("careerlab.tabs:" + state.save) || "null"); } catch {}
+  state.restoring = false;
+  const blocks = new Set(state.clubs.map((c) => c.block));
+  state.tabs = (saved?.tabs || []).filter((x) => x.kind === "league" || blocks.has(x.id))
+    .map((x) => ({ ...x, key: tabKey(x.kind, x.id) }));
+  state.activeTab = null;
+  if (state.tabs.some((x) => x.kind === "league"))                  // drop leagues this save no longer has
+    ensureLeagues().then((l) => {
+      const ids = new Set(l.map((x) => x.id));
+      const gone = state.tabs.filter((x) => x.kind === "league" && !ids.has(x.id));
+      for (const x of gone) closeTab(x.key);
+    }, () => {});
+  const start = state.tabs.find((x) => x.key === saved?.active) || state.tabs[0];
+  if (start) return activateTab(start);
+  renderTabs();
+  if (me && me.block != null) await openClub(me.block, true);
 }
 
 function renderSquad() {
@@ -608,7 +922,7 @@ function stageAbility(p, k, value, original) {
 function closePlayer() {
   state.player = null;
   document.body.classList.add("no-player");
-  if (state.squad) renderSquad();
+  if (state.squad && state.league == null) renderSquad();
 }
 
 // ------------------------------------------------------------------ layout (clubs panel, split)
@@ -647,6 +961,7 @@ function fitDetailWidth() {            // window resized or clubs panel toggled:
 
 function initLayout() {
   setClubsCollapsed(store.get("careerlab.clubsCollapsed") === "1");
+  if (store.get("careerlab.sideTab") === "leagues") setSideTab("leagues");
   fitDetailWidth();
   window.addEventListener("resize", fitDetailWidth);
   $("#btn-clubs-toggle").onclick = (e) => { e.stopPropagation(); setClubsCollapsed(!document.body.classList.contains("clubs-collapsed")); };
@@ -693,6 +1008,8 @@ async function stage(op, keepPlayer = false) {
 function updateStaged() {
   $("#staged-count").textContent = state.staged.length;
   $("#btn-review").disabled = state.staged.length === 0;
+  renderTabs();
+  saveTabs();
 }
 
 async function openReview() {
@@ -747,7 +1064,7 @@ async function applyEdits() {
       + (r.newPlayers ? t("review.newPlayers", { n: r.newPlayers }) : "") + t("review.inBackups"));
     state.clubs = await call("clubs");
     renderClubs();
-    if (state.block != null) await openClub(state.block);
+    await reopenActive();
     if (state.player) await openPlayer(state.player.pid);
   });
 }
@@ -985,12 +1302,13 @@ const KINDS = ["release", "move", "add", "create", "numbers", "captain"];
 let leaguePlan = null;
 const leagueKinds = Object.fromEntries(KINDS.map((k) => [k, true]));
 
-async function openLeagues() {
+async function openLeagues(preselect) {
   const pick = $("#league-picker");
   $("#league-body").replaceChildren(el("p", { className: "muted", textContent: t("league.reading") }));
   if (!$("#dlg-league").open) $("#dlg-league").showModal();
-  const leagues = await guarded(() => call("leagues"));
+  const leagues = state.leagues || await guarded(() => call("leagues"));
   if (!leagues) return;
+  state.leagues = leagues;
   pick.innerHTML = "";
   for (const lg of leagues)
     pick.append(el("option", { value: lg.id, textContent: t("league.option", { name: lg.name, c: lg.clubs, t: lg.total }) + (lg.mine ? t("league.yours") : "") }));
@@ -1001,12 +1319,15 @@ async function openLeagues() {
     cb.onchange = () => { leagueKinds[k] = cb.checked; renderLeague(); };
     kinds.append(el("label", { className: "k-" + k }, cb, t("kind." + k)));
   }
+  if (preselect != null && leagues.some((lg) => lg.id === preselect)) pick.value = preselect;
   if (leagues.length) loadLeague(false);
   else $("#league-body").replaceChildren(el("p", { className: "muted", textContent: t("league.none") }));
 }
 
 async function loadLeague(refresh) {
   const id = Number($("#league-picker").value);
+  const lg = state.leagues?.find((x) => x.id === id);
+  $("#league-emblem").replaceChildren(gameImg("league", lg?.emblem, "emblem-md"));
   $("#league-body").replaceChildren(el("p", { className: "muted", textContent: t(refresh ? "league.fetchingAgain" : "league.fetching") }));
   leaguePlan = await guarded(() => call("league_plan", { comp_id: id, refresh }));
   if (!leaguePlan) { $("#league-body").innerHTML = ""; return; }
@@ -1100,15 +1421,12 @@ async function switchLanguage(lang) {
   await call("set_language", { lang }).catch(() => null);
   // redraw whatever is on screen in the new language
   renderClubs();
-  if (state.squad) renderSquad();
+  if (state.league != null) renderLeagueView();
+  else if (state.squad) renderSquad();
   if (state.player) renderPlayer();
   else $("#detail").replaceChildren(icon("user", "big"), el("span", { textContent: t("detail.empty") }));
   if (!state.squad) $("#squad-name").textContent = t("squad.open");
-  if (state.save) {
-    const sel = $("#save-picker"), cur = sel.value;
-    await loadSaveOptions();
-    sel.value = cur;
-  }
+  if (state.save) await loadSaveOptions();
   pollGame();
   refreshSetup();
   renderUpdate();
@@ -1239,15 +1557,41 @@ async function pollGame() {
   const r = await call("game_state").catch(() => null);
   const pill = $("#game-state");
   if (!r) return;
-  pill.textContent = r.running ? t("game.running") : t("game.closed");
-  pill.title = pill.textContent;
-  pill.className = "pill " + (r.running ? "warn" : "ok");
+  // closed: just an icon with a green dot; running: a red label, since saving is blocked
+  $("#game-state-text").textContent = r.running ? t("game.runningShort") : "";
+  pill.title = r.running ? t("game.running") : t("game.closed");
+  pill.className = "game-state " + (r.running ? "warn" : "ok");
   $("#btn-apply").title = r.running ? t("game.closeFirst") : "";
 }
 
 // ------------------------------------------------------------------ wiring
 
-$("#save-picker").onchange = (e) => openSave(e.target.value);
+$("#career-chip").onclick = (e) => { e.stopPropagation(); toggleSaveMenu(); };
+document.addEventListener("click", (e) => { if (!e.target.closest("#save-menu")) closeSaveMenu(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeSaveMenu();
+  if (e.ctrlKey && (e.key === "Tab" || e.key === "PageDown" || e.key === "PageUp")) {
+    if (document.querySelector("dialog[open]")) return;
+    e.preventDefault();
+    cycleTab(e.key === "PageUp" || (e.key === "Tab" && e.shiftKey) ? -1 : 1);
+  }
+  if (e.ctrlKey && (e.key === "F4" || e.key.toLowerCase() === "w") && !e.altKey) {
+    e.preventDefault();
+    if (state.activeTab && !document.querySelector("dialog[open]")) closeTab(state.activeTab);
+  }
+});
+$("#tabs").addEventListener("wheel", (e) => { if (e.deltaY) { $("#tabs").scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+// window buttons (frameless window)
+function markMaximized({ maximized }) {
+  const b = $("#win-max");
+  b.querySelector("use").setAttribute("href", maximized ? "#w-restore" : "#w-max");
+  b.title = t(maximized ? "win.restore" : "win.maximize");
+  document.body.classList.toggle("maximized", maximized);
+}
+$("#win-min").onclick = () => window.cl.win("minimize");
+$("#win-max").onclick = async () => markMaximized(await window.cl.win("maximize"));
+$("#win-close").onclick = () => window.cl.win("close");
+window.cl.onWinState(markMaximized);
 $("#club-filter").oninput = renderClubs;
 $("#player-search").oninput = onSearch;
 $("#btn-review").onclick = openReview;
@@ -1269,7 +1613,8 @@ for (const b of document.querySelectorAll("#sync-source button")) b.onclick = ()
 $("#btn-sync-refresh").onclick = () => openSync(true);
 $("#btn-close-sync").onclick = () => $("#dlg-sync").close();
 $("#btn-sync-stage").onclick = stageSync;
-$("#btn-league").onclick = openLeagues;
+for (const b of document.querySelectorAll(".side-tab"))
+  b.onclick = (e) => { if (document.body.classList.contains("clubs-collapsed")) return; e.stopPropagation(); setSideTab(b.dataset.tab); };
 $("#league-picker").onchange = () => loadLeague(false);
 $("#btn-league-refresh").onclick = () => loadLeague(true);
 $("#btn-close-league").onclick = () => $("#dlg-league").close();

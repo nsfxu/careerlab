@@ -31,6 +31,11 @@
       <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
       <symbol id="i-gamepad" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="5"/><path d="M6 12h4"/><path d="M8 10v4"/><path d="M15 11h.01"/><path d="M18 13h.01"/></symbol>
       <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+      <symbol id="w-min" viewBox="0 0 10 10"><path d="M0 5.5h10"/></symbol>
+      <symbol id="w-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9"/></symbol>
+      <symbol id="w-restore" viewBox="0 0 10 10"><rect x=".5" y="2.5" width="7" height="7"/><path d="M2.5 2.5V.5h7v7h-2"/></symbol>
+      <symbol id="w-close" viewBox="0 0 10 10"><path d="M.5 .5l9 9M9.5 .5l-9 9"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></symbol>
@@ -40,28 +45,47 @@
     </defs>
   </svg>
 
+  <!-- Custom title bar (the window is frameless): the bar itself drags the window,
+       every control in it opts out with -webkit-app-region: no-drag. -->
   <header class="topbar">
-    <div class="brand"><img src="../res/icon.png" alt="" class="brand-logo">Career<b>Lab</b></div>
-    <div class="save-box">
-      <svg class="i"><use href="#i-save"/></svg>
-      <select id="save-picker" data-i18n-title="top.saveTitle"></select>
+    <div class="brand"><img src="../res/icon.png" alt="" class="brand-logo"><span>Career<b>Lab</b></span></div>
+    <div class="career">
+      <button id="career-chip" class="career-chip" data-i18n-title="top.saveTitle">
+        <span id="career-crest" class="career-crest"></span>
+        <span class="career-text">
+          <b id="career-name"></b>
+          <span id="career-sub" class="career-sub"></span>
+        </span>
+        <svg class="i chev"><use href="#i-chevron-down"/></svg>
+      </button>
+      <div id="save-menu" class="save-menu" hidden>
+        <div class="menu-title" data-i18n="top.saves"></div>
+        <ul id="save-list"></ul>
+      </div>
     </div>
-    <div id="career-info" class="career-info"></div>
     <div class="spacer"></div>
-    <span id="game-state" class="pill"></span>
+    <span id="game-state" class="game-state"><svg class="i"><use href="#i-gamepad"/></svg><span id="game-state-text"></span></span>
+    <button id="btn-update" class="update-btn" hidden><svg class="i"><use href="#i-cloud"/></svg><span id="update-text"></span></button>
     <nav class="top-actions">
-      <button id="btn-league" class="ghost" disabled data-i18n-title="top.leagueTitle"><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="top.league"></span></button>
-      <button id="btn-backups" class="ghost" data-i18n-title="top.backupsTitle"><svg class="i"><use href="#i-history"/></svg><span data-i18n="top.backups"></span></button>
+      <button id="btn-backups" class="ghost icon-only" data-i18n-title="top.backupsTitle"><svg class="i"><use href="#i-history"/></svg></button>
       <button id="btn-setup" class="ghost icon-only" data-i18n-title="top.settingsTitle"><svg class="i"><use href="#i-sliders"/></svg></button>
     </nav>
-    <button id="btn-update" class="ghost update-btn" hidden><svg class="i"><use href="#i-cloud"/></svg><span id="update-text"></span></button>
-    <button id="btn-review" class="primary" disabled><svg class="i"><use href="#i-check"/></svg><span data-i18n="top.review"></span> <span id="staged-count" class="count">0</span></button>
+    <button id="btn-review" class="primary review-btn" disabled><svg class="i"><use href="#i-check"/></svg><span data-i18n="top.review"></span> <span id="staged-count" class="count">0</span></button>
+    <div class="win-controls">
+      <button id="win-min" data-i18n-title="win.minimize"><svg><use href="#w-min"/></svg></button>
+      <button id="win-max" data-i18n-title="win.maximize"><svg><use href="#w-max"/></svg></button>
+      <button id="win-close" class="close" data-i18n-title="win.close"><svg><use href="#w-close"/></svg></button>
+    </div>
   </header>
 
   <main class="layout">
     <aside class="clubs panel">
       <div class="panel-head">
-        <h2><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title" class="clubs-label"></span> <span id="club-count" class="muted head-count"></span>
+        <h2 class="side-head">
+          <span class="side-tabs">
+            <button id="tab-clubs" class="side-tab on" data-tab="clubs"><svg class="i"><use href="#i-shield"/></svg><span data-i18n="clubs.title" class="clubs-label"></span></button>
+            <button id="tab-leagues" class="side-tab" data-tab="leagues"><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="leagues.title" class="clubs-label"></span></button>
+          </span>
           <button id="btn-clubs-toggle" class="ghost icon-only small clubs-toggle" data-i18n-title="clubs.collapse"><svg class="i"><use href="#i-sidebar"/></svg></button></h2>
         <div class="search-box">
           <svg class="i"><use href="#i-search"/></svg>
@@ -72,6 +96,7 @@
     </aside>
 
     <section class="squad panel">
+      <div id="tabs" class="tabs" role="tablist"></div>
       <div class="panel-head squad-head">
         <div class="squad-title">
           <span id="squad-crest" class="squad-crest"></span>
@@ -91,6 +116,7 @@
           <button id="btn-manager" class="ghost" disabled data-i18n-title="squad.managerTitle"><svg class="i"><use href="#i-whistle"/></svg><span data-i18n="squad.manager"></span></button>
         </div>
       </div>
+      <div id="league-view" class="league-view"></div>
       <div id="search-results" class="search-results hidden"></div>
       <div class="table-wrap">
         <table class="squad-table">
@@ -154,6 +180,7 @@
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-trophy"/></svg><span data-i18n="league.title"></span></h2>
     <p class="muted" data-i18n="league.note"></p>
     <div class="league-head">
+      <span id="league-emblem" class="league-emblem"></span>
       <select id="league-picker"></select>
       <div id="league-kinds" class="league-kinds"></div>
     </div>

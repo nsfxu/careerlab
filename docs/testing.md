@@ -20,7 +20,7 @@ Start the app with a debugging port and evaluate JavaScript in the renderer:
 ```
 cd app && npx electron . --remote-debugging-port=9333
 python harness/ui.py "document.querySelector('#squad-name').textContent"
-python harness/ui.py "(async()=>{ document.querySelector('#btn-league').click(); ... })()"
+python harness/ui.py "(async()=>{ setSideTab('leagues'); document.querySelector('.league-row.mine').click(); document.querySelector('.league-sync-big').click(); ... })()"
 python harness/winshot.py CareerLab out.png      # screenshot (exact window title match)
 ```
 

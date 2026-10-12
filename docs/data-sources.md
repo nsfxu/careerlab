@@ -51,3 +51,9 @@ crests), `common/render/symbol/coach/coach_<coachID>.png` (1,021 photos). Priori
 game: `Data/*.cpk`, then `download/*.cpk` in `spFileList.bin` order (later wins), then Sider
 `cpk.root` folders. Borrowed spare IDs and the created player get a silhouette (their
 portrait would be someone else's).
+
+League emblems: `common/render/symbol/emblemLc/emb_<compID:04d>_l.png` (some leagues only have
+the `_w`/`_e`/`_b` colour variants). `compID` is FL26's competition ID, not efootballdb's: the
+CompetitionEntry dump (12-byte records: teamID, entryID, u8 competitionID) maps it to teams,
+and `database.match_competition` picks the FL26 competition whose clubs are most like the
+efootballdb league's (Jaccard; ties go to the lower ID, since each cup follows its league).

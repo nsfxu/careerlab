@@ -1,6 +1,6 @@
 // CareerLab main process: one window, one long-lived Python engine child.
 // All save-format knowledge lives in the engine; this file only routes requests.
-const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, net, protocol, shell } = require("electron");
 const { pathToFileURL } = require("url");
 
 // climg://<player|flag|coach>/<id> serves game images the engine extracts from the user's
@@ -72,16 +72,29 @@ function createWindow() {
     title: "CareerLab",
     icon: path.join(__dirname, "res", "icon.png"),
     autoHideMenuBar: true,
+    frame: false,                          // CareerLab draws its own title bar (renderer/index.html)
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  const sendState = () => win.webContents.send("win-state", { maximized: win.isMaximized() });
+  win.on("maximize", sendState);
+  win.on("unmaximize", sendState);
 }
+
+ipcMain.handle("win", (e, action) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (!win) return null;
+  if (action === "minimize") win.minimize();
+  else if (action === "maximize") win.isMaximized() ? win.unmaximize() : win.maximize();
+  else if (action === "close") win.close();
+  return { maximized: win.isMaximized() };
+});
 
 app.whenReady().then(() => {
   protocol.handle("climg", async (req) => {
     const u = new URL(req.url);
     const kind = u.hostname, id = Number(u.pathname.replace(/\//g, ""));
-    if (!["player", "flag", "coach"].includes(kind) || !Number.isFinite(id)) return new Response(null, { status: 400 });
+    if (!["player", "flag", "coach", "league"].includes(kind) || !Number.isFinite(id)) return new Response(null, { status: 400 });
     try {
       const file = await call("image", { kind, id });
       return file ? net.fetch(pathToFileURL(file).toString()) : new Response(null, { status: 404 });
@@ -89,6 +102,9 @@ app.whenReady().then(() => {
       return new Response(null, { status: 404 });
     }
   });
+  // No application menu: the window is frameless (nothing would show it) and its hidden
+  // accelerators get in the way (Ctrl+W closed the app; it closes a tab in the renderer).
+  Menu.setApplicationMenu(null);
   startEngine(); createWindow(); updater.init(() => mainWindow);
 });
 app.on("window-all-closed", () => { if (engine) engine.kill(); app.quit(); });

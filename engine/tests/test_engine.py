@@ -200,3 +200,13 @@ def test_image_names_match_game_files():
     assert KINDS["player"][1](151850) == "151850.dds"
     assert KINDS["flag"][1](274) == "e_000274_r.png"
     assert KINDS["coach"][1](100110) == "coach_100110.png"
+    assert KINDS["league"][1](21)[0] == "emb_0021_l.png"
+
+
+def test_match_competition_prefers_the_league_over_a_cup():
+    from fl26.database import match_competition
+    league = set(range(1, 21))
+    comps = {9: set(range(1, 21)) - {20} | {99}, 15: set(range(1, 45))}   # 15 = a cup with everyone
+    assert match_competition(league, comps) == 9
+    assert match_competition({500, 501}, comps) is None
+    assert match_competition(league, {120: league, 119: league}) == 119     # league before its cup

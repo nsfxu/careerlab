@@ -352,6 +352,10 @@ class Session:
             if tid and self._is_club(k):
                 by_tid.setdefault(tid, k)
         mine = self.my_block()
+        if not hasattr(self, "_fl26_comps"):
+            from .database import competition_teams
+            self._fl26_comps = competition_teams()
+        from .database import match_competition
         out = []
         for comp in efdb.competitions():
             if comp["national"]:
@@ -360,7 +364,8 @@ class Session:
             if len(blocks) >= 2 and len(blocks) * 2 >= len(comp["teams"]):
                 out.append({"id": comp["id"], "name": comp["name"], "blocks": blocks,
                             "clubs": len(blocks), "total": len(comp["teams"]),
-                            "mine": mine in blocks})
+                            "mine": mine in blocks,
+                            "emblem": match_competition(comp["teams"], self._fl26_comps)})
         out.sort(key=lambda x: (not x["mine"], x["name"]))
         return out
 

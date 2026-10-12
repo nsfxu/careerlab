@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld("cl", {
   checkUpdates: () => ipcRenderer.invoke("update-check"),
   installUpdate: () => ipcRenderer.invoke("update-install"),
   onUpdate: (cb) => ipcRenderer.on("update", (_e, st) => cb(st)),
+  win: (action) => ipcRenderer.invoke("win", action),
+  onWinState: (cb) => ipcRenderer.on("win-state", (_e, st) => cb(st)),
 });

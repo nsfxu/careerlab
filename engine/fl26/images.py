@@ -5,6 +5,8 @@ the game is shipped with CareerLab.
     common/render/symbol/player/<playerID>.dds     128x128 portraits (DDS inside WESYS)
     common/render/symbol/flag/e_<teamID:06d>_r.png 128x128 crests
     common/render/symbol/coach/coach_<coachID>.png 256x256 manager photos
+    common/render/symbol/emblemLc/emb_<compID:04d>_l.png  league/cup emblems (some only
+                                                   in the _w/_b/_e colour variants)
 
 Priority follows the game: Data/*.cpk first, then download/*.cpk in spFileList.bin order
 (later wins), then Sider's loose cpk.root folders.
@@ -24,6 +26,8 @@ KINDS = {
     "player": ("common/render/symbol/player", lambda i: f"{int(i)}.dds"),
     "flag": ("common/render/symbol/flag", lambda i: f"e_{int(i):06d}_r.png"),
     "coach": ("common/render/symbol/coach", lambda i: f"coach_{int(i)}.png"),
+    "league": ("common/render/symbol/emblemLc",
+               lambda i: tuple(f"emb_{int(i):04d}{v}_l.png" for v in ("", "_w", "_e", "_b", "_s1"))),
 }
 _DIRS = {d for d, _ in KINDS.values()}
 _lock = threading.Lock()
@@ -104,7 +108,9 @@ def path_for(kind, ident):
     if out.exists():
         return out
     d, name_of = KINDS[kind]
-    entry = _ensure_index().get((d, name_of(ident)))
+    names = name_of(ident)
+    idx = _ensure_index()
+    entry = next((idx[(d, n)] for n in ((names,) if isinstance(names, str) else names) if (d, n) in idx), None)
     if entry is None:
         return None
     data = cpk.read(entry[1], entry[2], entry[3]) if entry[0] == "cpk" else Path(entry[1]).read_bytes()

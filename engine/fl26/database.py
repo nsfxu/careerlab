@@ -5,6 +5,9 @@ Dumps come from `SiderAddons/modules/DBDump.lua` (`<name>.raw` files). Layouts:
     player.raw            stride 312    +0x08 playerID  +0x44 name (UTF-8)
     team.raw              stride 0x5FC  +0x00 coachID   +0x08 teamID  +0x170 name
     playerassignment.raw  stride 16     +0x04 playerID  +0x08 teamID  +0x0C order<<10|shirt
+    competitionentry.raw  stride 12     +0x00 teamID    +0x04 entryID +0x08 u8 competitionID
+                          (21 = Brasileirão, 9 = Premier League; the ID also names the
+                          competition's emblem file, see images.py)
 
 The option file overrides names (its edited-player table), so EDIT00000000 is read too.
 """
@@ -63,6 +66,32 @@ class Database:
 
     def team_name(self, tid):
         return self.team_names.get(tid)
+
+
+def competition_teams(dump_dir=DEFAULT_DUMP):
+    """{FL26 competitionID: {teamID}} from the CompetitionEntry dump; {} if not dumped."""
+    try:
+        d = config.table_file("competitionentry", dump_dir).read_bytes()
+    except (FileNotFoundError, OSError):
+        return {}
+    out = collections.defaultdict(set)
+    for i in range(len(d) // 12):
+        tid, _, comp = struct.unpack_from("<IIB", d, i * 12)
+        out[comp].add(tid)
+    return dict(out)
+
+
+def match_competition(teams, comps, threshold=0.4):
+    """The FL26 competition whose team list is most like `teams` (Jaccard), or None.
+    Overlap alone would pick a cup holding the whole league plus the second division; on a
+    tie (a cup with exactly the league's clubs) the lower ID wins, which is the league."""
+    teams = set(teams)
+    best, score = None, threshold
+    for comp, tids in sorted(comps.items()):
+        s = len(teams & tids) / len(teams | tids) if teams else 0
+        if s > score:
+            best, score = comp, s
+    return best
 
 
 NO_CLUB = 0x3FFFF

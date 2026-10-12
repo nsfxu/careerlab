@@ -61,27 +61,74 @@ button.icon-only { padding: 7px 9px; }
 .pill.warn { color: #ffb4b4; background: var(--red-dark); }
 .pill.warn::before { background: var(--red-glow); box-shadow: 0 0 6px var(--red-glow); }
 
-/* top bar */
-.topbar { display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 14px;
-  background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 var(--red); }
-.brand { font-size: 18px; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+/* top bar = the window's title bar (frameless window) */
+.topbar { --top-h: 50px; position: relative; display: flex; align-items: center; gap: 10px; height: var(--top-h);
+  padding-left: 0; background: linear-gradient(180deg, #1d1d21 0%, #151518 100%); -webkit-app-region: drag; user-select: none; }
+.topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, var(--red) 0, var(--red-glow) 160px, #c8102e55 45%, transparent 85%); }
+.topbar button, .topbar select, .save-menu { -webkit-app-region: no-drag; }
+/* brand on an angled red plate, like FL26's menu tabs */
+.brand { position: relative; height: 100%; display: flex; align-items: center; gap: 9px; padding: 0 30px 0 14px;
+  font-size: 16px; letter-spacing: .4px; font-weight: 500; flex: none; isolation: isolate; }
+.brand::before { content: ""; position: absolute; inset: 0 8px 0 -20px; z-index: -1; transform: skewX(-20deg);
+  background: linear-gradient(90deg, #2b070d 0%, #4a0b16 100%); box-shadow: inset -2px 0 0 var(--red); }
 .brand b { color: var(--red-glow); font-weight: 700; }
-.brand-logo { width: 26px; height: 26px; }
-.save-box { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.brand, .save-box, .top-actions, #btn-review, .pill, .update-btn { flex: none; }
-.save-box select { max-width: 240px; }
-.career-info { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px;
-  flex: 0 1 auto; min-width: 0; white-space: nowrap; }
-.career-info .i { flex: none; }
-.career-info .ci-text { overflow: hidden; text-overflow: ellipsis; }
-.career-info b { color: var(--text); font-weight: 600; }
-.spacer { flex: 1 1 0; min-width: 4px; }
-.top-actions { display: flex; gap: 4px; }
+.brand-logo { width: 24px; height: 24px; filter: drop-shadow(0 1px 3px #0008); }
+
+/* career switcher: crest, player, club + slot; opens the save menu */
+.career { position: relative; flex: 0 1 auto; min-width: 0; }
+.career-chip { display: flex; align-items: center; gap: 10px; max-width: 330px; padding: 4px 10px 4px 6px; height: 38px;
+  background: transparent; border-color: transparent; text-align: left; }
+.career-chip:hover:not(:disabled), .career-chip.open { background: #ffffff0a; border-color: var(--panel-3); }
+.career-crest { flex: none; width: 28px; height: 28px; display: grid; place-items: center; color: var(--muted); }
+.crest-md { width: 28px; height: 28px; }
+.career-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.career-text b { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; }
+.career-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.career-chip .chev { color: var(--dim); width: 14px; height: 14px; transition: transform .15s; }
+.career-chip.open .chev { transform: rotate(180deg); }
+.save-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; min-width: 250px; padding: 6px;
+  background: var(--panel-2); border: 1px solid var(--panel-3); border-radius: 8px; box-shadow: 0 12px 30px #000a; }
+.menu-title { padding: 4px 8px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+.save-menu ul { list-style: none; margin: 0; padding: 0; }
+.save-menu li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+.save-menu li > span { display: flex; flex-direction: column; line-height: 1.25; }
+.save-menu li .muted { font-size: 11.5px; }
+.save-menu li:hover { background: var(--panel-3); }
+.save-menu li .i { color: var(--dim); }
+.save-menu li.on .i { color: var(--red-glow); }
+
+.spacer { flex: 1 1 0; min-width: 4px; align-self: stretch; }
+/* game status: a quiet icon when closed, a red label while the game runs (saving blocked) */
+.game-state { position: relative; flex: none; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 8px;
+  border-radius: 15px; color: var(--dim); font-size: 12px; font-weight: 600; -webkit-app-region: no-drag; }
+.game-state::after { content: ""; position: absolute; left: 19px; top: 6px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--dim); box-shadow: 0 0 0 2px #19191c; }
+.game-state.ok::after { background: var(--green); }
+.game-state.warn { color: #ffb4b4; background: var(--red-dark); padding-right: 12px; }
+.game-state.warn::after { background: var(--red-glow); box-shadow: 0 0 0 2px var(--red-dark), 0 0 6px var(--red-glow); }
+.top-actions { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: #0000002e; border: 1px solid var(--line-soft); }
+.top-actions button { padding: 6px 8px; border-color: transparent; }
+.review-btn { flex: none; height: 34px; }
+.update-btn { flex: none; height: 30px; padding: 0 11px; border-radius: 15px; font-size: 12px; font-weight: 600;
+  background: #12261a; color: #7fd38b; border-color: #2f6a38; }
+.update-btn:disabled { background: transparent; }
+
+/* window buttons, Windows-sized */
+.win-controls { flex: none; display: flex; align-self: stretch; margin-left: 4px; }
+.win-controls button { width: 46px; height: 100%; padding: 0; justify-content: center; border: 0; border-radius: 0;
+  background: transparent; color: #cfccc8; }
+.win-controls svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1; shape-rendering: crispEdges; }
+.win-controls #win-close svg { shape-rendering: geometricPrecision; }
+.win-controls button:hover { background: #ffffff14; color: #fff; }
+.win-controls button.close:hover { background: #e81123; }
+.win-controls button:active { background: #ffffff22; }
+.win-controls button.close:active { background: #f1707a; }
 
 /* layout */
 .layout { --clubs-w: 270px; --detail-w: 400px; display: grid; gap: 0;
   grid-template-columns: var(--clubs-w) minmax(380px, 1fr) 12px var(--detail-w); padding: 10px;
-  height: calc(100% - 54px); }
+  height: calc(100% - 50px); }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
   display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .panel-head { padding: 12px 14px; border-bottom: 1px solid var(--line); }
@@ -257,9 +304,8 @@ input[type=checkbox] { accent-color: var(--red); }
 
 @media (max-width: 1250px) {
   .layout { --clubs-w: 230px; }
-  .squad-tools button span, .top-actions button span { display: none; }
-  .save-box > .i { display: none; }
-  .squad-tools button, .top-actions button { padding: 7px 9px; }
+  .squad-tools button span { display: none; }
+  .squad-tools button { padding: 7px 9px; }
 }
 
 button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--red-glow); outline-offset: 1px; }
@@ -299,13 +345,14 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .flags .flag.on { border-color: var(--red-glow); color: var(--text); background: var(--red-soft); }
 
 /* updates */
-.update-btn:not(:disabled) { color: #7fd38b; border-color: #2f6a38; }
-.update-btn:not(:disabled):hover { background: #12261a; }
+.update-btn:not(:disabled):hover { background: #173320; }
 .setup-version { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }
 
-/* narrow windows: the game status keeps only its coloured dot (text in the tooltip) */
-@media (max-width: 1100px) {
-  .pill { font-size: 0; gap: 0; padding: 3px 6px; }
+/* narrow windows: the review button and the career chip give up text first */
+@media (max-width: 1250px) {
+  .career-chip { max-width: 230px; }
+  .brand > span { display: none; }
+  .brand { padding-right: 24px; }
 }
 
 /* profile */
@@ -442,7 +489,6 @@ body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
 .p-watermark { position: absolute; right: -18px; top: 50%; width: 150px; height: 150px; margin-top: -75px;
   opacity: .09; filter: grayscale(.2); pointer-events: none; z-index: 0; }
 .p-club { display: inline-flex; align-items: center; gap: 5px; }
-.career-info .ci-text .crest-xs { margin-left: 2px; }
 .sync-row .pname, .pick-list .pname, .search-results .pname, .league-club .pname { display: inline-flex; align-items: center; gap: 8px; }
 .league-club .pname .muted { font-size: 12px; }
 .search-results .where .crest-xs { width: 15px; height: 15px; }
@@ -454,3 +500,86 @@ body.clubs-collapsed .clubs .panel-head h2 { align-items: center; }
 .p-head > .p-close .i { width: 15px; height: 15px; stroke-width: 2.4; }
 .p-head > .p-close:hover { background: var(--red); border-color: var(--red); color: #fff; }
 .p-head h2 { padding-right: 36px; }
+
+/* side panel tabs: Clubs | Leagues */
+.panel-head h2.side-head { gap: 6px; }
+.side-tabs { flex: 1; min-width: 0; display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: #0000002e; border: 1px solid var(--line-soft); }
+.side-tab { flex: 1; justify-content: center; padding: 5px 8px; gap: 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
+.side-tab .i { color: inherit !important; }
+.side-tab:hover:not(.on) { background: var(--panel-2); color: var(--text); }
+.side-tab.on { background: var(--red-soft); color: var(--text); box-shadow: inset 0 0 0 1px #6a1d26; }
+.side-tab.on .i { color: var(--red-glow) !important; }
+.side-tab .head-count { margin-left: 0; color: var(--dim); font-size: 11.5px; }
+.side-tab .head-count:empty { display: none; }
+body.clubs-collapsed .side-tabs { flex-direction: column; background: none; border: 0; padding: 0; }
+body.clubs-collapsed .side-tab { padding: 7px; pointer-events: none; }
+/* league rows */
+.club-list .league-row { gap: 8px; padding: 7px 8px; margin-top: 2px; }
+.lg-sub { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.club-list .league-row .name { display: flex; flex-direction: column; align-items: stretch; gap: 3px; }
+.league-row .lg-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.league-row.mine .lg-name { color: var(--red-glow); }
+.lg-crests { display: flex; gap: 3px; }
+.lg-crests .crest-xs { width: 14px; height: 14px; }
+.club-list li.league-row { gap: 10px; }
+.club-list .side-note { cursor: default; padding: 14px 10px; font-size: 12.5px; white-space: normal; }
+.club-list .side-note:hover { background: none; }
+body.clubs-collapsed .side-tabs { flex: none; }
+
+/* league emblems (FL26's own, from emblemLc) */
+.emblem-sm { width: 30px; height: 30px; }
+.emblem-md { width: 40px; height: 40px; }
+.g-league.ph { background: transparent; border-radius: 8px; }
+.g-league.ph .i { width: 55%; height: 55%; }
+.league-row .emblem-sm { filter: drop-shadow(0 1px 2px #000a); }
+.league-emblem { display: inline-flex; }
+
+/* league view in the middle panel */
+.league-view { display: none; }
+body.league-mode .squad > .league-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+body.league-mode .squad > .squad-head, body.league-mode .squad > .search-results,
+body.league-mode .squad > .table-wrap { display: none !important; }
+.league-view-head { display: flex; flex-direction: column; gap: 12px; }
+.emblem-lg { width: 52px; height: 52px; filter: drop-shadow(0 2px 4px #000a); }
+.league-view-sync { display: flex; align-items: center; gap: 12px; }
+.league-view-sync .muted { font-size: 12px; }
+.league-sync-big { flex: none; }
+.league-table td .pname { display: inline-flex; align-items: center; gap: 9px; }
+.league-table tbody tr { cursor: pointer; }
+.league-table tr.mine td:first-child { color: var(--red-glow); }
+.league-table .me-star { color: var(--red-glow); width: 14px; height: 14px; }
+.club-list li.league-row.active { background: var(--red-soft); box-shadow: inset 3px 0 0 var(--red-glow); }
+
+/* tabs over the middle panel, like VS Code's editor tabs */
+.tabs { display: flex; flex: none; height: 36px; overflow-x: auto; overflow-y: hidden; background: #131316;
+  border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { position: relative; flex: none; display: flex; align-items: center; gap: 7px; max-width: 220px; min-width: 90px;
+  padding: 0 6px 0 12px; border-right: 1px solid var(--line); color: var(--muted); font-size: 12.5px; cursor: pointer;
+  user-select: none; }
+.tab:hover { background: #1b1b1f; color: var(--text); }
+.tab.active { background: var(--panel); color: var(--text); }
+.tab.active::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--red-glow); }
+.tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--panel); }
+.tab-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab.preview .tab-label { font-style: italic; }
+.tab.mine .tab-label { color: var(--red-glow); }
+.tab .crest-xs, .tab .emblem-xs { width: 16px; height: 16px; flex: none; }
+.tab-close { flex: none; width: 22px; height: 22px; padding: 0; justify-content: center; border: 0; border-radius: 5px;
+  background: transparent; color: var(--muted); visibility: hidden; }
+.tab-close .i { width: 13px; height: 13px; }
+.tab:hover .tab-close, .tab.active .tab-close { visibility: visible; }
+.tab-close:hover { background: var(--panel-3); color: var(--text); }
+/* staged edits: a dot in place of the ×, the × comes back on hover */
+.tab.dirty .tab-close { visibility: visible; }
+.tab.dirty:not(:hover) .tab-close .i { display: none; }
+.tab.dirty:not(:hover) .tab-close::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text); }
+.tab.dragging { opacity: .5; }
+.tab.drop-before { box-shadow: inset 2px 0 0 var(--red-glow); }
+.tab.drop-after { box-shadow: inset -2px 0 0 var(--red-glow); }
+.league-loading { padding: 16px; }
+/* narrow windows: the side tabs drop their icons so both names fit beside the collapse button */
+@media (max-width: 1250px) {
+  body:not(.clubs-collapsed) .side-tab .i { display: none; }
+  .side-tab { padding: 5px 6px; }
+}

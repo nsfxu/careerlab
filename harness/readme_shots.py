@@ -72,7 +72,7 @@ def main():
     run = lambda code: p.js(PRELUDE + code)
 
     lang = sys.argv[1] if len(sys.argv) > 1 else "en"          # README screenshots are English
-    run(f"await until(() => !$('#btn-league').disabled); if (LANG !== '{lang}') {{ await switchLanguage('{lang}'); await w(800); }}"
+    run(f"await until(() => state.clubs.length && state.squad); setSideTab('clubs'); if (LANG !== '{lang}') {{ await switchLanguage('{lang}'); await w(800); }}"
         "await row((r) => r.textContent.includes('Matheus Pereira'));")
     p.shot("01-squad-and-player")
 
@@ -87,11 +87,15 @@ def main():
         "$('#btn-review').click(); await until(() => /passed|break/.test($('#review-check').textContent));")
     p.shot("04-review-and-apply")
 
-    run("$('#btn-undo-all').click(); await w(800); $('#btn-league').click();"
+    run("$('#btn-undo-all').click(); await w(800); $('#btn-close-review').click(); setSideTab('leagues');"
+        "await until(() => document.querySelector('.league-row.mine')); document.querySelector('.league-row.mine').click(); await w(4000);")
+    p.shot("10-leagues")
+
+    run("document.querySelector('.league-sync-big').click();"
         "await until(() => $('#league-total').textContent); await w(500);")
     p.shot("05-league-sync")
 
-    run("$('#btn-close-league').click(); await club('Cruzeiro'); await w(3500); $('#btn-backups').click(); await w(1200);"
+    run("$('#btn-close-league').click(); setSideTab('clubs'); await club('Cruzeiro'); await w(3500); $('#btn-backups').click(); await w(1200);"
         "const b = document.querySelector('.bk'); if (b) b.open = true; await w(300);")
     p.shot("06-backups")
 

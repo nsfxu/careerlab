@@ -68,13 +68,22 @@ applying: CareerLab refuses to write while it runs.
 
 ![Review and apply](docs/screenshots/04-review-and-apply.png)
 
-**Sync a whole league.** *Sync league* plans every club of a league at once. A player who
-changed clubs inside the league is moved, never lost; clubs keep at least 23 players; clubs
-whose real squad eFootball doesn't license (invented names) are left as FL26 has them.
+**Sync a whole league.** The *Leagues* tab beside *Clubs* lists every league of your career
+(yours first) with FL26's own league emblems. Clicking one shows the league in the middle
+panel, with its clubs and a *Sync league* button that plans every club of the league at once. A player who changed clubs inside the league is moved, never lost; clubs keep at
+least 23 players; clubs whose real squad eFootball doesn't license (invented names) are left
+as FL26 has them.
+
+![Leagues tab](docs/screenshots/10-leagues.png)
+
+**Tabs.** Every club and league you open gets a tab over the middle panel, like a code
+editor: a single click opens a preview tab that the next one replaces, a double-click keeps
+it, and a dot marks clubs with staged edits. Ctrl+W closes, Ctrl+Tab switches, drag to
+reorder; the tabs are remembered for each save.
 
 ![League sync](docs/screenshots/05-league-sync.png)
 
-**Backups.** Every apply first saves the career as it was, beside your saves in a `backup`
+**Backups** (the clock icon in the title bar). Every apply first saves the career as it was, beside your saves in a `backup`
 folder. Each backup says what restoring it would undo, with the full list of edits.
 
 ![Backups](docs/screenshots/06-backups.png)
@@ -91,7 +100,7 @@ plans the club back to the squad FL26's own option file gives it, undoing transf
 
 ![Reset to the database](docs/screenshots/08-reset-to-database.png)
 
-**Settings.** Language (Brazilian Portuguese or English, by flag), game and saves folders,
+**Settings** (the sliders icon). Language (Brazilian Portuguese or English, by flag), game and saves folders,
 the database reader, updates, and the tools: CSV export and duplicate repair.
 
 ![Settings](docs/screenshots/09-settings.png)
