@@ -181,3 +181,15 @@ def test_same_person_across_ids():
     assert same_person("A. Harriman-Annous", "Ayden Harriman-Annous")
     assert not same_person("Lucas Silva", "Luan Silva")       # same initial, both full: different men
     assert not same_person("Matheus Pereira", "Matheus Henrique")
+
+
+def test_pesmaster_parse_squad():
+    from fl26.pesmaster import parse_squad
+    page = ('<h2>Cruzeiro EC eFootball Players</h2>'
+            '<a href="/cassio/efootball-2022/player/36943/">'
+            '<a href="/cassio/efootball-2022/player/36943/">'          # cards link twice
+            '<a href="/joao-marcelo/efootball-2022/player/151850/">'
+            '<a href="/batatinha-delfim/efootball-2022/player/8563654/">'   # invented
+            '<h2>Cruzeiro EC eFootball Lineup</h2>'
+            '<a href="/legend/efootball-2022/player/7511/">')            # legends: not squad
+    assert parse_squad(page) == [(36943, "Cassio"), (151850, "Joao Marcelo")]

@@ -13,7 +13,7 @@ import struct
 import unicodedata
 from pathlib import Path
 
-from . import attributes as A, created, efdb, profiles, safewrite, validate
+from . import attributes as A, created, efdb, pesmaster, profiles, safewrite, validate
 from .career import CREATED_ID_MIN, Career
 from .database import DEFAULT_DUMP, Database, identify_blocks
 from .editfile import EditFile, load_db_tables
@@ -298,6 +298,13 @@ class Session:
                                              "from": current_shirt.get(r["pid"]), "to": n})
             if plan["captain"] and plan["captain"]["pid"] == it["pid"]:
                 plan["captain"]["pid"] = r["pid"]
+        # second opinion: does pesmaster.com list the same squad?
+        cc = pesmaster.cross_check(tid, [r[0] for r in rows], refresh=refresh)
+        if "error" not in cc:
+            efdb_names = {r[0]: r[3].get("player_name") for r in rows}
+            cc["onlyEfdb"] = [efdb_names.get(p) or f"#{p}" for p in cc["onlyEfdb"]]
+            cc["onlyPesmaster"] = [self.db.player_name(p) or n for p, n in cc["onlyPesmaster"]]
+        plan["crossCheck"] = cc
         return plan
 
     def _is_club(self, k):

@@ -502,6 +502,19 @@ async function openSync(refresh = false) {
   syncPlan = await guarded(() => call("sync_plan", { block: state.block, refresh }));
   if (!syncPlan) { body.innerHTML = ""; return; }
   body.innerHTML = "";
+  const cc = syncPlan.crossCheck;
+  if (cc) {
+    let box;
+    if (cc.error) box = el("div", { className: "cross muted" }, icon("alert"), `${cc.source} could not be checked (${cc.error}).`);
+    else if (cc.agree) box = el("div", { className: "cross good" }, icon("check"), `${cc.source} lists the same ${cc.count} players.`);
+    else {
+      const bits = [];
+      if (cc.onlyPesmaster.length) bits.push(`also lists ${cc.onlyPesmaster.join(", ")}`);
+      if (cc.onlyEfdb.length) bits.push(`does not list ${cc.onlyEfdb.join(", ")}`);
+      box = el("div", { className: "cross warn" }, icon("alert"), `Second opinion: ${cc.source} ${bits.join("; ")}. The plan follows efootballdb.`);
+    }
+    body.append(box);
+  }
   const group = (title, note, items, render, checked = true) => {
     if (!items.length) return;
     const g = el("div", { className: "sync-group" });

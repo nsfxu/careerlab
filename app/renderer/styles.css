@@ -278,3 +278,8 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .bk-clubs { font-size: 12px; padding: 8px 14px 0 40px; }
 .bk-edits { margin: 6px 0 10px; padding: 0 14px 0 58px; max-height: 220px; overflow: auto; font-size: 12px; color: #cfccc8; }
 .bk-edits li { padding: 1px 0; }
+
+.cross { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 7px 12px; border-radius: var(--radius);
+  background: var(--panel-2); margin-bottom: 6px; }
+.cross.good { color: #7fd38b; background: #12261a; }
+.cross.warn { color: #f2b247; background: #2a2210; }
