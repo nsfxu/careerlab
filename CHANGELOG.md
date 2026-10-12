@@ -6,6 +6,8 @@
   (click to cycle C/B/A), weak foot, form and age for any player; height, weight, best foot
   and injury resistance for your own player. Style names exactly as FL26 shows them.
 - **Copy tactics**: give a club another club's formations and tactics, keeping its manager.
+- **Reset a club to the FL26 database**: the club sync dialog can also target the squad in
+  FL26's own database (the option file new careers start from), undoing AI transfers.
 - **Export squads to CSV** (this club or all clubs) from Settings → Tools.
 - **Repair duplicate entries**: the game lists some players twice at season rollover; one
   click keeps a single entry (and fixes the manager's lineup/captain references).

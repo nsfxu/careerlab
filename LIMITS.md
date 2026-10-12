@@ -185,6 +185,10 @@ the natural source for "hire this manager". [game]
 - **Copy tactics**: manager record +0x40..+0x220 copied from Crystal Palace into Cruzeiro;
   Plano de jogo shows 5-3-1-1 under Cruzeiro's own manager (Leonardo Jardim). [game]
 
+**Reset to database (2026-10-12):** option-file squad table at 0x9D4648 (717 blocks × 0x11C: teamID,
+40 player IDs, 40 u16 shirts). Cruzeiro reset from the app (17 edits) → Base de dados lists the
+starting squad again (Leo Aragão, Gabriel Rojas, Matías Viña…, created Nicolas Pontes). [game]
+
 **Duplicate repair (2026-10-12):** on the post-rollover save the game had listed 11 players twice
 (8 clubs); keeping the first entry and remapping manager slots clears all 11, validator clean. [file]
 

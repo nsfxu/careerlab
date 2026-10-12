@@ -124,7 +124,11 @@
 
   <dialog id="dlg-sync" class="dialog wide">
     <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sync"/></svg><span id="sync-title"></span></h2>
-    <p class="muted" data-i18n="sync.note"></p>
+    <div class="seg" id="sync-source">
+      <button data-src="efdb" class="on"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="sync.srcReal"></span></button>
+      <button data-src="edit"><svg class="i"><use href="#i-database"/></svg><span data-i18n="sync.srcEdit"></span></button>
+    </div>
+    <p class="muted" id="sync-note"></p>
     <div id="sync-body" class="sync-body"></div>
     <div class="dialog-actions">
       <button id="btn-sync-refresh" class="ghost left"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="sync.refresh"></span></button>

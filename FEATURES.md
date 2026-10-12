@@ -39,7 +39,7 @@ undecoded · **Later** = needs more research first.
 | **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | **Done** (app; lookalike face) |
 | Repair the game's own duplicates (a player listed twice in one squad) | **Done** (2.0; 11 → 0 on the rollover save) |
 | **Squad tidy tools**: renumber a squad (keepers 1/12/23, no clashes), sort by position, trim an oversized squad | Ready |
-| **Reset a club to the database**: put a squad back to what the option file says | Ready |
+| **Reset a club to the database**: put a squad back to what the option file says | **Done** (2.0, verified in game) |
 
 ## 3. Player editor
 

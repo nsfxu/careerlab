@@ -234,20 +234,43 @@ class Session:
             return "record"
         return "db" if real_pid in self.db.player_names else "absent"
 
-    def sync_plan(self, block, refresh=False):
-        """Bring a club's squad to efootballdb's: keep, move in, add, create, release."""
+    def _edit_rows(self, tid):
+        """The club's squad in the option file (what FL26 starts careers from), shaped like
+        efdb.squad rows."""
+        from .editfile import squads
+        e = self._edit_file()
+        if e is None:
+            raise EditError(tr("err.needsEdit"))
+        rows = []
+        for order, (pid, shirt) in enumerate(squads(e).get(tid, [])):
+            i = self.rec_of.get(pid)
+            pos = POS_NAMES[A.get(self.reg.record(i), "registered_position")] if i is not None else None
+            age = A.get(self.reg.record(i), "age") if i is not None else None
+            rows.append((pid, shirt or None, order, {"player_name": self.db.player_name(pid) or f"#{pid}",
+                                                     "main_position_text": pos, "age": age}, {}))
+        if not rows:
+            raise EditError(tr("err.noEditSquad"))
+        return rows
+
+    def sync_plan(self, block, refresh=False, source="efdb"):
+        """Bring a club's squad to efootballdb's (or, with source="edit", back to the option
+        file's database squad): keep, move in, add, create, release."""
         tid = self.ids.get(block, (None,))[0]
         if not tid:
             raise EditError(tr("err.notClub"))
-        if efdb.made_up(tid, refresh=refresh):
-            raise EditError(tr("err.madeUp"))
-        rows = efdb.squad(tid, refresh=refresh)
+        if source == "edit":
+            rows = self._edit_rows(tid)
+        else:
+            if efdb.made_up(tid, refresh=refresh):
+                raise EditError(tr("err.madeUp"))
+            rows = efdb.squad(tid, refresh=refresh)
         squad_pids = set(self.c.club(block).pids)
         where = {}
         for cl in self.c.clubs():
             for _, p in cl.members:
                 where.setdefault(p, []).append(cl.index)
-        plan = {"block": block, "team": self.club_name(block), "coach": efdb.coach(tid),
+        plan = {"block": block, "team": self.club_name(block), "source": source,
+                "coach": efdb.coach(tid) if source == "efdb" else None,
                 "keep": [], "moveIn": [], "add": [], "create": [], "release": [],
                 "numbers": {}, "renumber": [], "captain": None}
         current_shirt = dict(zip(self.c.club(block).pids, self.c.club(block).shirts))
@@ -300,6 +323,8 @@ class Session:
             if plan["captain"] and plan["captain"]["pid"] == it["pid"]:
                 plan["captain"]["pid"] = r["pid"]
         # second opinion: does pesmaster.com list the same squad?
+        if source != "efdb":
+            return plan
         cc = pesmaster.cross_check(tid, [r[0] for r in rows], refresh=refresh)
         if "error" not in cc:
             efdb_names = {r[0]: r[3].get("player_name") for r in rows}

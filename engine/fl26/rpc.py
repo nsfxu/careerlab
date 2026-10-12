@@ -94,8 +94,8 @@ class Server:
     def search(self, query):
         return self._session().search(query)
 
-    def sync_plan(self, block, refresh=False):
-        return self._session().sync_plan(int(block), refresh)
+    def sync_plan(self, block, refresh=False, source="efdb"):
+        return self._session().sync_plan(int(block), refresh, source)
 
     def leagues(self):
         return self._session().leagues()

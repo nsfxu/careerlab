@@ -673,12 +673,17 @@ function addOffer(r) {
 // ------------------------------------------------------------------ efootballdb sync
 
 let syncPlan = null;
-async function openSync(refresh = false) {
+let syncSource = "efdb";
+async function openSync(refresh = false, source = syncSource) {
+  syncSource = source;
+  for (const b of document.querySelectorAll("#sync-source button")) b.classList.toggle("on", b.dataset.src === source);
   const body = $("#sync-body");
   body.replaceChildren(el("p", { className: "muted", textContent: t("sync.fetching") }));
-  $("#sync-title").textContent = t("sync.title", { club: state.squad.name });
+  $("#sync-title").textContent = t(source === "edit" ? "sync.titleEdit" : "sync.title", { club: state.squad.name });
+  $("#sync-note").textContent = t(source === "edit" ? "sync.noteEdit" : "sync.note");
+  $("#btn-sync-refresh").hidden = source === "edit";
   if (!$("#dlg-sync").open) $("#dlg-sync").showModal();
-  syncPlan = await guarded(() => call("sync_plan", { block: state.block, refresh }));
+  syncPlan = await guarded(() => call("sync_plan", { block: state.block, refresh, source }));
   if (!syncPlan) { body.innerHTML = ""; return; }
   body.innerHTML = "";
   const cc = syncPlan.crossCheck;
@@ -714,7 +719,7 @@ async function openSync(refresh = false) {
   group(t("sync.create"), t("sync.createNote"), syncPlan.create,
     (it) => [el("span", { textContent: `${it.name}, ${it.age}` }),
       it.kind === "absent" ? tag(t("sync.absentTag"), "absent") : tag(t("sync.dbTag"), "new")]);
-  group(t("sync.release"), t("sync.releaseNote"), syncPlan.release,
+  group(t("sync.release"), t(syncPlan.source === "edit" ? "sync.releaseNoteEdit" : "sync.releaseNote"), syncPlan.release,
     (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: t("sync.becomesFree") })]);
   group(t("sync.numbers"), t("sync.numbersNote"), syncPlan.renumber,
     (it) => [el("span", { textContent: it.name }), el("span", { className: "note", textContent: `${it.from ?? "–"} → ${it.to}` })]);
@@ -747,7 +752,8 @@ async function stageSync() {
   if (p._captainCb?.checked && p.captain)
     ops.push({ op: "captain", block: p.block, pid: p.captain.pid, label: t("lab.captain", { club: team, name: p.captain.name }) });
   $("#dlg-sync").close();
-  for (const op of ops) await stage({ ...op, source: t("lab.source", { club: team }) });
+  const src = t(p.source === "edit" ? "lab.resetSource" : "lab.source", { club: team });
+  for (const op of ops) await stage({ ...op, source: src });
   toast(t("sync.staged", { n: ops.length }));
 }
 
@@ -1031,6 +1037,7 @@ $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
 $("#btn-tactics").onclick = pickTactics;
 $("#btn-sync").onclick = () => openSync(false);
+for (const b of document.querySelectorAll("#sync-source button")) b.onclick = () => openSync(false, b.dataset.src);
 $("#btn-sync-refresh").onclick = () => openSync(true);
 $("#btn-close-sync").onclick = () => $("#dlg-sync").close();
 $("#btn-sync-stage").onclick = stageSync;

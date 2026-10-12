@@ -327,3 +327,10 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 /* settings tools */
 .tools-title { margin: 18px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
 .tool-actions { display: flex; gap: 6px; }
+
+/* segmented control */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; margin: 4px 0 8px; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; font-size: 12.5px; color: var(--muted); }
+.seg button.on { background: var(--red-soft); color: var(--text); box-shadow: inset 0 0 0 1px #6a1d26; }
+.seg button:hover:not(.on) { background: var(--panel-2); }
+.dialog { max-height: 94vh; overflow: auto; }

@@ -75,6 +75,43 @@ class EditFile:
         return k
 
 
+SQUADS_AT = 0x9D4648          # club blocks: u32 teamID, u32[40] playerIDs, u16[40] shirts
+SQUAD_STRIDE = 0x11C
+
+
+def _squad_table(d):
+    """Offset of the squad table (blocks for teams 1, 2, 3… at the start)."""
+    ok = lambda o: all(o + k * SQUAD_STRIDE + 4 <= len(d)
+                       and struct.unpack_from("<I", d, o + k * SQUAD_STRIDE)[0] == k + 1 for k in range(3))
+    if ok(SQUADS_AT):
+        return SQUADS_AT
+    i = 0
+    probe = struct.pack("<I", 1)
+    while (j := bytes(d).find(probe, i)) >= 0:
+        if ok(j):
+            return j
+        i = j + 1
+    raise ValueError("squad table not found in the option file")
+
+
+def squads(edit):
+    """{teamID: [(playerID, shirt)]}: the squads FL26 starts careers from (option file)."""
+    d = edit.d
+    o = _squad_table(d)
+    out = {}
+    k = 0
+    while o + (k + 1) * SQUAD_STRIDE <= len(d):
+        b = o + k * SQUAD_STRIDE
+        tid = struct.unpack_from("<I", d, b)[0]
+        if tid == 0 or tid in out or tid > 100000:
+            break
+        pids = struct.unpack_from("<40I", d, b + 4)
+        shirts = struct.unpack_from("<40H", d, b + 0xA4)
+        out[tid] = [(p, s) for p, s in zip(pids, shirts) if p]
+        k += 1
+    return out
+
+
 def load_db_tables(dump_dir=None):
     """({pid: Player.bin record}, {pid: appearance record}) from a Sider dump."""
     from . import config
