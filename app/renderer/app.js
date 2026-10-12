@@ -885,7 +885,43 @@ async function switchLanguage(lang) {
   renderUpdate();
 }
 
+async function refreshTools() {
+  const d = state.save ? await call("duplicates").catch(() => []) : [];
+  state.dupes = d;
+  $("#dupes-note").textContent = d.length ? t("tools.dupesFound", { n: d.length, clubs: new Set(d.map((x) => x.block)).size })
+    : t("tools.dupesNone");
+  $("#btn-dedupe").disabled = !d.length;
+  $("#btn-export-club").disabled = state.block == null;
+  $("#btn-export-all").disabled = !state.save;
+}
+
+async function exportCsv(all) {
+  const name = all ? "careerlab-all-squads.csv" : `careerlab-${(state.squad?.name || "club").replace(/[^\w-]+/g, "-")}.csv`;
+  const file = await window.cl.pickSave(t("tools.export"), name);
+  if (!file) return;
+  await guarded(async () => {
+    const r = await call("export_csv", { path: file, block: all ? null : state.block });
+    toast(t("tools.exported", { n: r.rows, clubs: r.clubs }));
+    window.cl.reveal(r.path);
+  });
+}
+
+async function repairDupes() {
+  const blocks = [...new Set((state.dupes || []).map((x) => x.block))];
+  if (!blocks.length) return;
+  const names = Object.fromEntries((state.dupes || []).map((x) => [x.block, x.club]));
+  await guarded(async () => {
+    const r = await call("stage_many", { ops: blocks.map((b) => ({ op: "dedupe", block: b,
+      label: t("lab.dedupe", { club: names[b] }), source: t("tools.dupes") })) });
+    state.staged = r.staged;
+    updateStaged();
+    $("#dlg-setup").close();
+    toast(t("tools.dupesStaged", { n: blocks.length }));
+  });
+}
+
 async function openSetup() {
+  refreshTools();
   window.cl.version().then((v) => { $("#setup-version").textContent = `CareerLab ${v}`; });
   markFlags();
   await refreshSetup();
@@ -1004,6 +1040,9 @@ $("#btn-league-refresh").onclick = () => loadLeague(true);
 $("#btn-close-league").onclick = () => $("#dlg-league").close();
 $("#btn-league-stage").onclick = stageLeague;
 $("#btn-setup").onclick = openSetup;
+$("#btn-export-club").onclick = () => exportCsv(false);
+$("#btn-export-all").onclick = () => exportCsv(true);
+$("#btn-dedupe").onclick = repairDupes;
 $("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", t("setup.pickGame"));
 $("#btn-setup-saves").onclick = () => chooseFolder("set_save_dir", t("setup.pickSaves"));
 $("#btn-setup-module").onclick = () => guarded(async () => { await call("install_dump_module"); await refreshSetup(); toast(t("setup.readerInstalled")); });

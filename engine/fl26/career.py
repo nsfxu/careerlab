@@ -228,6 +228,13 @@ class Career:
             raise CareerError(f"{pid} is not in club block {k}")
         self._write_squad(c, [m for m, _ in keep], [s for _, s in keep])
 
+    def remove_slot(self, k, slot):
+        """Drop one squad slot (used to repair a player the game listed twice)."""
+        c = self.club(k)
+        members, shirts = list(c.members), list(c.shirts)
+        del members[slot], shirts[slot]
+        self._write_squad(c, members, shirts)
+
     def add(self, k, pid, shirt=None, handle=None):
         c = self.club(k)
         if pid in c.pids:

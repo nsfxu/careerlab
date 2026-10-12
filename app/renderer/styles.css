@@ -323,3 +323,7 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .mp-pos.lv2 { color: #0f1a10; background: #5fd17a; border-color: #5fd17a; }
 .mp-pos.changed { box-shadow: 0 0 0 2px var(--red-glow); }
 .mp-pos:hover { filter: brightness(1.15); }
+
+/* settings tools */
+.tools-title { margin: 18px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.tool-actions { display: flex; gap: 6px; }

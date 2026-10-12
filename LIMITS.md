@@ -185,6 +185,9 @@ the natural source for "hire this manager". [game]
 - **Copy tactics**: manager record +0x40..+0x220 copied from Crystal Palace into Cruzeiro;
   Plano de jogo shows 5-3-1-1 under Cruzeiro's own manager (Leonardo Jardim). [game]
 
+**Duplicate repair (2026-10-12):** on the post-rollover save the game had listed 11 players twice
+(8 clubs); keeping the first entry and remapping manager slots clears all 11, validator clean. [file]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a

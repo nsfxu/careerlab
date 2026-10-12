@@ -118,6 +118,12 @@ class Server:
     def unstage(self, index):
         return self._session().unstage(int(index))
 
+    def duplicates(self):
+        return self._session().duplicates()
+
+    def export_csv(self, path, block=None):
+        return self._session().export_csv(path, block)
+
     def unstage_all(self):
         return self._session().unstage_all()
 

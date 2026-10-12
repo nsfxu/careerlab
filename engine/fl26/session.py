@@ -555,7 +555,8 @@ class Session:
         kind = op.get("op")
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
-                        "manager_set", "tactics_copy", "shirt", "new", "renumber", "captain"):
+                        "manager_set", "tactics_copy", "shirt", "new", "renumber", "captain",
+                        "dedupe"):
             raise EditError(tr("err.unknownEdit", kind=kind))
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
             raise EditError(tr("err.createdNotMoved"))
@@ -596,6 +597,52 @@ class Session:
             mgr.slot_added(k, len(c.club(k).members) - 1)
         except LookupError:
             pass
+
+    @staticmethod
+    def _dedupe(c, mgr, k):
+        """Keep the first entry of every player listed more than once in squad k."""
+        seen, extra = set(), []
+        for slot, pid in enumerate(c.club(k).pids):
+            (extra.append(slot) if pid in seen else seen.add(pid))
+        for slot in reversed(extra):
+            c.remove_slot(k, slot)
+            try:
+                mgr.slot_removed(k, slot)
+            except LookupError:
+                pass
+
+    def duplicates(self):
+        """Players the game lists twice in one squad (it does this at season rollover)."""
+        out = []
+        for cl in self.c.clubs():
+            counts = {}
+            for p in cl.pids:
+                counts[p] = counts.get(p, 0) + 1
+            for p, n in counts.items():
+                if n > 1:
+                    out.append({"block": cl.index, "club": self.club_name(cl.index), "pid": p,
+                                "name": self.name(p), "copies": n})
+        return out
+
+    def export_csv(self, path, block=None):
+        """Squads to CSV (UTF-8 with BOM so Excel reads accents): one club or every club."""
+        import csv
+        blocks = [block] if block is not None else [cl.index for cl in self.c.clubs() if self._is_club(cl.index)]
+        rows = 0
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:
+            w = csv.writer(f)
+            w.writerow(["club", "team_id", "shirt", "player_id", "name", "position", "age", "rating",
+                        "speed", "captain"])
+            for k in blocks:
+                sq = self.squad(k)
+                for r in sq["players"]:
+                    rating = self.rating(r["pid"]) if r["pid"] < CREATED_ID_MIN else ""
+                    w.writerow([sq["name"], sq["teamId"] or "", r.get("shirt") or "", r["pid"], r["name"],
+                                r.get("position") or "", r.get("age") or "",
+                                round(rating) if rating != "" else "", r.get("speed") or "",
+                                "yes" if r.get("captain") else ""])
+                    rows += 1
+        return {"path": str(path), "rows": rows, "clubs": len(blocks)}
 
     @staticmethod
     def _renumber(c, k, numbers):
@@ -704,6 +751,8 @@ class Session:
                 mgr.set(op["block"], int(op["coachId"]), op["name"])
             elif kind == "tactics_copy":
                 mgr.copy_tactics(op["block"], op["from"])
+            elif kind == "dedupe":
+                self._dedupe(c, mgr, op["block"])
             elif kind == "shirt":
                 self._renumber(c, op["block"], {op["pid"]: op["shirt"]})
             elif kind == "renumber":

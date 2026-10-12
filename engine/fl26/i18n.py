@@ -49,6 +49,7 @@ S = {
         "count.manager": ("manager change", "manager changes"), "count.shirt": ("shirt number", "shirt numbers"),
         "count.renumber": ("squad renumbered", "squads renumbered"), "count.captain": ("captain", "captains"),
         "count.tactics_copy": ("tactics copy", "tactics copies"),
+        "count.dedupe": ("squad repaired", "squads repaired"),
     },
     "pt": {
         "err.notClub": "este elenco não foi identificado como um clube, então não pode ser sincronizado",
@@ -96,6 +97,7 @@ S = {
         "count.shirt": ("número de camisa", "números de camisa"),
         "count.renumber": ("elenco renumerado", "elencos renumerados"), "count.captain": ("capitão", "capitães"),
         "count.tactics_copy": ("cópia de táticas", "cópias de táticas"),
+        "count.dedupe": ("elenco reparado", "elencos reparados"),
     },
 }
 

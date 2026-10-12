@@ -6,6 +6,9 @@
   (click to cycle C/B/A), weak foot, form and age for any player; height, weight, best foot
   and injury resistance for your own player. Style names exactly as FL26 shows them.
 - **Copy tactics**: give a club another club's formations and tactics, keeping its manager.
+- **Export squads to CSV** (this club or all clubs) from Settings → Tools.
+- **Repair duplicate entries**: the game lists some players twice at season rollover; one
+  click keeps a single entry (and fixes the manager's lineup/captain references).
 
 ## 1.0.1 — 2026-10-12
 

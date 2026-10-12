@@ -52,6 +52,11 @@ ipcMain.handle("pick-folder", async (e, title) => {
   return r.canceled ? null : r.filePaths[0];
 });
 ipcMain.handle("version", () => app.getVersion());
+ipcMain.handle("pick-save", async (e, title, name) => {
+  const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender),
+    { title, defaultPath: name, filters: [{ name: "CSV", extensions: ["csv"] }] });
+  return r.canceled ? null : r.filePath;
+});
 
 let mainWindow = null;
 

@@ -37,7 +37,7 @@ undecoded · **Later** = needs more research first.
 | Sync the whole league to an option file | Ready |
 | **Sync a club to its real-world squad** (efootballdb.com, IDs match FL26): diff, then add / release / renumber / captain in one go | **Done** |
 | **Real players missing from the game** (e.g. academy promotions): rename a spare database record, pick a face donor, set stats, add to the career | **Done** (app; lookalike face) |
-| Repair the game's own duplicates (a player listed twice in one squad) | Ready |
+| Repair the game's own duplicates (a player listed twice in one squad) | **Done** (2.0; 11 → 0 on the rollover save) |
 | **Squad tidy tools**: renumber a squad (keepers 1/12/23, no clashes), sort by position, trim an oversized squad | Ready |
 | **Reset a club to the database**: put a squad back to what the option file says | Ready |
 
@@ -91,7 +91,7 @@ undecoded · **Later** = needs more research first.
 
 | Feature | Status |
 |---|---|
-| Export squads / players / managers to CSV | Ready |
+| Export squads to CSV (club or career) | **Done** (2.0) |
 | Compare two saves (what the game changed between them) | Ready |
 | **Player career stats viewer**: matches, goals, history per player, read from the save | Later — layout not yet decoded |
 | **Career timeline**: snapshot every autosave the game writes, show what happened between them (AI transfers, manager changes, player development) | Ready — save diff exists |

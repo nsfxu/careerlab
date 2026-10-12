@@ -108,6 +108,11 @@ const STRINGS = {
     "setup.pickGame": "Football Life 2026 folder (with FL_2026.exe)", "setup.pickSaves": "Become a Legend saves folder",
     "setup.readerInstalled": "Database reader installed: start the game once",
 
+    "tools.title": "Tools", "tools.export": "Export squads to CSV", "tools.exportNote": "Opens in Excel or Google Sheets.",
+    "tools.exportClub": "This club", "tools.exportAll": "All clubs", "tools.exported": "Exported {n} players from {clubs} clubs",
+    "tools.dupes": "Repair duplicate entries", "tools.dupesFound": "The game lists {n} players twice ({clubs} clubs). Repair keeps one entry each.",
+    "tools.dupesNone": "No player is listed twice.", "tools.repair": "Repair", "tools.dupesStaged": "{n} squad repairs staged — review and apply when ready",
+    "lab.dedupe": "{club}: remove duplicate entries",
     "squad.tactics": "Tactics", "squad.tacticsTitle": "Copy another club's formations and tactics (the manager stays)",
     "pick.tactics": "Copy tactics to {club} from…", "lab.tactics": "{club}: tactics of {from} ({manager})",
     "prof.title": "Profile", "prof.style": "Playing style", "prof.position": "Registered position",
@@ -236,6 +241,11 @@ const STRINGS = {
     "setup.pickGame": "Pasta do Football Life 2026 (com o FL_2026.exe)", "setup.pickSaves": "Pasta dos saves do Rumo ao Estrelato",
     "setup.readerInstalled": "Leitor do banco instalado: abra o jogo uma vez",
 
+    "tools.title": "Ferramentas", "tools.export": "Exportar elencos em CSV", "tools.exportNote": "Abre no Excel ou no Google Planilhas.",
+    "tools.exportClub": "Este clube", "tools.exportAll": "Todos os clubes", "tools.exported": "{n} jogadores de {clubs} clubes exportados",
+    "tools.dupes": "Reparar entradas duplicadas", "tools.dupesFound": "O jogo lista {n} jogadores duas vezes ({clubs} clubes). Reparar mantém uma entrada de cada.",
+    "tools.dupesNone": "Nenhum jogador aparece duas vezes.", "tools.repair": "Reparar", "tools.dupesStaged": "{n} reparos de elenco na fila — revise e aplique quando quiser",
+    "lab.dedupe": "{club}: remover entradas duplicadas",
     "squad.tactics": "Táticas", "squad.tacticsTitle": "Copiar as formações e táticas de outro clube (o técnico fica)",
     "pick.tactics": "Copiar táticas para o {club} de…", "lab.tactics": "{club}: táticas do {from} ({manager})",
     "prof.title": "Perfil", "prof.style": "Estilo de jogo", "prof.position": "Posição registrada",

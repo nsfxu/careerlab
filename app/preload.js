@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("cl", {
   call: (method, params) => ipcRenderer.invoke("engine", method, params),
   reveal: (file) => ipcRenderer.invoke("reveal", file),
   pickFolder: (title) => ipcRenderer.invoke("pick-folder", title),
+  pickSave: (title, name) => ipcRenderer.invoke("pick-save", title, name),
   version: () => ipcRenderer.invoke("version"),
   updateState: () => ipcRenderer.invoke("update-state"),
   checkUpdates: () => ipcRenderer.invoke("update-check"),
