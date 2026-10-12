@@ -136,7 +136,11 @@ async function openSave(path) {
     const me = state.summary.me;
     const info = $("#career-info");
     info.innerHTML = "";
-    if (me) info.append(icon("user"), el("b", { textContent: me.name }), `${me.age} · ${me.club || ""}`);
+    if (me) {
+      const text = el("span", { className: "ci-text" }, el("b", { textContent: me.name }), ` · ${me.age} · ${me.club || ""}`);
+      info.append(icon("user"), text);
+      info.title = `${me.name} · ${me.age} · ${me.club || ""}`;
+    }
     state.clubs = await call("clubs");
     renderClubs();
     updateStaged();
@@ -778,6 +782,7 @@ function renderUpdate(st = updateState) {
   btn.hidden = !(st.status === "ready" || st.status === "downloading");
   btn.disabled = st.status !== "ready";
   $("#update-text").textContent = st.status === "ready" ? t("update.button", { v }) : t("update.downloadingShort", { p: st.percent ?? 0 });
+  btn.title = st.status === "ready" ? t("update.buttonTitle", { v }) : "";
 }
 async function installUpdate() {
   if (state.staged.length && !confirm(t("update.confirmStaged", { n: state.staged.length }))) return;
@@ -835,6 +840,7 @@ async function pollGame() {
   const pill = $("#game-state");
   if (!r) return;
   pill.textContent = r.running ? t("game.running") : t("game.closed");
+  pill.title = pill.textContent;
   pill.className = "pill " + (r.running ? "warn" : "ok");
   $("#btn-apply").title = r.running ? t("game.closeFirst") : "";
 }

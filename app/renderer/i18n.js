@@ -111,7 +111,8 @@ const STRINGS = {
     "update.check": "Check for updates", "update.checking": "checking for updates…", "update.none": "up to date",
     "update.downloading": "downloading {v}… {p}%", "update.ready": "{v} ready", "update.error": "update check failed ({e})",
     "update.disabled": "updates work in the installed app", "update.idle": "",
-    "update.button": "Restart to update to {v}", "update.downloadingShort": "Update {p}%",
+    "update.button": "Update to {v}", "update.buttonTitle": "Restart CareerLab to install version {v}",
+    "update.downloadingShort": "Update {p}%",
     "update.confirmStaged": "You have {n} staged edits that are not applied yet; restarting discards them. Restart and update now?",
 
     "bk.title": "Backups",
@@ -229,7 +230,8 @@ const STRINGS = {
     "update.check": "Procurar atualizações", "update.checking": "procurando atualizações…", "update.none": "atualizado",
     "update.downloading": "baixando {v}… {p}%", "update.ready": "{v} pronta", "update.error": "falha ao procurar atualização ({e})",
     "update.disabled": "atualizações funcionam no app instalado", "update.idle": "",
-    "update.button": "Reiniciar para atualizar para {v}", "update.downloadingShort": "Atualização {p}%",
+    "update.button": "Atualizar para {v}", "update.buttonTitle": "Reinicia o CareerLab para instalar a versão {v}",
+    "update.downloadingShort": "Atualização {p}%",
     "update.confirmStaged": "Você tem {n} alterações na fila que ainda não foram aplicadas; reiniciar as descarta. Reiniciar e atualizar agora?",
 
     "bk.title": "Backups",

@@ -55,7 +55,7 @@ button.icon-only { padding: 7px 9px; }
 .search-box.grow { flex: 1; min-width: 160px; }
 .count { background: #fff; color: var(--red); border-radius: 9px; padding: 0 7px; font-size: 11.5px; font-weight: 700; }
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px;
-  font-size: 12px; color: var(--muted); }
+  font-size: 12px; color: var(--muted); white-space: nowrap; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
 .pill.ok::before { background: var(--green); }
 .pill.warn { color: #ffb4b4; background: var(--red-dark); }
@@ -68,10 +68,14 @@ button.icon-only { padding: 7px 9px; }
 .brand b { color: var(--red-glow); font-weight: 700; }
 .brand-logo { width: 26px; height: 26px; }
 .save-box { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.save-box select { max-width: 270px; }
-.career-info { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.brand, .save-box, .top-actions, #btn-review, .pill, .update-btn { flex: none; }
+.save-box select { max-width: 240px; }
+.career-info { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px;
+  flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+.career-info .i { flex: none; }
+.career-info .ci-text { overflow: hidden; text-overflow: ellipsis; }
 .career-info b { color: var(--text); font-weight: 600; }
-.spacer { flex: 1; }
+.spacer { flex: 1 1 0; min-width: 4px; }
 .top-actions { display: flex; gap: 4px; }
 
 /* layout */
@@ -253,6 +257,7 @@ input[type=checkbox] { accent-color: var(--red); }
 @media (max-width: 1250px) {
   .layout { grid-template-columns: 230px minmax(0, 1fr) 360px; }
   .squad-tools button span, .top-actions button span { display: none; }
+  .save-box > .i { display: none; }
   .squad-tools button, .top-actions button { padding: 7px 9px; }
 }
 
@@ -296,3 +301,8 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .update-btn:not(:disabled) { color: #7fd38b; border-color: #2f6a38; }
 .update-btn:not(:disabled):hover { background: #12261a; }
 .setup-version { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }
+
+/* narrow windows: the game status keeps only its coloured dot (text in the tooltip) */
+@media (max-width: 1100px) {
+  .pill { font-size: 0; gap: 0; padding: 3px 6px; }
+}

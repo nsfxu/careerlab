@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-10-12
+
+- Header: the career and game status no longer wrap onto several lines; the update button
+  reads "Update to x.y.z" (details in its tooltip); narrow windows shorten the career
+  name and keep only the status dot.
+
 ## 1.0.0 — 2026-10-12
 
 First public release.
