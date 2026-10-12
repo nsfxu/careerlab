@@ -199,6 +199,7 @@ class Session:
             row["form"] = A.get(rec, "form")
             row["weakFoot"] = [A.get(rec, "weak_foot_usage"), A.get(rec, "weak_foot_accuracy")]
             row["style"] = A.get(rec, "playing_style")
+            row["registeredPosition"] = A.get(rec, "registered_position")
         return row
 
     def search(self, query, limit=60):
@@ -554,7 +555,7 @@ class Session:
         kind = op.get("op")
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
-                        "manager_set", "shirt", "new", "renumber", "captain"):
+                        "manager_set", "tactics_copy", "shirt", "new", "renumber", "captain"):
             raise EditError(tr("err.unknownEdit", kind=kind))
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
             raise EditError(tr("err.createdNotMoved"))
@@ -701,6 +702,8 @@ class Session:
                 mgr.swap(op["a"], op["b"])
             elif kind == "manager_set":
                 mgr.set(op["block"], int(op["coachId"]), op["name"])
+            elif kind == "tactics_copy":
+                mgr.copy_tactics(op["block"], op["from"])
             elif kind == "shirt":
                 self._renumber(c, op["block"], {op["pid"]: op["shirt"]})
             elif kind == "renumber":

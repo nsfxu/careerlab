@@ -182,6 +182,7 @@ async function openClub(block) {
     renderClubs();
     renderSquad();
     $("#btn-manager").disabled = false;
+    $("#btn-tactics").disabled = false;
     $("#btn-sync").disabled = !state.squad.teamId;
   });
 }
@@ -273,6 +274,9 @@ function renderPlayer() {
       el("div", { className: "p-sub" }, badge(p.position), t("detail.years", { n: p.age ?? "?" }), el("span", { textContent: "·" }), where),
       tags.childNodes.length ? tags : "")));
 
+  const prof = profileSection(p);
+  if (prof) box.append(prof);
+
   // abilities, grouped like the game; goalkeeping folded away for outfield players
   const abilities = p.kind === "created" ? createdAbilities(p) : p.abilities;
   if (abilities) {
@@ -343,6 +347,130 @@ function renderPlayer() {
     }
     box.append(sec);
   }
+}
+
+// ------------------------------------------------------------------ profile (style, positions, body)
+
+// Playing styles. The registry (every player) and the created player use different
+// numberings; names verified in game (E23): Portuguese exactly as FL26 shows them.
+const STYLE_NAMES = {
+  goal_poacher: ["Goal Poacher", "Artilheiro"], dummy_runner: ["Dummy Runner", "Puxa marcação"],
+  fox_in_the_box: ["Fox in the Box", "Homem de área"], target_man: ["Target Man", "Pivô"],
+  creative_playmaker: ["Creative Playmaker", "Armador criativo"], prolific_winger: ["Prolific Winger", "Ala produtivo"],
+  roaming_flank: ["Roaming Flank", "Lateral móvel"], cross_specialist: ["Cross Specialist", "Especialista em cruz."],
+  classic_no10: ["Classic No. 10", "Clássica nº 10"], hole_player: ["Hole Player", "Jog. de infiltração"],
+  box_to_box: ["Box-to-Box", "Meia versátil"], destroyer: ["The Destroyer", "O destruidor"],
+  orchestrator: ["Orchestrator", "Orquestrador"], anchor_man: ["Anchor Man", "Primeiro volante"],
+  offensive_fullback: ["Offensive Full-back", "Zagueiro ofensivo"], fullback_finisher: ["Full-back Finisher", "Lateral atacante"],
+  defensive_fullback: ["Defensive Full-back", "Zagueiro defensivo"], build_up: ["Build Up", "Provocador"],
+  extra_frontman: ["Extra Frontman", "Atacante surpresa"], offensive_gk: ["Offensive Goalkeeper", "Goleiro ofensivo"],
+  defensive_gk: ["Defensive Goalkeeper", "Goleiro defensivo"],
+};
+const STYLES_REGISTRY = [null, "goal_poacher", "dummy_runner", "fox_in_the_box", "target_man", "creative_playmaker",
+  "prolific_winger", "roaming_flank", "cross_specialist", "classic_no10", "hole_player", "box_to_box", "destroyer",
+  "orchestrator", "anchor_man", "offensive_fullback", "fullback_finisher", "defensive_fullback", "build_up",
+  "extra_frontman", "offensive_gk", "defensive_gk"];
+const STYLES_CREATED = [null, "goal_poacher", "dummy_runner", "fox_in_the_box", "prolific_winger", "classic_no10",
+  "hole_player", "box_to_box", "anchor_man", "destroyer", "extra_frontman", "offensive_fullback", "defensive_fullback",
+  "target_man", "creative_playmaker", "build_up", "offensive_gk", "defensive_gk", "roaming_flank", "cross_specialist",
+  "orchestrator", "fullback_finisher"];
+const styleName = (key) => key ? STYLE_NAMES[key][LANG === "en" ? 0 : 1] : "–";
+const POS_CODES = ["GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF"];
+// mini pitch, attack at the top
+const PITCH_ROWS = [["LWF", "CF", "RWF"], ["SS"], ["LMF", "AMF", "RMF"], ["CMF"], ["DMF"], ["LB", "CB", "RB"], ["GK"]];
+const CREATED_POS = { GK: "gk_goalkeeper", CB: "cb_center_back", LB: "lb_left_back", RB: "rb_right_back",
+  DMF: "dmf_defensive_midfielder", CMF: "cmf_center_midfielder", LMF: "lmf_left_midfielder", RMF: "rmf_right_midfielder",
+  AMF: "amf_attacking_midfielder", LWF: "lwf_left_wing_forward", RWF: "rwf_right_wing_forward", SS: "ss_second_striker",
+  CF: "cf_center_forward" };
+
+// One description per profile field: where it lives for each kind of player and how it is shown.
+// get/field give the raw stored value; shown = raw + off.
+function profileFields(p) {
+  const created = p.kind === "created";
+  const f = p.fields || {};
+  const F = (label, field, raw, opts) => ({ label, field, raw, ...opts });
+  if (created) return [
+    F(t("prof.style"), "playing_style", f.playing_style, { options: STYLES_CREATED.map((k, i) => [i, styleName(k)]) }),
+    F(t("prof.position"), "registred_position", f.registred_position, { options: POS_CODES.map((c, i) => [i, posLabel(c)]) }),
+    F(t("prof.foot"), "stronger_foot", f.stronger_foot, { options: [[0, t("prof.right")], [1, t("prof.left")]] }),
+    F(t("prof.wfUsage"), "weak_foot_usage", f.weak_foot_usage, { range: [1, 4], off: 1 }),
+    F(t("prof.wfAccuracy"), "weak_foot_accuracy", f.weak_foot_accuracy, { range: [1, 4], off: 1 }),
+    F(t("prof.form"), "form", f.form, { range: [1, 8], off: 1 }),
+    F(t("prof.injury"), "injury_resistance", f.injury_resistance, { range: [1, 3], off: 1 }),
+    F(t("prof.height"), "height_cm", f.height_cm, { range: [150, 210] }),
+    F(t("prof.weight"), "weight_kg", f.weight_kg, { range: [45, 110] }),
+  ];
+  return [
+    F(t("prof.style"), "playing_style", p.style, { options: STYLES_REGISTRY.map((k, i) => [i, styleName(k)]) }),
+    F(t("prof.position"), "registered_position", p.registeredPosition, { options: POS_CODES.map((c, i) => [i, posLabel(c)]) }),
+    F(t("prof.wfUsage"), "weak_foot_usage", p.weakFoot?.[0], { range: [1, 4] }),
+    F(t("prof.wfAccuracy"), "weak_foot_accuracy", p.weakFoot?.[1], { range: [1, 4] }),
+    F(t("prof.form"), "form", p.form, { range: [1, 8] }),
+    F(t("prof.age"), "age", p.age, { range: [15, 50] }),
+  ];
+}
+
+function stageProfile(p, fdef, value) {
+  const kind = p.kind === "created" ? "created" : "attr";
+  const raw = value - (fdef.off || 0);
+  if (raw === (stagedValue(p.pid, fdef.field) ?? fdef.raw)) return;      // nothing changes
+  const shown = (r) => fdef.options ? (fdef.options.find(([v]) => v === r)?.[1] ?? r) : r + (fdef.off || 0);
+  stage({ op: kind, pid: p.pid, field: fdef.field, value: raw,
+    label: t("lab.profile", { name: p.name, what: fdef.label, from: shown(fdef.raw), to: shown(raw) }) }, true);
+}
+
+function profileSection(p) {
+  if (p.kind !== "created" && p.kind !== "registry") return null;
+  const sec = el("div", { className: "section" });
+  sec.append(el("div", { className: "section-title", textContent: t("prof.title") }));
+  const grid = el("div", { className: "prof-grid" });
+  for (const fdef of profileFields(p)) {
+    if (fdef.raw === undefined || fdef.raw === null) continue;
+    const pending = stagedValue(p.pid, fdef.field);
+    const cur = (pending ?? fdef.raw);
+    let ctl;
+    if (fdef.options) {
+      ctl = el("select", { className: pending !== undefined ? "changed" : "" });
+      for (const [v, text] of fdef.options) ctl.append(el("option", { value: v, textContent: text, selected: v === cur }));
+      ctl.onchange = () => stageProfile(p, fdef, Number(ctl.value));
+    } else {
+      ctl = el("input", { type: "number", min: fdef.range[0], max: fdef.range[1], value: cur + (fdef.off || 0),
+        className: pending !== undefined ? "changed" : "" });
+      ctl.onchange = () => {
+        const v = Number(ctl.value);
+        if (!(v >= fdef.range[0] && v <= fdef.range[1])) return toast(t("err.range", { a: fdef.range[0], b: fdef.range[1] }), true);
+        stageProfile(p, fdef, v);
+      };
+    }
+    grid.append(el("label", { textContent: fdef.label }), ctl);
+  }
+  sec.append(grid);
+
+  // position ratings on a mini pitch: click cycles C → B → A
+  const level = (code) => {
+    const field = p.kind === "created" ? CREATED_POS[code] : "pos_" + code.toLowerCase();
+    const raw = p.kind === "created" ? p.fields[field] : p.positions?.[code.toLowerCase()];
+    return { field, value: stagedValue(p.pid, field) ?? raw ?? 0, pending: stagedValue(p.pid, field) !== undefined };
+  };
+  const pitch = el("div", { className: "mini-pitch", title: t("prof.pitchTitle") });
+  for (const rowCodes of PITCH_ROWS) {
+    const r = el("div", { className: "mp-row" });
+    for (const code of rowCodes) {
+      const lv = level(code);
+      const b = el("button", { className: `mp-pos lv${lv.value}` + (lv.pending ? " changed" : ""),
+        textContent: posLabel(code), title: `${posLabel(code)}: ${"CBA"[lv.value]}` });
+      b.append(el("i", { textContent: "CBA"[lv.value] }));
+      b.onclick = () => {
+        const next = (lv.value + 1) % 3;
+        stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field: lv.field, value: next,
+          label: t("lab.position", { name: p.name, pos: posLabel(code), from: "CBA"[lv.value], to: "CBA"[next] }) }, true);
+      };
+      r.append(b);
+    }
+    pitch.append(r);
+  }
+  sec.append(el("div", { className: "prof-pitch-wrap" }, pitch));
+  return sec;
 }
 
 // The created character's fields use the Cheat Engine table's names.
@@ -475,6 +603,13 @@ function pickSkill(p) {
     && (p.kind !== "created" || p.skillFields[k]));
   openPicker(t("pick.addSkill", { name: p.name }), missing, ([, label]) => [label, ""],
     ([k, label]) => stage(skillOp(p, k, 1, t("lab.skillOn", { name: p.name, skill: label })), true));
+}
+function pickTactics() {
+  const here = state.squad;
+  openPicker(t("pick.tactics", { club: here.name }), state.clubs.filter((c) => c.block !== state.block && c.manager),
+    (c) => [c.name, c.manager],
+    (c) => stage({ op: "tactics_copy", block: here.block, from: c.block,
+      label: t("lab.tactics", { club: here.name, from: c.name, manager: c.manager }) }));
 }
 function pickManager() {
   const here = state.squad;
@@ -858,6 +993,7 @@ $("#btn-close-pick").onclick = () => $("#dlg-pick").close();
 $("#btn-backups").onclick = openBackups;
 $("#btn-close-backups").onclick = () => $("#dlg-backups").close();
 $("#btn-manager").onclick = pickManager;
+$("#btn-tactics").onclick = pickTactics;
 $("#btn-sync").onclick = () => openSync(false);
 $("#btn-sync-refresh").onclick = () => openSync(true);
 $("#btn-close-sync").onclick = () => $("#dlg-sync").close();

@@ -93,6 +93,16 @@ class Managers:
             lineup.append(slot)
         d[o + self.LINEUP:o + self.LINEUP + 40] = bytes(lineup + [0xFF] * (40 - len(lineup)))
 
+    # the three formation/tactics presets (option-file game plan layout, 0xA0 each)
+    TACTICS = (0x40, 0x220)
+
+    def copy_tactics(self, dst, src):
+        """Give club `dst` the formations and tactics of `src`'s manager, keeping dst's own
+        manager, lineup and roles (E16 showed the presets are what the game plays)."""
+        a, b = self.TACTICS
+        od, os_ = self._o(dst), self._o(src)
+        self.c.d[od + a:od + b] = bytes(self.c.d[os_ + a:os_ + b])
+
     def swap(self, a, b):
         oa, ob = self._o(a), self._o(b)
         ra, rb = bytes(self.c.d[oa + 4:oa + STRIDE]), bytes(self.c.d[ob + 4:ob + STRIDE])

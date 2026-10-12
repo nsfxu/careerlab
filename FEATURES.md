@@ -47,7 +47,7 @@ undecoded · **Later** = needs more research first.
 |---|---|
 | Edit the 25 abilities of any player (game recalculates the overall) | Ready |
 | Edit age, form, weak foot | Ready |
-| Edit skills, playing style, position proficiency | Ready (solved against efootballdb, 285 players) |
+| Edit skills, playing style, position proficiency, registered position, weak foot, form, age | **Done** (2.0; style names verified E23) |
 | Build a new player's profile from scratch (no donor career) | Ready — full block decoded; efootballdb supplies the values |
 
 ## 4. Created character (your BAL player)
@@ -56,7 +56,7 @@ undecoded · **Later** = needs more research first.
 |---|---|
 | Edit all abilities | Ready |
 | Add / remove skills | Ready |
-| Edit height, weight, foot, positions, playing style, nationality | Ready (fields known, 125 in total) |
+| Edit height, weight, foot, positions, playing style, weak foot, form, injury resistance | **Done** (2.0, verified E23) |
 | Condition and contract: form, injury days, stamina, salary, market value | Partial — writes work, BAL has no screen to confirm salary/contract |
 | Move him to another club | Later |
 
@@ -68,6 +68,7 @@ undecoded · **Later** = needs more research first.
 | **Change a manager and bring his tactics** (full swap) | Ready |
 | Change a manager but **keep the club's tactics** (name + ID only) | Ready |
 | Hire a coach without a club (669-coach pool) | Ready |
+| Copy another club's formations and tactics, keeping the manager | **Done** (2.0, verified E23) |
 | Formation editor: pick one of the three presets, positions | Ready |
 | Tactical choices (attacking style, build-up, attacking area, pressuring…) | Ready (verified E18) |
 | Defensive line / compactness sliders | Partial — written, not shown on the screen tested |

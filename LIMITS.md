@@ -165,6 +165,26 @@ the natural source for "hire this manager". [game]
   nationality, picked by player ID (623 Brazilian donors) — three Vasco arrivals, three
   different plausible faces. Database nationality = 9 bits at bit 233 of the dump record. [game]
 
+## Profile, playing styles, copy tactics (E23, 2026-10-12)
+
+- **Created character profile** written in the CT-layout struct and shown exactly on his card:
+  height 181 cm, weight 79 kg, best foot E (left), registered CA with CF = A, style
+  "Artilheiro", weak foot 4/4, form 5, injury resistance 1; rating recomputed (83). [game]
+- **Playing-style numbering differs between the registry and the created struct.**
+  Registry (every player), names read from 22 Cruzeiro cards: 0 none, 1 Artilheiro (Goal Poacher),
+  2 Puxa marcação (Dummy Runner), 3 Homem de área (Fox in the Box), 4 Pivô (Target Man),
+  5 Armador criativo (Creative Playmaker), 6 Ala produtivo (Prolific Winger), 7 Lateral móvel
+  (Roaming Flank), 8 Especialista em cruz. (Cross Specialist), 9 Clássica nº 10, 10 Jog. de
+  infiltração (Hole Player), 11 Meia versátil (Box-to-Box), 12 O destruidor (The Destroyer),
+  13 Orquestrador (Orchestrator), 14 Primeiro volante (Anchor Man), 15 Zagueiro ofensivo
+  (Offensive Full-back), 16 Lateral atacante (Full-back Finisher), 17 Zagueiro defensivo
+  (Defensive Full-back), 18 Provocador (Build Up), 19 Atacante surpresa (Extra Frontman),
+  20 Goleiro ofensivo, 21 Goleiro defensivo. English pairing checked against registered
+  positions over 27k players (e.g. 7 = wingers, 18 = centre-backs). Created struct: the CT
+  table's PES list (1 Goal Poacher … 21 Full-back Finisher), confirmed for 1 and 4. [game]
+- **Copy tactics**: manager record +0x40..+0x220 copied from Crystal Palace into Cruzeiro;
+  Plano de jogo shows 5-3-1-1 under Cruzeiro's own manager (Leonardo Jardim). [game]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -224,4 +244,5 @@ the second copy. Impact in game unknown.
 | E21 | roles = bench players; shirts Kaio 99, Cássio 13 | captain Cássio + shirt 13 shown; other roles auto |
 | E22 | roles = XI players only | no effect except captain → takers are AI-picked |
 | league | Brasileirão synced from the app UI (307 edits) | squads as planned; styles + faces OK after fixes |
+| E23 | Giu profile, 22 registry styles, tactics copy | all shown; style names read for the registry numbering |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

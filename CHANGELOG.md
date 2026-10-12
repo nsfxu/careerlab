@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0 — unreleased
+
+- **Profile editor**: playing style, registered position, position ratings on a mini pitch
+  (click to cycle C/B/A), weak foot, form and age for any player; height, weight, best foot
+  and injury resistance for your own player. Style names exactly as FL26 shows them.
+- **Copy tactics**: give a club another club's formations and tactics, keeping its manager.
+
 ## 1.0.1 — 2026-10-12
 
 - Header: the career and game status no longer wrap onto several lines; the update button
