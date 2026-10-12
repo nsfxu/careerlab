@@ -312,17 +312,6 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
 .prof-grid label { color: #cfccc8; font-size: 12.5px; }
 .prof-grid select, .prof-grid input { width: 100%; padding: 3px 6px; font-size: 12.5px; }
 .prof-grid .changed { border-color: var(--red-glow); background: var(--red-soft); }
-.prof-pitch-wrap { display: flex; justify-content: center; margin-top: 12px; }
-.mini-pitch { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; width: 240px;
-  background: linear-gradient(#1c2a1f, #17221a); border: 1px solid #2c3d30; }
-.mp-row { display: flex; justify-content: space-around; gap: 4px; }
-.mp-pos { position: relative; min-width: 56px; justify-content: center; padding: 3px 6px; font-size: 11px; font-weight: 700;
-  background: #0e1410aa; border: 1px solid #2c3d30; color: var(--dim); }
-.mp-pos i { font-style: normal; font-size: 9.5px; margin-left: 4px; opacity: .8; }
-.mp-pos.lv1 { color: #cfe6c2; border-color: #4f7a45; }
-.mp-pos.lv2 { color: #0f1a10; background: #5fd17a; border-color: #5fd17a; }
-.mp-pos.changed { box-shadow: 0 0 0 2px var(--red-glow); }
-.mp-pos:hover { filter: brightness(1.15); }
 
 /* settings tools */
 .tools-title { margin: 18px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
@@ -349,3 +338,28 @@ ul:focus, ol:focus, .sync-body:focus, .table-wrap:focus, .detail:focus { outline
   #btn-free span, #btn-tactics span, #btn-manager span { display: none; }
   #btn-free, #btn-tactics, #btn-manager { padding: 7px 9px; }
 }
+
+/* position map, drawn like FL26's player card */
+.prof-layout { display: grid; grid-template-columns: minmax(0, 1fr) 112px; gap: 12px; align-items: start; }
+.prof-layout .prof-grid { grid-template-columns: minmax(0, 1fr) 104px; gap: 5px 8px; }
+.prof-layout .prof-grid label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prof-pitch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pitch { width: 112px; height: auto; display: block; }
+.pitch .p-bg { fill: #2a1316; }
+.pitch .zone { cursor: pointer; }
+.pitch .zone .z { fill: transparent; stroke: #ffffff10; stroke-width: .6; transition: fill .12s; }
+.pitch .zone.lv1 .z { fill: #1de9b666; }
+.pitch .zone.lv2 .z { fill: #1de9b6; }
+.pitch .zone:hover .z { stroke: #ffffff60; stroke-width: 1; }
+.pitch .zone.lv0:hover .z { fill: #ffffff10; }
+.pitch .zone.changed .z { stroke: var(--red-glow); stroke-width: 1.4; }
+.pitch .zl { font-size: 7px; font-weight: 700; text-anchor: middle; fill: #ffffffcc; opacity: 0; pointer-events: none;
+  transition: opacity .12s; }
+.pitch .zone.lv2 .zl { fill: #0d2a22; }
+.pitch .zone:hover .zl, .pitch:hover .zone.lv2 .zl, .pitch:hover .zone.lv1 .zl { opacity: 1; }
+.pitch .p-lines * { fill: none; stroke: #9b8f8f; stroke-width: .7; pointer-events: none; }
+.pitch-legend { display: flex; gap: 10px; font-size: 11px; color: var(--muted); }
+.pitch-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.pitch-legend .sw { width: 10px; height: 10px; border-radius: 2px; border: 1px solid #ffffff22; }
+.pitch-legend .sw.a { background: #1de9b6; } .pitch-legend .sw.b { background: #1de9b666; } .pitch-legend .sw.c { background: #2a1316; }
+.prof-top { grid-template-columns: minmax(0, 1fr) 224px; margin-bottom: 8px; }

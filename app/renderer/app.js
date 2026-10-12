@@ -378,8 +378,6 @@ const STYLES_CREATED = [null, "goal_poacher", "dummy_runner", "fox_in_the_box", 
   "orchestrator", "fullback_finisher"];
 const styleName = (key) => key ? STYLE_NAMES[key][LANG === "en" ? 0 : 1] : "–";
 const POS_CODES = ["GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF"];
-// mini pitch, attack at the top
-const PITCH_ROWS = [["LWF", "CF", "RWF"], ["SS"], ["LMF", "AMF", "RMF"], ["CMF"], ["DMF"], ["LB", "CB", "RB"], ["GK"]];
 const CREATED_POS = { GK: "gk_goalkeeper", CB: "cb_center_back", LB: "lb_left_back", RB: "rb_right_back",
   DMF: "dmf_defensive_midfielder", CMF: "cmf_center_midfielder", LMF: "lmf_left_midfielder", RMF: "rmf_right_midfielder",
   AMF: "amf_attacking_midfielder", LWF: "lwf_left_wing_forward", RWF: "rwf_right_wing_forward", SS: "ss_second_striker",
@@ -426,6 +424,7 @@ function profileSection(p) {
   const sec = el("div", { className: "section" });
   sec.append(el("div", { className: "section-title", textContent: t("prof.title") }));
   const grid = el("div", { className: "prof-grid" });
+  const top = el("div", { className: "prof-grid prof-top" });     // the style name needs the full width
   for (const fdef of profileFields(p)) {
     if (fdef.raw === undefined || fdef.raw === null) continue;
     const pending = stagedValue(p.pid, fdef.field);
@@ -444,35 +443,71 @@ function profileSection(p) {
         stageProfile(p, fdef, v);
       };
     }
-    grid.append(el("label", { textContent: fdef.label }), ctl);
+    (fdef.field === "playing_style" ? top : grid).append(el("label", { textContent: fdef.label, title: fdef.label }), ctl);
   }
   sec.append(grid);
 
-  // position ratings on a mini pitch: click cycles C → B → A
+  // position ratings drawn like FL26's player card: a pitch split into zones, A = solid teal,
+  // B = light teal, C = empty; click cycles C → B → A
   const level = (code) => {
     const field = p.kind === "created" ? CREATED_POS[code] : "pos_" + code.toLowerCase();
     const raw = p.kind === "created" ? p.fields[field] : p.positions?.[code.toLowerCase()];
     return { field, value: stagedValue(p.pid, field) ?? raw ?? 0, pending: stagedValue(p.pid, field) !== undefined };
   };
-  const pitch = el("div", { className: "mini-pitch", title: t("prof.pitchTitle") });
-  for (const rowCodes of PITCH_ROWS) {
-    const r = el("div", { className: "mp-row" });
-    for (const code of rowCodes) {
-      const lv = level(code);
-      const b = el("button", { className: `mp-pos lv${lv.value}` + (lv.pending ? " changed" : ""),
-        textContent: posLabel(code), title: `${posLabel(code)}: ${"CBA"[lv.value]}` });
-      b.append(el("i", { textContent: "CBA"[lv.value] }));
-      b.onclick = () => {
-        const next = (lv.value + 1) % 3;
-        stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field: lv.field, value: next,
-          label: t("lab.position", { name: p.name, pos: posLabel(code), from: "CBA"[lv.value], to: "CBA"[next] }) }, true);
-      };
-      r.append(b);
-    }
-    pitch.append(r);
-  }
-  sec.append(el("div", { className: "prof-pitch-wrap" }, pitch));
+  const pitch = positionPitch(level, (code, lv) => {
+    const next = (lv.value + 1) % 3;
+    stage({ op: p.kind === "created" ? "created" : "attr", pid: p.pid, field: lv.field, value: next,
+      label: t("lab.position", { name: p.name, pos: posLabel(code), from: "CBA"[lv.value], to: "CBA"[next] }) }, true);
+  });
+  sec.replaceChildren(sec.firstChild, top, el("div", { className: "prof-layout" }, grid,
+    el("div", { className: "prof-pitch" }, pitch,
+      el("div", { className: "pitch-legend" },
+        el("span", {}, el("i", { className: "sw a" }), "A"), el("span", {}, el("i", { className: "sw b" }), "B"),
+        el("span", {}, el("i", { className: "sw c" }), "C")))));
   return sec;
+}
+
+// Zones of FL26's position map, in a 100 x 125 pitch (attack at the top): [x, y, w, h].
+const PITCH_ZONES = {
+  LWF: [0, 0, 23, 41.9], LMF: [0, 41.9, 23, 41.2], LB: [0, 83.1, 23, 41.9],
+  RWF: [77, 0, 23, 41.9], RMF: [77, 41.9, 23, 41.2], RB: [77, 83.1, 23, 41.9],
+  CF: [23, 0, 54, 17.5], SS: [23, 17.5, 54, 24.4], AMF: [23, 41.9, 54, 14.3], CMF: [23, 56.2, 54, 12.6],
+  DMF: [23, 68.8, 54, 14.3], CB: [23, 83.1, 54, 24.4], GK: [23, 107.5, 54, 17.5],
+};
+
+function positionPitch(level, onClick) {
+  const svg = (tag, attrs = {}) => {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+  };
+  const root = svg("svg", { viewBox: "-1 -1 102 127", class: "pitch" });
+  root.append(svg("rect", { x: 0, y: 0, width: 100, height: 125, class: "p-bg" }));
+  for (const [code, [x, y, w, h]] of Object.entries(PITCH_ZONES)) {
+    const lv = level(code);
+    const g = svg("g", { class: `zone lv${lv.value}` + (lv.pending ? " changed" : "") });
+    g.append(svg("rect", { x: x + 0.6, y: y + 0.6, width: w - 1.2, height: h - 1.2, class: "z" }));
+    const label = svg("text", { x: x + w / 2, y: y + h / 2 + 2.6, class: "zl" });
+    label.textContent = posLabel(code);
+    g.append(label);
+    const tip = svg("title");
+    tip.textContent = `${posLabel(code)}: ${"CBA"[lv.value]}`;
+    g.append(tip);
+    g.addEventListener("click", () => onClick(code, lv));
+    root.append(g);
+  }
+  // markings on top, like the game: halfway line, centre circle, boxes, arcs
+  const lines = svg("g", { class: "p-lines" });
+  lines.append(
+    svg("rect", { x: 0, y: 0, width: 100, height: 125 }),
+    svg("line", { x1: 0, y1: 62.5, x2: 100, y2: 62.5 }),
+    svg("circle", { cx: 50, cy: 62.5, r: 10 }),
+    svg("rect", { x: 23, y: 0, width: 54, height: 17.5 }), svg("rect", { x: 38, y: 0, width: 24, height: 6 }),
+    svg("path", { d: "M 42 17.5 A 9 6 0 0 0 58 17.5" }),
+    svg("rect", { x: 23, y: 107.5, width: 54, height: 17.5 }), svg("rect", { x: 38, y: 119, width: 24, height: 6 }),
+    svg("path", { d: "M 42 107.5 A 9 6 0 0 1 58 107.5" }));
+  root.append(lines);
+  return root;
 }
 
 // The created character's fields use the Cheat Engine table's names.
