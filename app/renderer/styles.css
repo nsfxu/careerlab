@@ -717,3 +717,15 @@ body:not(.clubs-collapsed) .side-tab:not(.on) .i { display: none; }
 .sync-notes li { display: flex; align-items: flex-start; gap: 8px; color: var(--muted); font-size: 12.5px; }
 .sync-notes .i { flex: none; margin-top: 1px; color: var(--dim); }
 .sync-row > .tag { justify-self: start; }
+
+/* national team -> FL26 database squad */
+#dlg-sync.national #sync-source { display: none; }
+.nat-meter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; margin: 6px 0 4px; }
+.nat-meter.ok { color: #7fd38b; background: #12261a; }
+.nat-meter.bad { color: #ff9a9a; background: #2a0d12; }
+.nat-meter .muted { font-weight: 400; font-size: 12px; margin-left: auto; }
+.nat-bar { width: 120px; height: 6px; border-radius: 3px; background: #0006; overflow: hidden; }
+.nat-bar span { display: block; height: 100%; background: currentColor; }
+.sg-age .sg-icon { color: #c792ea; }
+.note .age-db { margin-left: 8px; font-size: 11.5px; }

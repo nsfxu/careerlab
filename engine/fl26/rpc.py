@@ -132,6 +132,9 @@ class Server:
     def free_agents(self, position=None, max_age=None, query=""):
         return self._session().free_agents(position, max_age, query)
 
+    def national_plan(self, block):
+        return self._session().national_plan(block)
+
     def national_teams(self):
         return self._session().national_teams()
 

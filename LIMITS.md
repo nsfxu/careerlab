@@ -215,6 +215,19 @@ In the app (Nations tab): 140 national squads named in slot 1 (team record `+0x4
 marks national teams; IDs are not a range). Call-up/drop applied from the app kept the
 player's club and registry club context (Vinícius Júnior: Real Madrid + Brazil). [file]
 
+FL26 database squad sync (2026-10-15): the option file has a squad for all 142 national
+teams (118 of them 26 players; Brazil's is the September 2026 call-up). 17 drops + 17
+call-ups (several clubless) + renumber on Brazil: the Brazil x Senegal Plano de jogo showed
+the database squad. 102 database-listed players have another first nationality (dual
+nationals, e.g. Elliot Anderson for England): call-ups allow them when the database lists
+them. Retired players' IDs can belong to regens in a late career (Marquinhos 17, Raphinha 16
+in 2030). [game]
+
+Database age = low 6 bits of player-record byte `0x33` + 16 (matched efootballdb for 221 of
+228 players, the rest off by one; Messi 39, Ronaldo 41 = a 2026 database). The career's
+season gap is the most common (career age − database age) across the registry: 4 in slot 1
+(2030). [file]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a

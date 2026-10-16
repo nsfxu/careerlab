@@ -3,6 +3,8 @@
 Dumps come from `SiderAddons/modules/DBDump.lua` (`<name>.raw` files). Layouts:
 
     player.raw            stride 312    +0x08 playerID  +0x44 name (UTF-8)
+                          +0x33 low 6 bits = age - 16 (the database's season; matched
+                          efootballdb's age for 221 of 228 players, the rest off by one)
     team.raw              stride 0x5FC  +0x00 coachID   +0x08 teamID  +0x170 name
                           +0x47 bit 7 = national team; +0x37C Portuguese name (nationals)
     playerassignment.raw  stride 16     +0x04 playerID  +0x08 teamID  +0x0C order<<10|shirt
@@ -33,11 +35,13 @@ class Database:
         pl = config.table_file("player", dump_dir).read_bytes()
         self.player_names = {}
         self.player_nat = {}                  # pid -> nationality (9 bits at bit 233)
+        self.player_age = {}                  # pid -> age in the database's season
         for i in range(len(pl) // 312):
             o = i * 312
             pid = struct.unpack_from("<I", pl, o + 8)[0]
             self.player_names[pid] = _text(pl[o + 0x44:o + 0x44 + 61])
             self.player_nat[pid] = int.from_bytes(pl[o + 29:o + 32], "little") >> 1 & 0x1FF
+            self.player_age[pid] = (pl[o + 0x33] & 0x3F) + 16
         tm = config.table_file("team", dump_dir).read_bytes()
         self.team_names = {}
         self.national = set()                 # national-team IDs (no fixed ID range)

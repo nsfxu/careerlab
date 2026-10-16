@@ -266,3 +266,31 @@ def test_callup_rules(nat_session):
     s.staged = [{"op": "drop", "block": k, "pid": outsider}]
     s._check({"op": "callup", "block": k, "pid": cand})      # room after a drop
     s.staged = []
+
+
+@needs
+def test_callup_of_a_free_agent_applies(nat_session):
+    """A clubless player has no squad entry, so the call-up takes his handle from the record."""
+    s = nat_session
+    br = next(t for t in s.national_teams() if t["name"] == "Brazil")
+    k = br["block"]
+    here = set(s.c.club(k).pids)
+    free = next(r["pid"] for r in s.callup_candidates(k)["players"] if not r["club"] and r["pid"] not in here)
+    out = next(p for p in s.c.club(k).pids if p < 0x80000000)
+    s.staged = [{"op": "drop", "block": k, "pid": out}, {"op": "callup", "block": k, "pid": free}]
+    c = Career.load(s.path)
+    s._apply_ops(c, Registry(c), Managers(c))
+    assert free in c.club(k).pids and out not in c.club(k).pids
+    s.staged = []
+
+
+def test_database_ages_are_plausible():
+    """Database age = low 6 bits of player byte 0x33 + 16 (checked against efootballdb)."""
+    from fl26.database import Database
+    try:
+        db = Database(None, None)
+    except FileNotFoundError:
+        pytest.skip("no FL26 database dump")
+    ages = list(db.player_age.values())
+    assert sum(15 <= a <= 45 for a in ages) > 0.97 * len(ages)
+    assert 22 <= sorted(ages)[len(ages) // 2] <= 30

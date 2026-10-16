@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import collections
 import struct
 import unicodedata
 from pathlib import Path
@@ -16,7 +17,7 @@ from pathlib import Path
 from . import attributes as A, created, efdb, i18n, pesmaster, profiles, safewrite, validate
 from .i18n import tr
 from .career import CREATED_ID_MIN, Career
-from . import progress
+from . import editfile, progress
 from .database import DEFAULT_DUMP, Database, identify_blocks, identify_nationals
 from .editfile import EditFile, load_db_tables
 from .managers import Managers
@@ -79,6 +80,8 @@ class Session:
 
     def reload(self):
         self._check_spares()
+        self.__dict__.pop("_edit_squads", None)          # the option file may have changed
+        self._db_gap = None
         self.c = Career.load(self.path)
         self.reg = Registry(self.c)
         self.mgr = Managers(self.c)
@@ -169,6 +172,89 @@ class Session:
                         "hasMe": any(p >= CREATED_ID_MIN for p in cl.pids)})
         out.sort(key=lambda x: (not x["mine"], x["name"]))
         return out
+
+    def _db_squad(self, tid):
+        """[(pid, shirt)] FL26's own database lists for a team (option file squad table)."""
+        if not hasattr(self, "_edit_squads"):
+            e = self._edit_file()
+            self._edit_squads = editfile.squads(e) if e is not None else {}
+        return self._edit_squads.get(tid, [])
+
+    def db_season_gap(self):
+        """Seasons this career has run past FL26's database: the most common difference
+        between a player's career age and his database age (regens and the odd birthday
+        don't move the most common value). Works offline, unlike the efootballdb gap."""
+        if getattr(self, "_db_gap", None) is None:
+            diffs = collections.Counter()
+            for i in range(1, self.reg.count):
+                pid = self.reg.pid(i)
+                db_age = self.db.player_age.get(pid)
+                if db_age and pid < CREATED_ID_MIN:
+                    diffs[A.get(self.reg.record(i), "age") - db_age] += 1
+            self._db_gap = diffs.most_common(1)[0][0] if diffs else 0
+        return self._db_gap
+
+    def national_plan(self, block):
+        """Bring a national squad to the one FL26's database gives it (the game's patch call-up):
+        call up who is missing, drop who is not listed, shirt numbers. Players the career
+        lacks are listed as skipped. Database squads often have 26 players; the app keeps
+        national squads at 18-23, so the UI ticks call-ups only up to that size."""
+        k = int(block)
+        if k not in self.nationals:
+            raise EditError(tr("err.notNational"))
+        tid, nat = self.nationals[k]
+        rows = self._db_squad(tid)
+        if not rows:
+            raise EditError(tr("err.noEditSquad"))
+        cl = self.c.club(k)
+        here = list(cl.pids)
+        shirts = dict(zip(cl.pids, cl.shirts))
+        clubs = {}
+        for c in self.c.clubs():
+            if self._is_club(c.index):
+                for _, p in c.members:
+                    clubs.setdefault(p, c.index)
+
+        def row(pid):
+            r = self._player_row(pid)
+            ck = clubs.get(pid)
+            return {"pid": pid, "name": r["name"], "position": r.get("position"), "age": r.get("age"),
+                    "rating": round(r.get("rating") or 0), "club": self.club_name(ck) if ck is not None else None,
+                    "clubTeam": self.ids[ck][0] if ck is not None else None}
+
+        plan = {"block": k, "team": self.club_name(k), "teamId": tid, "size": len(here),
+                "min": self.NATIONAL_MIN, "max": self.NATIONAL_MAX,
+                "keep": [], "callup": [], "drop": [], "skipped": [], "numbers": {}, "renumber": []}
+        target = set()
+        for order, (real, shirt) in enumerate(rows):
+            pid = self.career_pid(real)
+            if pid not in self.rec_of:
+                plan["skipped"].append({"pid": real, "name": self.db.player_name(real) or f"#{real}", "why": "absent"})
+                continue
+            target.add(pid)
+            it = {**row(pid), "shirt": shirt, "order": order}
+            if 1 <= (shirt or 0) <= 99:
+                plan["numbers"][str(pid)] = shirt
+            if pid in here:
+                plan["keep"].append(it)
+                if shirts.get(pid) != shirt and 1 <= (shirt or 0) <= 99:
+                    plan["renumber"].append({**it, "from": shirts.get(pid), "to": shirt})
+            else:
+                it["dual"] = self.nationality(pid) != nat
+                plan["callup"].append(it)
+        for pid in here:
+            if pid not in target:
+                plan["drop"].append({**row(pid), "created": pid >= CREATED_ID_MIN})
+        # ages: database age + the seasons this career has run; a year either way is just
+        # birthday timing, so only bigger differences are offered (regens reusing an ID)
+        gap = self.db_season_gap()
+        plan["gap"] = gap
+        plan["ages"] = []
+        for it in plan["keep"] + plan["callup"]:
+            db_age = self.db.player_age.get(it["pid"])
+            if db_age and it.get("age") is not None and abs(db_age + gap - it["age"]) >= 2:
+                plan["ages"].append({**it, "from": it["age"], "to": db_age + gap, "dbAge": db_age})
+        return plan
 
     def nation_team(self, pid):
         """National-team ID of the player's country (its crest is the country's flag)."""
@@ -735,7 +821,8 @@ class Session:
                 raise EditError(tr("err.alreadyCalled"))
             if pid < CREATED_ID_MIN and pid not in self.rec_of:
                 raise EditError(tr("err.noRecord"))
-            if self.nationality(pid) != self.nationals[k][1]:
+            listed = any(self.career_pid(p) == pid for p, _ in self._db_squad(self.nationals[k][0]))
+            if self.nationality(pid) != self.nationals[k][1] and not listed:
                 raise EditError(tr("err.wrongNationality"))
             if len(members) + 1 > self.NATIONAL_MAX:
                 raise EditError(tr("err.nationalMax", n=self.NATIONAL_MAX))
@@ -929,7 +1016,9 @@ class Session:
             elif kind == "drop":                      # national squad: list only
                 self._release(c, mgr, op["block"], op["pid"])
             elif kind == "callup":                    # national squad: list only, club untouched
-                self._add(c, mgr, op["block"], op["pid"], None, c.handle_of(op["pid"]))
+                pid = op["pid"]                       # a free agent has no squad entry: use his record
+                h = c.handle_of(pid) or (reg.handle(rec_of[pid]) if pid in rec_of else None)
+                self._add(c, mgr, op["block"], pid, None, h)
             elif kind == "_out":
                 self._release(c, mgr, op["from"], op["pid"])
             elif kind in ("add", "move", "_in"):

@@ -78,7 +78,8 @@ as FL26 has them.
 
 **National teams.** The *Nations* tab lists every national squad in the career, your
 country first. *Call up* brings in any player of that nationality (he stays at his club) and
-*Drop from squad* removes one — your own player too. The game picks a new squad before every
+*Drop from squad* removes one — your own player too. *FL26 squad* brings the call-up to the
+one in FL26's own database (your patch's squad). The game picks a new squad before every
 international window, so these edits last until its next call-up: make them once the squad
 is announced.
 

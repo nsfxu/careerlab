@@ -567,6 +567,7 @@ function renderSquad() {
   // national team: only call-ups; the game re-picks the squad before every international window
   $(".squad").classList.toggle("national", !!s.national);
   $("#btn-callup").hidden = !s.national;
+  $("#btn-natsync").hidden = !s.national;
   if (s.national) meta.append(el("span", { className: "nat-note", title: t("nat.noteLong") }, icon("globe"), t("nat.note")));
   const body = $("#squad-body");
   body.innerHTML = "";
@@ -1416,6 +1417,7 @@ let syncPlan = null;
 let syncSource = "efdb";
 async function openSync(refresh = false, source = syncSource) {
   syncSource = source;
+  $("#dlg-sync").classList.remove("national");
   for (const b of document.querySelectorAll("#sync-source button")) b.classList.toggle("on", b.dataset.src === source);
   const body = $("#sync-body");
   body.replaceChildren(el("p", { className: "muted", textContent: t("sync.fetching") }));
@@ -1498,7 +1500,116 @@ async function openSync(refresh = false, source = syncSource) {
   body.append(notes);
 }
 
+// National team -> FL26 database squad (the patch's call-up). Reuses the sync window.
+let natPlan = null;
+async function openNatSync() {
+  syncPlan = null;
+  const body = $("#sync-body");
+  $("#dlg-sync").classList.add("national");
+  $("#sync-title").textContent = t("nat.syncDialog", { team: state.squad.name });
+  $("#sync-note").textContent = t("nat.syncNote");
+  $("#btn-sync-refresh").hidden = true;
+  body.replaceChildren(el("p", { className: "muted", textContent: t("loading") }));
+  if (!$("#dlg-sync").open) $("#dlg-sync").showModal();
+  natPlan = await guarded(() => call("national_plan", { block: state.block }));
+  if (!natPlan) return body.replaceChildren();
+  const P = natPlan;
+  body.replaceChildren();
+  const meter = el("div", { className: "nat-meter" });
+  body.append(meter);
+  const boxes = [];
+  const group = (cls, ic, title, note, items, render, checkedFor) => {
+    if (!items.length) return;
+    const all = el("input", { type: "checkbox", title: t("sync.selectAll") });
+    const g = el("div", { className: "sync-group " + cls });
+    g.append(el("h3", {}, el("span", { className: "sg-icon" }, icon(ic)), el("span", { className: "sg-title", textContent: title }),
+      el("span", { className: "rv-gcount", textContent: items.length }), el("span", { className: "sg-note", textContent: note }),
+      el("label", { className: "sg-all" }, all, t("sync.all"))));
+    const mine = [];
+    items.forEach((it, i) => {
+      const cb = el("input", { type: "checkbox", checked: checkedFor(it, i) });
+      it._cb = cb;
+      mine.push(cb);
+      boxes.push(cb);
+      cb.onchange = update;
+      const right = render(it);
+      g.append(el("label", { className: "sync-row" }, cb, it.position ? badge(it.position) : el("span"),
+        personCell(it.pid, it.name + (it.age ? `, ${it.age}` : "")), right));
+    });
+    all.checked = mine.every((b) => b.checked);
+    all.onchange = () => { mine.forEach((b) => { b.checked = all.checked; }); update(); };
+    body.append(g);
+  };
+  const clubNote = (it) => el("span", { className: "note from" }, gameImg("flag", it.clubTeam, "crest-xs"),
+    it.club || t("nat.noClub"), ...(it.dual ? [el("span", { className: "tag absent", textContent: t("nat.dual") })] : []));
+  // call-ups in the database's order, ticked while the squad stays within the limit
+  const room = () => P.max - (P.size - P.drop.filter((d) => !d.created).length);
+  group("sg-add", "user-plus", t("nat.syncCallup"), t("nat.syncCallupNote"), P.callup, clubNote, (it, i) => i < room());
+  // drops: everyone not listed, except your own player (unticked: you decide)
+  group("sg-out", "user-minus", t("nat.syncDrop"), t("nat.syncDropNote"), P.drop,
+    (it) => it.created ? el("span", { className: "tag me", textContent: t("nat.yourPlayer") }) : clubNote(it), (it) => !it.created);
+  group("sg-age", "user", t("nat.syncAges"), t("nat.syncAgesNote", { gap: P.gap }), P.ages,
+    (it) => el("span", { className: "note" }, el("span", { className: "rv-from", textContent: it.from }),
+      el("span", { className: "rv-arrow", textContent: "→" }), el("span", { className: "rv-to", textContent: it.to }),
+      el("span", { className: "muted age-db", textContent: t("nat.dbAge", { n: it.dbAge }) })), () => true);
+  group("sg-num", "shirt", t("sync.numbers"), t("sync.numbersNote"), P.renumber,
+    (it) => el("span", { className: "note" }, el("span", { className: "rv-from", textContent: it.from ?? "–" }),
+      el("span", { className: "rv-arrow", textContent: "→" }), el("span", { className: "rv-to", textContent: it.to })), () => true);
+  if (P.skipped.length)
+    body.append(el("ul", { className: "sync-notes" }, el("li", {}, icon("alert"),
+      t("nat.syncSkipped", { n: P.skipped.length, names: P.skipped.map((x) => x.name).join(", ") }))));
+  body.append(el("ul", { className: "sync-notes" }, el("li", {}, icon("globe"), t("nat.noteLong"))));
+  function update() {
+    const size = P.size - P.drop.filter((d) => d._cb.checked).length + P.callup.filter((c) => c._cb.checked).length;
+    const ok = size >= P.min && size <= P.max;
+    meter.className = "nat-meter " + (ok ? "ok" : "bad");
+    meter.replaceChildren(icon(ok ? "check" : "alert"), t("nat.sizeAfter", { n: size, min: P.min, max: P.max }),
+      el("span", { className: "nat-bar" }, el("span", { style: `width:${Math.min(100, size / P.max * 100)}%` })),
+      el("span", { className: "muted", textContent: t("nat.syncSummary", { keep: P.keep.length, db: P.keep.length + P.callup.length + P.skipped.length }) }));
+    $("#btn-sync-stage").disabled = !ok;
+  }
+  update();
+}
+
+async function stageNatSync() {
+  const P = natPlan, team = state.squad.name;
+  if (!P) return;
+  const src = t("nat.syncSource", { team });
+  const ops = [];
+  // each edit is checked on its own, so alternate drops and call-ups: the squad stays
+  // within 18-23 at every step, not only at the end
+  const drops = P.drop.filter((it) => it._cb.checked), calls = P.callup.filter((it) => it._cb.checked);
+  let size = P.size;
+  while (drops.length || calls.length) {
+    const canDrop = drops.length && size - 1 >= P.min, canCall = calls.length && size + 1 <= P.max;
+    if (canDrop && (!canCall || size >= P.max || ops.length % 2 === 0)) {
+      const it = drops.shift(); size--;
+      ops.push({ op: "drop", pid: it.pid, block: P.block, label: t("lab.drop", { name: it.name, team }) });
+    } else if (canCall) {
+      const it = calls.shift(); size++;
+      ops.push({ op: "callup", pid: it.pid, block: P.block, label: t("lab.callup", { name: it.name, team }) });
+    } else break;
+  }
+  // database shirt numbers for whoever ends up in the squad (unticked number changes excluded)
+  if (P.renumber.some((it) => it._cb.checked) || P.callup.some((it) => it._cb.checked)) {
+    const numbers = { ...P.numbers };
+    for (const it of P.renumber) if (!it._cb.checked) delete numbers[it.pid];
+    ops.push({ op: "renumber", block: P.block, numbers, label: t("lab.numbers", { club: team }) });
+  }
+  // ages, for players who end up in the squad
+  const inSquad = new Set([...P.keep.map((x) => x.pid), ...P.callup.filter((x) => x._cb.checked).map((x) => x.pid)]);
+  for (const it of P.ages || []) if (it._cb.checked && inSquad.has(it.pid))
+    ops.push({ op: "attr", pid: it.pid, field: "age", value: it.to,
+      label: t("lab.ability", { name: it.name, ability: t("prof.age"), from: it.from, to: it.to }),
+      group: { type: "source", name: src } });
+  $("#dlg-sync").close();
+  const before = state.staged.length;
+  for (const op of ops) await stage({ ...op, source: src });
+  toast(t("sync.staged", { n: state.staged.length - before }));
+}
+
 async function stageSync() {
+  if ($("#dlg-sync").classList.contains("national")) return stageNatSync();
   const p = syncPlan;
   if (!p) return;
   const team = state.squad.name;
@@ -1849,6 +1960,7 @@ $("#btn-manager").onclick = pickManager;
 $("#btn-tactics").onclick = pickTactics;
 $("#btn-free").onclick = () => openFree("sign");
 $("#btn-callup").onclick = () => openFree("callup");
+$("#btn-natsync").onclick = openNatSync;
 for (const th of document.querySelectorAll("#squad-head th")) th.onclick = () => clickSort(th.dataset.sort);
 $("#btn-close-free").onclick = () => $("#dlg-free").close();
 $("#free-pos").onchange = loadFree;

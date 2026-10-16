@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.5.0 — 2026-10-15
+
+- **National teams: sync with the FL26 database** (*FL26 squad* button): brings a national
+  squad to the one in FL26's own database (your patch's call-up): call-ups in the database's
+  order, drops, shirt numbers. A meter shows the squad size after the sync (18–23); database
+  squads of 26 get their first 23 ticked; dual nationals listed by the database are allowed;
+  your own player stays unless you tick him. Verified in game: the friendly's game plan used
+  the synced squad.
+- The FL26 squad sync can also fix **ages**: database age + the seasons the career has run
+  (worked out from the save itself), offered where they differ by 2+ years — mostly regens
+  that reuse a retired player's ID (Marquinhos 17 → 36, Messi 17 → 43 in a 2030 career).
+- Fixed: calling up a player without a club failed when applying ("has no handle in this
+  career").
+
 ## 2.4.0 — 2026-10-12
 
 - **Review window redone**: a summary of the staged edits by kind (transfers, player edits,
