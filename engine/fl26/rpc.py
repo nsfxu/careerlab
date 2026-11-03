@@ -12,9 +12,11 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import config, i18n, images, safewrite
+from . import config, i18n, images, migrate, safewrite
 from .i18n import tr
+from .crypto import Save, UnknownKey, stamp_version
 from .database import DEFAULT_DUMP, Database
+from .games import FL26, GAMES
 from .session import Session
 
 
@@ -56,17 +58,23 @@ class Server:
     def setup_status(self):
         return config.status()
 
+    def set_game(self, game):
+        """Switch between FL26 and FL27: closes the career, the database follows."""
+        config.set_game(game)
+        self.db = self.s = None
+        return config.status()
+
     def set_game_dir(self, path):
         config.set_game_dir(path)
         self.db = None
         return config.status()
 
     def set_save_dir(self, path):
-        if not Path(path).is_dir():
-            raise RuntimeError(tr("err.noFolder"))
-        cfg = config.load()
-        cfg["saveDir"] = str(Path(path))
-        config.save(cfg)
+        config.set_save_dir(path)
+        return config.status()
+
+    def set_key_file(self, path):
+        config.set_key_file(path)
         return config.status()
 
     def install_dump_module(self):
@@ -77,18 +85,53 @@ class Server:
         return {"running": safewrite.game_running()}
 
     def list_saves(self, save_dir=None):
+        config.register_keys()
         d = Path(save_dir or config.save_dir())
         out = []
         for p in sorted(d.glob("BL*")):
             if p.is_file():
                 out.append({"path": str(p), "slot": p.name, "size": p.stat().st_size,
-                            "modified": int(p.stat().st_mtime)})
+                            "modified": int(p.stat().st_mtime), **self._describe(p)})
         return {"dir": str(d), "saves": out}
 
+    @staticmethod
+    def _describe(p):
+        """player / club / date from the save's own description; locked = key missing."""
+        try:
+            info = Save.peek(p)
+        except UnknownKey:
+            return {"locked": True}
+        except (OSError, ValueError):
+            return {}
+        lines = info["lines"] + ["", "", ""]
+        return {"player": lines[0], "club": lines[1].split(" / ")[0], "date": lines[2],
+                "game": getattr(next((g for g in GAMES.values() if g.header == info["game"]), None), "id", None),
+                "version": stamp_version(info["stamp"])}
+
     def open_save(self, path):
-        self.s = Session(path, self._db(Path(path).parent))
+        config.register_keys()
+        try:
+            self.s = Session(path, self._db(Path(path).parent))
+        except UnknownKey:
+            raise RuntimeError(tr("err.unknownKey"))
         images.warm_up()
         return self.s.summary()
+
+    # FL26 -> FL27 (migrate.py)
+
+    def upgrade_sources(self, folder=None):
+        """FL26 careers to offer: its configured or default saves folder, or `folder`."""
+        d = Path(folder) if folder else config.save_dir(FL26)
+        return {"dir": str(d), "saves": [
+            {"path": str(p), "slot": p.name, "modified": int(p.stat().st_mtime), **self._describe(p)}
+            for p, _ in migrate.careers(d, FL26)]}
+
+    def upgrade_save(self, path):
+        if config.game() is FL26:
+            raise RuntimeError(tr("err.upgradeNotFl27"))
+        config.register_keys()
+        dest = migrate.upgrade(path, config.save_dir())
+        return {"path": str(dest), "slot": dest.name}
 
     def summary(self):
         return self._session().summary()

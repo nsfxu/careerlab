@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.6.0 — 2026-11-02
+
+- **Football Life 2027 support.** Settings has a *Game* switch (FL 2026 | FL 2027); each game
+  keeps its own game folder, saves folder, image cache and borrowed player IDs, and the top
+  bar shows which one is open. FL27 keeps its saves in `Documents\SPGAME\Football Life\2027\save`
+  and encrypts them with its own key: CareerLab finds SmokePatch's `FL_key.bin` (Downloads,
+  the game folder…) or asks for it in Settings. The key is never shipped with CareerLab.
+  A CareerLab set up for FL26 stays on FL26 while FL26 is installed.
+- **Bring a career from FL2026** (career menu, FL27 only): copies an FL26 Become a Legend
+  career into a free FL27 slot, so it loads in FL27 (nsfxu/careerlab#1). The FL26 save is only
+  read and no FL27 slot is overwritten. It needs one career FL27 saved itself in that folder.
+  Verified in game on a 2030 career.
+- The career menu shows each save's player, club and in-game date, and a badge with the
+  game and data version that wrote it (*FL27 27.1.0*); a save from the other game is
+  marked in amber.
+- Saves are listed even before setup is finished (opening one still needs the database).
+- Settings has a close button.
+- Fixed: the database reader could not write its files in a game folder without
+  `SiderAddons\dbdump` (Sider's Lua can't create folders); CareerLab now creates it.
+- Writes are refused while either game is running.
+
 ## 2.5.0 — 2026-10-15
 
 - **National teams: sync with the FL26 database** (*FL26 squad* button): brings a national

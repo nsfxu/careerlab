@@ -27,6 +27,13 @@ S = {
         "err.gameRunningSave": "the game is running; it holds the save in memory and would overwrite the edits. Close it first",
         "err.notVerified": "{name} did not verify after writing; the backup was restored",
         "err.noExe": "{exe} is not in that folder",
+        "err.badKey": "that file is not the {game} save key (it must be 64 bytes and open your saves)",
+        "err.unknownKey": "this save needs its game's save key: set it in Settings",
+        "err.upgradeNotBl": "that file is not a Football Life 2026 Become a Legend save",
+        "err.upgradeNoWrapper": "no Football Life 2027 career found in its saves folder: start a Become a Legend "
+                                "career in FL27 and save it once (CareerLab borrows its file envelope)",
+        "err.upgradeNoSlot": "every Become a Legend slot is in use: free one first",
+        "err.upgradeNotFl27": "switch CareerLab to Football Life 2027 first (Settings)",
         "err.noSpare": "no spare database player left",
         "err.noMate": "the destination squad has no usable teammate record",
         "skip.twoClubs": "{name}: listed by {a} and {b}",
@@ -80,6 +87,13 @@ S = {
         "err.gameRunningSave": "o jogo está aberto; ele guarda o save na memória e sobrescreveria as alterações. Feche-o primeiro",
         "err.notVerified": "{name} não conferiu depois de gravar; o backup foi restaurado",
         "err.noExe": "o {exe} não está nessa pasta",
+        "err.badKey": "esse arquivo não é a chave de save do {game} (precisa ter 64 bytes e abrir os seus saves)",
+        "err.unknownKey": "este save precisa da chave de save do jogo: escolha-a nas Configurações",
+        "err.upgradeNotBl": "esse arquivo não é um save do Rumo ao Estrelato do Football Life 2026",
+        "err.upgradeNoWrapper": "nenhuma carreira do Football Life 2027 na pasta de saves: comece uma carreira do "
+                                "Rumo ao Estrelato no FL27 e salve uma vez (o CareerLab usa o envelope desse arquivo)",
+        "err.upgradeNoSlot": "todos os slots do Rumo ao Estrelato estão ocupados: libere um antes",
+        "err.upgradeNotFl27": "mude o CareerLab para o Football Life 2027 antes (Configurações)",
         "err.noSpare": "não há mais jogadores reserva no banco de dados",
         "err.noMate": "o elenco de destino não tem um registro de colega utilizável",
         "skip.twoClubs": "{name}: listado por {a} e {b}",
@@ -124,9 +138,13 @@ def set_lang(lang):
     return LANG
 
 
+# Text is written for FL26; "FL26" in it shows the game being edited (config.game sets it).
+GAME = "FL26"
+
+
 def tr(key, **kw):
     s = S[LANG].get(key, S["en"][key])
-    return s.format(**kw)
+    return s.format(**kw).replace("FL26", GAME)
 
 
 def count(op_kind, n):

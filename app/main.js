@@ -60,6 +60,10 @@ ipcMain.handle("pick-folder", async (e, title) => {
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title, properties: ["openDirectory"] });
   return r.canceled ? null : r.filePaths[0];
 });
+ipcMain.handle("pick-file", async (e, title, defaultPath) => {
+  const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title, defaultPath, properties: ["openFile"] });
+  return r.canceled ? null : r.filePaths[0];
+});
 ipcMain.handle("version", () => app.getVersion());
 ipcMain.handle("pick-save", async (e, title, name) => {
   const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender),

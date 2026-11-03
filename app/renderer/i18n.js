@@ -134,16 +134,27 @@ const STRINGS = {
     "setup.title": "Settings", "set.general": "General", "set.gameSaves": "Game and saves", "set.about": "About",
     "set.found": "Found", "set.missing": "Missing", "set.action": "Action needed", "set.change": "Change…",
     "set.openFolder": "Open this folder", "set.done": "Done", "update.idleLong": "Updates are checked at start and every 6 hours",
-    "setup.note": "CareerLab needs your Football Life 2026 folder (for the player database) and your saves folder.",
-    "setup.language": "Language", "setup.game": "Game folder", "setup.gameNotFound": "Not found: choose the folder that has FL_2026.exe",
+    "setup.note": "CareerLab needs your game folder (for the player database) and your saves folder.",
+    "setup.language": "Language", "setup.game": "Game folder", "setup.gameNotFound": "Not found: choose the folder that has {exe}",
+    "set.gameVersion": "Game", "set.gameVersionNote": "The Football Life CareerLab edits",
+    "set.notInstalled": "Not found on this PC", "set.switchStaged": "Switching games discards the {n} staged edits. Continue?",
+    "setup.key": "Save key", "setup.pickKey": "FL26 save key ({name})",
+    "setup.keyMissing": "Not found: FL26 encrypts saves with its own key. Download {name} from SmokePatch (Customizations and Mods page) and choose it here.",
+    "save.locked": "needs the save key (Settings)",
+    "save.version": "Saved by {game}, data version {v}",
+    "up.menu": "Bring a career from FL2026…", "up.title": "Bring a career from FL2026",
+    "up.note": "The career is copied into a free FL2027 slot. Your FL2026 save is only read, and no FL2027 slot is overwritten.",
+    "up.foot": "Needs one career that FL2027 saved itself in its saves folder: CareerLab borrows that file's envelope, which FL2027 checks. Then load the new slot in game and look around before saving.",
+    "up.otherFile": "Other file…", "up.pick": "FL2026 career save (BL0000000x)", "up.none": "No FL2026 careers in this folder.",
+    "up.go": "Bring to FL2027", "up.done": "Career brought into {slot}",
     "setup.db": "Player database", "setup.dbNeedsGame": "Needs the game folder first.",
     "setup.dbFound": "Read from the game through Sider (names, clubs, assignments).",
     "setup.dbNoSider": "Sider is not installed in this game folder, so the database cannot be read.",
-    "setup.dbInstalled": "Reader installed. Start FL2026 once, wait for the main menu, close it, then press Check again.",
+    "setup.dbInstalled": "Reader installed. Start FL26 once, wait for the main menu, close it, then press Check again.",
     "setup.dbMissing": "Not found yet. Install the reader (a read-only Sider module), then start the game once.",
     "setup.installReader": "Install database reader", "setup.saves": "Saves folder", "setup.notFound": " (not found)",
     "setup.choose": "Choose…", "setup.check": "Check again", "setup.continue": "Continue",
-    "setup.pickGame": "Football Life 2026 folder (with FL_2026.exe)", "setup.pickSaves": "Become a Legend saves folder",
+    "setup.pickGame": "{name} folder (with {exe})", "setup.pickSaves": "Become a Legend saves folder",
     "setup.readerInstalled": "Database reader installed: start the game once",
 
     "tools.title": "Tools", "tools.export": "Export squads to CSV", "tools.exportNote": "Opens in Excel or Google Sheets.",
@@ -309,16 +320,27 @@ const STRINGS = {
     "setup.title": "Configurações", "set.general": "Geral", "set.gameSaves": "Jogo e saves", "set.about": "Sobre",
     "set.found": "Encontrado", "set.missing": "Faltando", "set.action": "Ação necessária", "set.change": "Alterar…",
     "set.openFolder": "Abrir esta pasta", "set.done": "Concluído", "update.idleLong": "Atualizações são verificadas ao abrir e a cada 6 horas",
-    "setup.note": "O CareerLab precisa da pasta do Football Life 2026 (para o banco de jogadores) e da pasta dos seus saves.",
-    "setup.language": "Idioma", "setup.game": "Pasta do jogo", "setup.gameNotFound": "Não encontrada: escolha a pasta que tem o FL_2026.exe",
+    "setup.note": "O CareerLab precisa da pasta do jogo (para o banco de jogadores) e da pasta dos seus saves.",
+    "setup.language": "Idioma", "setup.game": "Pasta do jogo", "setup.gameNotFound": "Não encontrada: escolha a pasta que tem o {exe}",
+    "set.gameVersion": "Jogo", "set.gameVersionNote": "O Football Life que o CareerLab edita",
+    "set.notInstalled": "Não encontrado neste PC", "set.switchStaged": "Trocar de jogo descarta as {n} alterações na fila. Continuar?",
+    "setup.key": "Chave dos saves", "setup.pickKey": "Chave dos saves do FL26 ({name})",
+    "setup.keyMissing": "Não encontrada: o FL26 criptografa os saves com uma chave própria. Baixe o {name} no site da SmokePatch (página Customizations and Mods) e escolha o arquivo aqui.",
+    "save.locked": "precisa da chave dos saves (Configurações)",
+    "save.version": "Salvo pelo {game}, versão dos dados {v}",
+    "up.menu": "Trazer uma carreira do FL2026…", "up.title": "Trazer uma carreira do FL2026",
+    "up.note": "A carreira é copiada para um slot livre do FL2027. O seu save do FL2026 só é lido, e nenhum slot do FL2027 é sobrescrito.",
+    "up.foot": "Precisa de uma carreira que o próprio FL2027 salvou na pasta de saves: o CareerLab usa o envelope desse arquivo, que o FL2027 confere. Depois carregue o slot novo no jogo e dê uma olhada antes de salvar.",
+    "up.otherFile": "Outro arquivo…", "up.pick": "Save de carreira do FL2026 (BL0000000x)", "up.none": "Nenhuma carreira do FL2026 nesta pasta.",
+    "up.go": "Trazer para o FL2027", "up.done": "Carreira trazida para o {slot}",
     "setup.db": "Banco de jogadores", "setup.dbNeedsGame": "Precisa da pasta do jogo primeiro.",
     "setup.dbFound": "Lido do jogo através do Sider (nomes, clubes, elencos).",
     "setup.dbNoSider": "O Sider não está instalado nesta pasta do jogo, então o banco não pode ser lido.",
-    "setup.dbInstalled": "Leitor instalado. Abra o FL2026 uma vez, espere o menu principal, feche e clique em Verificar de novo.",
+    "setup.dbInstalled": "Leitor instalado. Abra o FL26 uma vez, espere o menu principal, feche e clique em Verificar de novo.",
     "setup.dbMissing": "Ainda não encontrado. Instale o leitor (um módulo do Sider que só lê) e abra o jogo uma vez.",
     "setup.installReader": "Instalar leitor do banco", "setup.saves": "Pasta dos saves", "setup.notFound": " (não encontrada)",
     "setup.choose": "Escolher…", "setup.check": "Verificar de novo", "setup.continue": "Continuar",
-    "setup.pickGame": "Pasta do Football Life 2026 (com o FL_2026.exe)", "setup.pickSaves": "Pasta dos saves do Rumo ao Estrelato",
+    "setup.pickGame": "Pasta do {name} (com o {exe})", "setup.pickSaves": "Pasta dos saves do Rumo ao Estrelato",
     "setup.readerInstalled": "Leitor do banco instalado: abra o jogo uma vez",
 
     "tools.title": "Ferramentas", "tools.export": "Exportar elencos em CSV", "tools.exportNote": "Abre no Excel ou no Google Planilhas.",
@@ -363,9 +385,18 @@ let LANG = (() => {
   return (navigator.language || "").toLowerCase().startsWith("pt") ? "pt" : "en";
 })();
 
+// Text is written for FL26; "FL26" in it shows the game being edited (setGame, from settings).
+let GAME = "FL26";
+
 function t(key, vars = {}) {
   const s = STRINGS[LANG][key] ?? STRINGS.en[key] ?? key;
-  return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)).replaceAll("FL26", GAME);
+}
+
+function setGame(short) {
+  if (short === GAME) return;
+  GAME = short;
+  applyStatic();
 }
 
 function applyStatic(root = document) {

@@ -228,6 +228,25 @@ Database age = low 6 bits of player-record byte `0x33` + 16 (matched efootballdb
 season gap is the most common (career age − database age) across the registry: 4 in slot 1
 (2030). [file]
 
+## Football Life 2027 (E25, 2026-11-02)
+
+FL27 (version 27.1.0) is the FL26 exe with new data tables: same size, 622 code bytes
+differ, DBDump/Sider addresses unchanged. Its career data has FL26's layout: the engine
+reads an FL27 career (731 club blocks, the created player) as it is. [file]
+
+- Saves moved to `Documents\SPGAME\Football Life\2027\save` (from the exe's strings). [game]
+- New save key (SmokePatch's `FL_key.bin`); the FileHeader starts with it, shuffled, and
+  says `SP Football Life 2027`. [file]
+- **FL26 career → FL27** (the user's 2030 Real Madrid career, slot tests in the Carregar list):
+  re-keyed with FL26's own encryption header: "dados corrompidos"; FL27 career with FL26's
+  header bytes 80–143: OK (not checked); FL27 envelope (encryption header, FileHeader) with
+  FL26 data: lists; with FL26 description and thumbnail too: lists as the FL26 career;
+  loading it: "os dados são de uma versão diferente" until the payload's stamp
+  (`[12:24]`, 260203,200,200) became FL27's 270100,100,100; then it **loads and plays**, and
+  FL27 saves over it normally. [game]
+- `migrate.upgrade` builds exactly that, borrowing the envelope of the newest FL27-made career
+  in the folder; it can't make one from scratch (the header check is not understood). [file]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -289,4 +308,5 @@ the second copy. Impact in game unknown.
 | league | Brasileirão synced from the app UI (307 edits) | squads as planned; styles + faces OK after fixes |
 | E23 | Giu profile, 22 registry styles, tactics copy | all shown; style names read for the registry numbering |
 | E24 | Brazil call-up: 2 out, 2 Cruzeiro players in | shown in game; replaced at the next call-up; an edit after the call-up is used in the friendly |
+| E25 | FL26 2030 career into FL27: FL27 envelope + FL27 stamp | **loads in FL27**; FL26's own encryption header or stamp is refused |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

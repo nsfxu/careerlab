@@ -149,13 +149,29 @@ function renderCareerChip() {
   $("#career-sub").textContent = [me?.club, cur && slotName(cur)].filter(Boolean).join("  ·  ");
   $("#career-chip").title = [me && `${me.name} · ${me.age} · ${me.club || ""}`, cur && t("save.option", { n: slotName(cur), d: savedAt(cur) })]
     .filter(Boolean).join("\n");
-  $("#career-chip").disabled = !saves.length;
+  const canUpgrade = state.setup?.game === "fl27";
+  $("#career-chip").disabled = !saves.length && !canUpgrade;
+  $("#btn-upgrade-open").hidden = !canUpgrade;
   const ul = $("#save-list");
   ul.replaceChildren(...saves.map((s) => {
-    const li = el("li", { className: s.path === state.save ? "on" : "", title: s.path },
+    const head = [slotName(s), s.player].filter(Boolean).join("  ·  ");
+    const sub = s.locked ? t("save.locked") : [s.club, s.date].filter(Boolean).join("  ·  ") || t("save.saved", { d: savedAt(s) });
+    // which game wrote it, and the version stamped in its data (27.1.0): flags a save from
+    // the other game or an older patch
+    const g = (state.setup?.games || []).find((x) => x.id === s.game);
+    const ver = g ? el("span", { className: "save-ver" + (s.game !== state.setup?.game ? " other" : ""),
+      textContent: [g.short, s.version].filter(Boolean).join(" "),
+      title: t("save.version", { game: g.name, v: s.version || "?" }) }) : null;
+    const li = el("li", { className: s.locked ? "locked" : s.path === state.save ? "on" : "",
+      title: `${s.path}\n${t("save.saved", { d: savedAt(s) })}` },
       icon(s.path === state.save ? "check" : "save"),
-      el("span", {}, el("b", { textContent: slotName(s) }), el("span", { className: "muted", textContent: t("save.saved", { d: savedAt(s) }) })));
-    li.onclick = () => { closeSaveMenu(); if (s.path !== state.save) openSave(s.path); };
+      el("span", {}, el("b", { textContent: head }), el("span", { className: "muted", textContent: sub })), ver || "");
+    li.onclick = () => {
+      if (s.locked) return;
+      closeSaveMenu();
+      if (!setupReady(state.setup)) openSetup();          // e.g. no database dump yet
+      else if (s.path !== state.save) openSave(s.path);
+    };
     return li;
   }));
 }
@@ -1722,6 +1738,8 @@ async function stageLeague() {
 
 // ------------------------------------------------------------------ first-run setup
 
+const setupReady = (st) => !!(st && st.gameDir && st.dumpOk && st.saveDirOk && st.keyOk);
+
 async function refreshSetup() {
   const st = await guarded(() => call("setup_status"));
   if (!st) return null;
@@ -1738,7 +1756,15 @@ async function refreshSetup() {
     box.title = value || "";
     box.classList.toggle("set-path", !!value);
   };
-  path("#setup-game", st.gameDir, t("setup.gameNotFound"));
+  setGame(st.games.find((g) => g.id === st.game)?.short || "FL26");
+  $("#brand-game").textContent = st.games.find((g) => g.id === st.game)?.short || "";
+  $("#game-pick").replaceChildren(...st.games.map((g) => {
+    const b = el("button", { className: (g.id === st.game ? "on" : "") + (g.installed ? "" : " absent"),
+      textContent: g.name.replace("Football Life", "FL"), title: g.installed ? g.name : `${g.name}: ${t("set.notInstalled")}` });
+    b.onclick = () => switchGame(g.id);
+    return b;
+  }));
+  path("#setup-game", st.gameDir, t("setup.gameNotFound", { exe: st.exe }));
   step("#step-game", "#pill-game", st.gameDir ? "ok" : "bad");
   $("#btn-open-game").hidden = !st.gameDir;
   let db;
@@ -1750,12 +1776,15 @@ async function refreshSetup() {
   $("#setup-db").textContent = db;
   step("#step-db", "#pill-db", st.dumpOk ? "ok" : st.gameDir && st.siderInstalled ? "warn" : "bad");
   $("#btn-setup-module").hidden = st.dumpOk || !st.siderInstalled || st.moduleInstalled;
+  $("#step-key").hidden = !st.keyNeeded;
+  path("#setup-key", st.keyFile, t("setup.keyMissing", { name: st.keyName }));
+  step("#step-key", "#pill-key", st.keyOk ? "ok" : "bad");
   path("#setup-saves", st.saveDir, "");
   step("#step-saves", "#pill-saves", st.saveDirOk ? "ok" : "bad");
   $("#btn-open-saves").hidden = !st.saveDirOk;
   state.setup = st;
   // first run (something missing): explain, offer Check again; afterwards a plain Done
-  const ready = !!(st.gameDir && st.dumpOk && st.saveDirOk);
+  const ready = setupReady(st);
   $("#btn-setup-done").disabled = !ready;
   $("#setup-note").hidden = ready;
   $("#btn-setup-check").hidden = ready;
@@ -1838,8 +1867,58 @@ async function chooseFolder(method, title) {
 
 async function startup() {
   const st = await refreshSetup();
-  if (st && st.gameDir && st.dumpOk && st.saveDirOk) return loadSaves();
+  if (setupReady(st)) return loadSaves();
+  // list the saves anyway (opening one needs the database, listing doesn't)
+  if (st?.saveDirOk && st.keyOk) await guarded(loadSaveOptions);
   openSetup();
+}
+
+// FL26 <-> FL27: the engine closes the career; a reload starts the app over on the new game.
+async function switchGame(id) {
+  if (id === state.setup?.game) return;
+  if (state.staged.length && !confirm(t("set.switchStaged", { n: state.staged.length }))) return;
+  if (await guarded(() => call("set_game", { game: id }))) location.reload();   // startup opens settings if not ready
+}
+
+async function chooseKey() {
+  const f = await window.cl.pickFile(t("setup.pickKey", { name: state.setup?.keyName }));
+  if (!f) return;
+  await guarded(() => call("set_key_file", { path: f }));
+  const st = await refreshSetup();
+  if (setupReady(st)) await loadSaveOptions();
+}
+
+// ------------------------------------------------------------------ FL2026 -> FL2027
+
+async function openUpgrade(folder) {
+  closeSaveMenu();
+  const r = await guarded(() => call("upgrade_sources", folder ? { folder } : {}));
+  if (!r) return;
+  $("#up-dir").replaceChildren(el("bdi", { textContent: r.dir }));
+  $("#up-dir").title = r.dir;
+  const ul = $("#up-list");
+  ul.replaceChildren();
+  if (!r.saves.length) ul.append(el("li", { className: "empty", textContent: t("up.none") }));
+  for (const s of r.saves) {
+    const go = el("button", { className: "primary small" }, icon("sync"), t("up.go"));
+    go.onclick = () => upgradeSave(s.path, go);
+    ul.append(el("li", { title: `${s.path}\n${t("save.saved", { d: savedAt(s) })}` }, icon("save"),
+      el("div", {}, el("b", { textContent: [s.player, s.club].filter(Boolean).join("  ·  ") || slotName(s) }),
+        el("div", { className: "muted up-sub", textContent: [slotName(s), s.date, t("save.saved", { d: savedAt(s) })].filter(Boolean).join("  ·  ") })),
+      go));
+  }
+  if (!$("#dlg-upgrade").open) $("#dlg-upgrade").showModal();
+}
+
+async function upgradeSave(path, btn) {
+  if (btn) btn.disabled = true;
+  const r = await guarded(() => call("upgrade_save", { path }));
+  if (btn) btn.disabled = false;
+  if (!r) return;
+  $("#dlg-upgrade").close();
+  await loadSaveOptions();
+  if (setupReady(state.setup)) await openSave(r.path);
+  toast(t("up.done", { slot: slotName(r) }));
 }
 
 // ------------------------------------------------------------------ updates
@@ -1980,13 +2059,21 @@ $("#btn-setup").onclick = openSetup;
 $("#btn-export-club").onclick = () => exportCsv(false);
 $("#btn-export-all").onclick = () => exportCsv(true);
 $("#btn-dedupe").onclick = repairDupes;
-$("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", t("setup.pickGame"));
+$("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", t("setup.pickGame", { name: state.setup?.gameName, exe: state.setup?.exe }));
+$("#btn-setup-key").onclick = chooseKey;
+$("#btn-upgrade-open").onclick = (e) => { e.stopPropagation(); openUpgrade(); };
+$("#btn-close-upgrade").onclick = () => $("#dlg-upgrade").close();
+$("#btn-up-file").onclick = async () => {
+  const f = await window.cl.pickFile(t("up.pick"), $("#up-dir").title || undefined);
+  if (f) upgradeSave(f);
+};
 $("#btn-setup-saves").onclick = () => chooseFolder("set_save_dir", t("setup.pickSaves"));
 $("#btn-setup-module").onclick = () => guarded(async () => { await call("install_dump_module"); await refreshSetup(); toast(t("setup.readerInstalled")); });
 $("#btn-setup-check").onclick = refreshSetup;
 $("#btn-open-game").onclick = () => state.setup?.gameDir && window.cl.reveal(state.setup.gameDir);
 $("#btn-open-saves").onclick = () => state.setup?.saveDir && window.cl.reveal(state.setup.saveDir);
 $("#btn-setup-done").onclick = () => { $("#dlg-setup").close(); loadSaves(); };
+$("#btn-setup-close").onclick = () => $("#dlg-setup").close();   // always a way out, even mid-setup
 $("#dlg-setup").addEventListener("cancel", (e) => { if ($("#btn-setup-done").disabled) e.preventDefault(); });
 for (const b of document.querySelectorAll(".flag")) b.onclick = () => switchLanguage(b.dataset.lang);
 $("#btn-update").onclick = installUpdate;

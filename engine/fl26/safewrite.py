@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .crypto import Save
+from .games import GAMES
 from .i18n import tr
 
 
@@ -21,9 +22,11 @@ class WriteRefused(RuntimeError):
 
 
 def game_running():
-    out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq FL_2026.exe", "/NH"],
-                         capture_output=True, text=True).stdout
-    return "FL_2026.exe" in out
+    """Any Football Life running: refusing for both games is simpler than knowing which
+    one holds a given save."""
+    out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq FL_20*", "/NH"],
+                         capture_output=True, text=True).stdout.lower()
+    return any(g.exe.lower() in out for g in GAMES.values())
 
 
 def backup_dir(save_path):

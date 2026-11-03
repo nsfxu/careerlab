@@ -1,20 +1,23 @@
 # CareerLab: notes for AI contributors
 
-CareerLab edits a **Football Life 2026 (PES 2021 engine) Become a Legend career that is
-already in progress**: squads, transfers, ratings, the user's own player, managers, real-world
+CareerLab edits a **Football Life 2026 or 2027 (PES 2021 engine) Become a Legend career that
+is already in progress**: squads, transfers, ratings, the user's own player, managers, real-world
 squad sync from efootballdb.com. Windows only. Electron UI + Python engine.
 
 ## Golden rules (do not break)
 
 1. **Never write a save while the game runs.** The game holds the career in memory and
    overwrites the file. Every write goes through `engine/fl26/safewrite.py`, which refuses
-   while `FL_2026.exe` is running, backs up first, and verifies by re-decrypting.
-2. **Every save edit is backed up** into `...\2026\backup\<slot>\<timestamp>-<label>` (the
+   while `FL_2026.exe` or `FL_2027.exe` is running, backs up first, and verifies by
+   re-decrypting. (`migrate.upgrade` writes only into a free slot, with the same checks.)
+2. **Every save edit is backed up** into `...\2026|2027\backup\<slot>\<timestamp>-<label>` (the
    `backup` folder beside the game's `save` folder), with a `.json` description beside it.
    Do not add another write path.
-3. **The user's real career is `BL00000001` (slot 2). Never touch it.** Slot 1
-   (`BL00000000`) is the test career. Before loading anything in game, confirm slot 1 on
-   screen (`Carregar` list); "Continuar" loads the most recent save, which may be the user's.
+3. **FL26: the user's real career is `BL00000001` (slot 2). Never touch it.** Slot 1
+   (`BL00000000`) is the test career. **FL27: both `BL00000000` (Remo) and `BL00000001`
+   (the career brought from FL26) are the user's; there is no FL27 test career yet.** Test
+   UI against a sandbox (`CAREERLAB_HOME` pointing at a config with a temp `saveDir`).
+   Before loading anything in game, confirm the slot on screen (`Carregar` list); "Continuar" loads the most recent save, which may be the user's.
 4. **Staged edits, one apply.** The UI stages edits; `Session.apply()` replays them on a
    fresh load, refuses if the validator finds a *new* problem, then writes. Keep it that way.
 5. **The created character (ID ≥ 0x80000000) is never moved by squad tools**, and keeps his
@@ -31,7 +34,7 @@ squad sync from efootballdb.com. Windows only. Electron UI + Python engine.
 
 | Path | What |
 |---|---|
-| `engine/fl26/` | Save-format engine and the JSON-lines RPC server the app talks to |
+| `engine/fl26/` | Save-format engine and the JSON-lines RPC server the app talks to (the name predates FL27; `games.py` has the per-game differences, `migrate.py` the FL26 → FL27 upgrade) |
 | `engine/tests/test_engine.py` | Offline tests (`python -m pytest -q` in `engine/`); some need the test saves in `testdata/` |
 | `app/` | Electron shell: `main.js` (spawns the engine), `preload.js`, `renderer/` (plain JS, no build step) |
 | `harness/` | Drives the game and the app for verification: `game.py`, `ui.py` (CDP), `winshot.py` |

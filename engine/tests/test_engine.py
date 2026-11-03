@@ -2,6 +2,7 @@
 
 Run:  python -m pytest -q   (from CareerLab/engine)
 """
+import os
 import sys
 from pathlib import Path
 
@@ -294,3 +295,84 @@ def test_database_ages_are_plausible():
     ages = list(db.player_age.values())
     assert sum(15 <= a <= 45 for a in ages) > 0.97 * len(ages)
     assert 22 <= sorted(ages)[len(ages) // 2] <= 30
+
+
+# ------------------------------------------------------------------ FL27 and the upgrade
+
+FL27_BL0 = TESTDATA / "fl27-BL00000000"           # an FL27-made career (the upgrade's wrapper)
+FL27_KEY = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "FL_key.bin"   # never in the repo
+needs27 = pytest.mark.skipif(not (FL27_BL0.exists() and FL27_KEY.exists() and USER_BL1.exists()),
+                             reason="FL27 save or key not present")
+
+
+@pytest.fixture(scope="module")
+def fl27_key():
+    from fl26 import crypto
+    key = FL27_KEY.read_bytes()
+    crypto.add_key(key)
+    return key
+
+
+@needs
+def test_peek_reads_the_description_without_the_payload():
+    info = Save.peek(USER_BL1)
+    assert info["kind"] == "BL" and info["game"] == "SP Football Life 2026"
+    assert info["title"].endswith("02") and len(info["lines"]) == 3
+    from fl26.crypto import stamp_version
+    assert info["stamp"] == (260203, 200, 200) and stamp_version(info["stamp"]) == "26.2.3"
+
+
+@needs27
+def test_fl27_save_opens_with_its_key_and_round_trips(fl27_key):
+    from fl26.crypto import MASTER_KEY_PES21, UnknownKey
+    raw = FL27_BL0.read_bytes()
+    with pytest.raises(UnknownKey):
+        Save.decrypt(raw, MASTER_KEY_PES21)
+    s = Save.decrypt(raw)
+    assert s.master == fl27_key and s.game == "SP Football Life 2027"
+    assert s.encrypt() == raw
+
+
+@needs27
+def test_upgrade_wraps_fl26_career_in_fl27_envelope(fl27_key, tmp_path):
+    import shutil
+    from fl26 import migrate
+    shutil.copy(FL27_BL0, tmp_path / "BL00000000")
+    shutil.copy(USER_BL1, tmp_path / "src")
+    dest = migrate.upgrade(tmp_path / "src", tmp_path)
+    assert dest.name == "BL00000001"                       # first free slot, nothing overwritten
+    src, wrap, new = Save.load(tmp_path / "src"), Save.load(FL27_BL0), Save.load(dest)
+    assert new.master == fl27_key and new.game == wrap.game and new.enc_header == wrap.enc_header
+    assert new.data[12:24] == wrap.data[12:24] != src.data[12:24]    # FL27's version stamp
+    assert new.data[:12] + new.data[24:] == src.data[:12] + src.data[24:]
+    assert new.logo == src.logo and Save.peek(dest)["lines"] == Save.peek(tmp_path / "src")["lines"]
+    assert Career(new, dest).clubs()                        # the engine reads it as a career
+
+
+def test_retitle_follows_the_slot():
+    from fl26.migrate import retitle
+    desc = b"Rumo ao Estrelato 02".ljust(128, b"\0") + b"Giu\nClub\n1/1/2030".ljust(256, b"\0")
+    out = retitle(desc, Path("BL00000004"))
+    assert out[:128].rstrip(b"\0") == b"Rumo ao Estrelato 05" and out[128:] == desc[128:]
+
+
+def test_upgrade_refuses_without_an_fl27_career(tmp_path):
+    from fl26 import migrate
+    with pytest.raises(ValueError):
+        migrate.wrapper(tmp_path)
+
+
+def test_legacy_config_moves_into_the_fl26_block(tmp_path, monkeypatch):
+    import json
+    from fl26 import config
+    monkeypatch.setattr(config, "CONFIG", tmp_path / "config.json")
+    monkeypatch.setattr(config, "_game", None)
+    (tmp_path / "config.json").write_text(json.dumps({"gameDir": "E:\\FL2026", "lang": "pt"}))
+    cfg = config.load()
+    assert cfg["games"]["fl26"] == {"gameDir": "E:\\FL2026"} and "gameDir" not in cfg
+    both = lambda g=None: Path("X:/game")
+    monkeypatch.setattr(config, "detect_game_dir", both)
+    assert config.game().id == "fl26"                        # set up before FL27: stays on FL26
+    monkeypatch.setattr(config, "_game", None)
+    monkeypatch.setattr(config, "detect_game_dir", lambda g=None: Path("X:/g") if g.id == "fl27" else None)
+    assert config.game().id == "fl27"                        # ...until FL26 is uninstalled

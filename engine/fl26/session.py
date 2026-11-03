@@ -14,7 +14,7 @@ import struct
 import unicodedata
 from pathlib import Path
 
-from . import attributes as A, created, efdb, i18n, pesmaster, profiles, safewrite, validate
+from . import attributes as A, config, created, efdb, i18n, pesmaster, profiles, safewrite, validate
 from .i18n import tr
 from .career import CREATED_ID_MIN, Career
 from . import editfile, progress
@@ -28,22 +28,23 @@ CLUB_CONTEXT = [(0x28, 0x74), (0x80, 0x84)]      # competitions, current club
 # Cheat Engine table names that differ from the registry's skill names
 CREATED_SKILL_ALIASES = {"dipping_shot": "dipping_shots"}
 
-SPARES = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "spares.json"
+def spares_file():
+    return config.data_dir() / "spares.json"
 FACE_DONOR = 169270          # fallback face (young Brazilian) when no same-nationality donor
 
 
 def load_spares():
-    """{real eFootball ID: spare FL26 ID} for players FL26 lacks. Install-wide, because the
-    option file that renames the spare is install-wide."""
+    """{real eFootball ID: spare FL26 ID} for players FL26 lacks. Install-wide (per game), because
+    the option file that renames the spare is install-wide."""
     try:
-        return {int(k): v for k, v in json.loads(SPARES.read_text(encoding="utf-8")).items()}
+        return {int(k): v for k, v in json.loads(spares_file().read_text(encoding="utf-8")).items()}
     except (OSError, ValueError):
         return {}
 
 
 def save_spares(m):
-    SPARES.parent.mkdir(parents=True, exist_ok=True)
-    SPARES.write_text(json.dumps({str(k): v for k, v in m.items()}, indent=1), encoding="utf-8")
+    spares_file().parent.mkdir(parents=True, exist_ok=True)
+    spares_file().write_text(json.dumps({str(k): v for k, v in m.items()}, indent=1), encoding="utf-8")
 
 
 class EditError(RuntimeError):

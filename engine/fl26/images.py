@@ -21,7 +21,9 @@ from pathlib import Path
 
 from . import config, cpk
 
-CACHE = Path(os.environ.get("LOCALAPPDATA", ".")) / "CareerLab" / "images"
+def cache():
+    """Per game: FL26 and FL27 portraits differ under the same IDs."""
+    return config.data_dir() / "images"
 KINDS = {
     "player": ("common/render/symbol/player", lambda i: f"{int(i)}.dds"),
     "flag": ("common/render/symbol/flag", lambda i: f"e_{int(i):06d}_r.png"),
@@ -104,7 +106,7 @@ def path_for(kind, ident):
     game has no such image."""
     if kind not in KINDS:
         raise ValueError(f"unknown image kind {kind}")
-    out = CACHE / kind / f"{int(ident)}.png"
+    out = cache() / kind / f"{int(ident)}.png"
     if out.exists():
         return out
     d, name_of = KINDS[kind]

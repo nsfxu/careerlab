@@ -48,7 +48,7 @@
   <!-- Custom title bar (the window is frameless): the bar itself drags the window,
        every control in it opts out with -webkit-app-region: no-drag. -->
   <header class="topbar">
-    <div class="brand"><img src="../res/icon.png" alt="" class="brand-logo"><span>Career<b>Lab</b></span></div>
+    <div class="brand"><img src="../res/icon.png" alt="" class="brand-logo"><span>Career<b>Lab</b></span><span id="brand-game" class="brand-game"></span></div>
     <div class="career">
       <button id="career-chip" class="career-chip" data-i18n-title="top.saveTitle">
         <span id="career-crest" class="career-crest"></span>
@@ -61,6 +61,7 @@
       <div id="save-menu" class="save-menu" hidden>
         <div class="menu-title" data-i18n="top.saves"></div>
         <ul id="save-list"></ul>
+        <button id="btn-upgrade-open" class="menu-action" hidden><svg class="i"><use href="#i-sync"/></svg><span data-i18n="up.menu"></span></button>
       </div>
     </div>
     <div class="spacer"></div>
@@ -223,8 +224,19 @@
     <div class="dialog-actions"><button id="btn-close-backups" class="ghost" data-i18n="close"></button></div>
   </dialog>
 
+  <dialog id="dlg-upgrade" class="dialog upgrade">
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sync"/></svg><span data-i18n="up.title"></span></h2>
+    <p class="muted" data-i18n="up.note"></p>
+    <div class="up-from"><svg class="i"><use href="#i-folder"/></svg><span id="up-dir" class="muted set-path"></span>
+      <button id="btn-up-file" class="ghost small" data-i18n="up.otherFile"></button></div>
+    <ul id="up-list" class="up-list"></ul>
+    <p class="muted up-foot" data-i18n="up.foot"></p>
+    <div class="dialog-actions"><button id="btn-close-upgrade" class="ghost" data-i18n="close"></button></div>
+  </dialog>
+
   <dialog id="dlg-setup" class="dialog settings">
-    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sliders"/></svg><span data-i18n="setup.title"></span></h2>
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-sliders"/></svg><span data-i18n="setup.title"></span>
+      <button id="btn-setup-close" class="ghost icon-only dlg-x" data-i18n-title="close"><svg class="i"><use href="#i-x"/></svg></button></h2>
     <p id="setup-note" class="muted setup-note" data-i18n="setup.note"></p>
 
     <h3 class="set-title" data-i18n="set.general"></h3>
@@ -244,6 +256,11 @@
     </div>
 
     <h3 class="set-title" data-i18n="set.gameSaves"></h3>
+    <div class="set-row">
+      <svg class="i set-icon"><use href="#i-trophy"/></svg>
+      <div class="set-text"><b data-i18n="set.gameVersion"></b><div class="muted" data-i18n="set.gameVersionNote"></div></div>
+      <div id="game-pick" class="seg"></div>
+    </div>
     <div class="set-row" id="step-game">
       <svg class="i set-icon"><use href="#i-gamepad"/></svg>
       <div class="set-text"><b><span data-i18n="setup.game"></span><span id="pill-game" class="set-pill"></span></b>
@@ -252,6 +269,12 @@
         <button id="btn-open-game" class="ghost icon-only small" data-i18n-title="set.openFolder"><svg class="i"><use href="#i-folder"/></svg></button>
         <button id="btn-setup-game" class="ghost small" data-i18n="set.change"></button>
       </span>
+    </div>
+    <div class="set-row" id="step-key" hidden>
+      <svg class="i set-icon"><use href="#i-shield"/></svg>
+      <div class="set-text"><b><span data-i18n="setup.key"></span><span id="pill-key" class="set-pill"></span></b>
+        <div class="muted" id="setup-key"></div></div>
+      <span class="set-actions"><button id="btn-setup-key" class="ghost small" data-i18n="set.change"></button></span>
     </div>
     <div class="set-row" id="step-db">
       <svg class="i set-icon"><use href="#i-database"/></svg>

@@ -1,6 +1,6 @@
 # CareerLab
 
-**Edit a Football Life 2026 *Become a Legend* career that is already in progress**: bring
+**Edit a Football Life 2026 or 2027 *Become a Legend* career that is already in progress**: bring
 squads up to date with the real world, move and release players, create players the game
 doesn't have, edit ratings and skills, change managers, and never lose a career doing it.
 
@@ -19,6 +19,8 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
   weak foot, form, age, shirt number, captaincy; move or release him.
 - **Edit your own player**: also height, weight, best foot and injury resistance.
 - **Change a club's manager**, with or without his tactics, or **copy another club's tactics**.
+- **Bring an FL2026 career into FL2027**: pick it from the career menu; it lands in a free FL27
+  slot and your FL26 save is left as it was.
 - **Tools**: export squads to CSV; repair the duplicate entries the game creates at season end.
 - **Portuguese or English**, switched with the flags in Settings; updates itself from GitHub Releases.
 - **The game's own images**: player portraits, club crests and manager photos, read from your
@@ -31,13 +33,16 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
 1. Download `CareerLab-Setup-<version>.exe` from [Releases](https://github.com/nsfxu/careerlab/releases/latest) and run it
    (per-user install, no admin). Windows SmartScreen may warn because the installer is not
    signed: *More info → Run anyway*.
-2. On first start CareerLab looks for your FL2026 folder (the one with `FL_2026.exe`) and your
-   saves folder, and asks if it can't find them.
+2. On first start CareerLab looks for your game folder (`FL_2026.exe` or `FL_2027.exe`) and your
+   saves folder, and asks if it can't find them. Switch games in Settings > *Game*.
+   **FL2027** encrypts its saves with its own key: download `FL_key.bin` from SmokePatch's
+   *Customizations and Mods* page. CareerLab finds it in Downloads or the game folder, or you
+   choose it in Settings > *Save key*.
 3. CareerLab reads FL26's player database through a small read-only Sider module
    (`DBDump.lua`). If it isn't there yet, the setup screen installs it; then start the game
    once, wait for the main menu, close it, and press *Check again*.
 
-Requirements: Windows 10/11, Football Life 2026 with Sider (it ships with the Smoke Patch).
+Requirements: Windows 10/11, Football Life 2026 or 2027 with Sider (it ships with the Smoke Patch).
 CareerLab updates itself: when a new version is out it downloads in the background and offers
 *Restart to update*.
 

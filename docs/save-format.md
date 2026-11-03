@@ -1,14 +1,29 @@
 # The career save (Become a Legend)
 
 Summary for working on the engine. Evidence and the full experiment log: [LIMITS.md](../LIMITS.md).
-Saves live in `Documents\KONAMI\eFootball PES 2021 SEASON UPDATE\2026\save\` (`BL0000000n`
-= BAL slot n+1, `EDIT00000000` = option file, shared by every career).
+Saves live in `Documents\KONAMI\eFootball PES 2021 SEASON UPDATE\2026\save\` (FL26) or
+`Documents\SPGAME\Football Life\2027\save\` (FL27) (`BL0000000n` = BAL slot n+1,
+`EDIT00000000` = option file, shared by every career). Same layout in both games (E25);
+`games.py` holds what differs.
 
 ## Encryption
 
-pesXdecrypter scheme (PES 2021 master key), ported to pure Python in `crypto.py`. Always check
-`Save.verify_roundtrip` style equality after writing (safewrite does: it re-decrypts the
-written file and compares the payload).
+pesXdecrypter scheme, ported to pure Python in `crypto.py`. FL26 uses the PES 2021 master
+key; FL27 its own (SmokePatch's `FL_key.bin`, found by `config.find_key`, never in the repo).
+The decrypted FileHeader starts with the master key (each 8-byte group reversed), so
+`Save.decrypt` tries the known keys and remembers which one opened the file; `encrypt` reuses
+it. FileHeader `[144:]` is the file type (`BL`, `EDIT`, `SYSTEM`), `[176:]` the game
+(`SP Football Life 2027`); bytes 80–143 vary per save and are not checked. The BL description
+is the slot title at 0 (`Rumo ao Estrelato 02`) and `player\nclub / league\ndate` at 128
+(`Save.peek` reads it without the payload). Every payload starts with a version stamp at
+`[12:24]`: 260203,200,200 (FL26), 270100,100,100 (FL27).
+
+Always check `Save.verify_roundtrip` style equality after writing (safewrite does: it
+re-decrypts the written file and compares the payload).
+
+FL26 → FL27 (`migrate.py`): FL27 rejects FL26's 320-byte encryption header even re-keyed, so
+the career goes inside the encryption header + FileHeader of a career FL27 wrote, with the
+FL27 stamp. Details in LIMITS.md (E25).
 
 ## The model in one paragraph
 

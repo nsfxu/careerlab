@@ -74,6 +74,9 @@ button.icon-only { padding: 7px 9px; }
   background: linear-gradient(90deg, #2b070d 0%, #4a0b16 100%); box-shadow: inset -2px 0 0 var(--red); }
 .brand b { color: var(--red-glow); font-weight: 700; }
 .brand-logo { width: 24px; height: 24px; filter: drop-shadow(0 1px 3px #0008); }
+.brand-game { font-size: 10.5px; font-weight: 700; letter-spacing: .5px; padding: 1px 6px; border-radius: 4px;
+  color: var(--text); background: #ffffff14; }
+.brand-game:empty { display: none; }
 
 /* career switcher: crest, player, club + slot; opens the save menu */
 .career { position: relative; flex: 0 1 auto; min-width: 0; }
@@ -87,16 +90,25 @@ button.icon-only { padding: 7px 9px; }
 .career-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 .career-chip .chev { color: var(--dim); width: 14px; height: 14px; transition: transform .15s; }
 .career-chip.open .chev { transform: rotate(180deg); }
-.save-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; min-width: 250px; padding: 6px;
+.save-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; min-width: 330px; padding: 6px;
   background: var(--panel-2); border: 1px solid var(--panel-3); border-radius: 8px; box-shadow: 0 12px 30px #000a; }
 .menu-title { padding: 4px 8px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
 .save-menu ul { list-style: none; margin: 0; padding: 0; }
 .save-menu li { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
 .save-menu li > span { display: flex; flex-direction: column; line-height: 1.25; }
-.save-menu li .muted { font-size: 11.5px; }
+.save-menu li .muted { font-size: 11.5px; white-space: nowrap; }
 .save-menu li:hover { background: var(--panel-3); }
 .save-menu li .i { color: var(--dim); }
 .save-menu li.on .i { color: var(--red-glow); }
+.save-menu li.locked { opacity: .55; cursor: default; }
+.save-menu li .save-ver { margin-left: auto; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .3px; white-space: nowrap; color: var(--muted); background: #ffffff10; }
+.save-menu li .save-ver.other { color: #f2b247; background: #2a2210; }
+.menu-action { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 6px; padding: 8px;
+  border: 0; border-top: 1px solid var(--panel-3); border-radius: 0 0 6px 6px; background: transparent; color: var(--muted);
+  font-size: 12.5px; text-align: left; }
+.menu-action:hover { background: var(--panel-3); color: var(--text); }
+.menu-action .i { color: var(--red-glow); }
 
 .spacer { flex: 1 1 0; min-width: 4px; align-self: stretch; }
 /* game status: a quiet icon when closed, a red label while the game runs (saving blocked) */
@@ -241,6 +253,9 @@ details.abil-group[open] > summary .i { transform: rotate(90deg); }
 .dialog::backdrop { background: #000b; }
 .dialog h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 6px; font-size: 18px; }
 .dialog h2 .i { color: var(--red-glow); width: 19px; height: 19px; }
+.dialog h2 .dlg-x { margin-left: auto; }
+.dialog h2 .dlg-x .i { color: var(--muted); width: 17px; height: 17px; }
+.dialog h2 .dlg-x:hover .i { color: var(--text); }
 .dialog > p.muted { margin-top: 0; font-size: 13px; }
 .dialog-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 16px; }
 .dialog-actions .left { margin-right: auto; }
@@ -633,6 +648,25 @@ body:not(.clubs-collapsed) .side-tab:not(.on) .i { display: none; }
 .set-pill.bad { color: #ff8a8a; background: #3a1018; }
 .set-pill.warn { color: #f2b247; background: #2a2210; }
 .dialog.settings .flags .flag { height: 30px; }
+/* game switch: FL 2026 | FL 2027 */
+.seg { display: flex; padding: 2px; border: 1px solid var(--line); border-radius: 7px; background: #0003; }
+.seg button { height: 26px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 600; }
+.seg button:hover { color: var(--text); }
+.seg button.on { background: var(--red-soft); color: var(--text); box-shadow: inset 0 0 0 1px var(--red-glow); }
+.seg button.absent { opacity: .5; }
+
+/* bring an FL2026 career */
+.dialog.upgrade { width: min(620px, 94vw); }
+.up-from { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.up-from .i { width: 15px; height: 15px; color: var(--dim); }
+.up-list { list-style: none; padding: 0; margin: 6px 0 0; max-height: 360px; overflow: auto; }
+.up-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; background: #ffffff03; }
+.up-list li.empty { display: block; color: var(--muted); }
+.up-list li > .i { color: var(--dim); }
+.up-list .up-sub { font-size: 12px; margin-top: 2px; }
+.up-foot { font-size: 12px; margin-top: 10px; }
 
 /* review window */
 .dialog.review { width: min(720px, 94vw); }

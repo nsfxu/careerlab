@@ -1,8 +1,8 @@
 {
   "name": "careerlab",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
-  "description": "CareerLab - editor for Football Life 2026 Become a Legend careers in progress",
+  "description": "CareerLab - editor for Football Life 2026 and 2027 Become a Legend careers in progress",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
