@@ -116,6 +116,7 @@ KEYS = {
     "pgup": (0x49, True), "pgdn": (0x51, True), "home": (0x47, True), "end": (0x4F, True),
     "shift": (0x2A, False), "ctrl": (0x1D, False), "alt": (0x38, False),
     **{f"f{i}": (0x3A + i, False) for i in range(1, 11)},
+    "f11": (0x57, False), "f12": (0x58, False),
     **{c: (s, False) for c, s in zip("1234567890", range(0x02, 0x0C))},
     **{c: (s, False) for c, s in zip("qwertyuiop", range(0x10, 0x1A))},
     **{c: (s, False) for c, s in zip("asdfghjkl", range(0x1E, 0x27))},
