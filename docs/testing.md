@@ -8,8 +8,10 @@ Three levels. A save-format change is only "done" after the third.
 cd engine && python -m pytest -q
 ```
 
-Some tests read the golden saves in `testdata/` (not in git: `BL00000000.golden`,
-`EDIT00000000.golden`) and skip when they are missing. Add a test for every bug fixed,
+Some tests read game data in `testdata/` (not in git): the golden saves (`BL00000000.golden`,
+`EDIT00000000.golden`), three archived saves (`clean-BL00000000`, `damaged-BL00000000`,
+`user-BL00000001`) and an FL26 database dump (`dbdump/`). They skip when it is missing; a
+copy of all of it is in `D:\FL-modding`. Add a test for every bug fixed,
 especially silent ones (e.g. `test_no_field_name_collisions`: a duplicate dict key once
 overwrote the Heading ability).
 

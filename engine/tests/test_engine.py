@@ -233,7 +233,7 @@ def nat_session():
     from fl26.database import Database
     from fl26.session import Session
     try:
-        db = Database(None, None)
+        db = Database(TESTDATA / "dbdump", None)
     except FileNotFoundError:
         pytest.skip("no FL26 database dump")
     return Session(CLEAN_BL0, db)
@@ -288,7 +288,7 @@ def test_database_ages_are_plausible():
     """Database age = low 6 bits of player byte 0x33 + 16 (checked against efootballdb)."""
     from fl26.database import Database
     try:
-        db = Database(None, None)
+        db = Database(TESTDATA / "dbdump", None)
     except FileNotFoundError:
         pytest.skip("no FL26 database dump")
     ages = list(db.player_age.values())
