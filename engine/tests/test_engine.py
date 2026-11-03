@@ -15,10 +15,10 @@ from fl26.crypto import Save
 from fl26.managers import Managers
 from fl26.registry import Registry
 
-ARCHIVE = Path(r"E:\FL2026\_archive")
-CLEAN_BL0 = ARCHIVE / "write-backups/BL00000000/20261011-152821-E03-resolve"   # pre-E03 clean
-DAMAGED_BL0 = ARCHIVE / "old-FLCareerEditor/backups/BL00000000/20261001-124359-damaged-by-the-August-swap-sync----384-d"
-USER_BL1 = ARCHIVE / "PARKED-user-career/BL00000001"
+TESTDATA = Path(__file__).resolve().parents[2] / "testdata"          # not in git (game saves)
+CLEAN_BL0 = TESTDATA / "clean-BL00000000"         # test career before E03 (was _archive/write-backups)
+DAMAGED_BL0 = TESTDATA / "damaged-BL00000000"     # 384 duplicates from the old app's August sync
+USER_BL1 = TESTDATA / "user-BL00000001"           # the user's career, parked copy (read only)
 
 needs = pytest.mark.skipif(not CLEAN_BL0.exists(), reason="archived saves not present")
 
