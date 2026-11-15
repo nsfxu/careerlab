@@ -260,7 +260,25 @@ FL26 keeps them all:
   nationality, age, positions, style and face (La Louvière, Nottingham Forest: Luca Netz,
   Willy Boly). Slot 3 loads. Matches with them not played yet. [game]
 - The 60 clubs FL27 lacks show with no name and no crest (FCV Dender, Leicester City) but
-  keep their squads. Not fixed. [game]
+  keep their squads. [game]
+
+**Clubs (E27, 2026-11-15).** Each club record is 0x690 bytes from 0x50 (the squad list
+the engine always used sits at +0x14C) and starts with the key `teamID << 14 | block`.
+Every reference to a club in the save uses that exact key: 112 for FCV Dender (block 326),
+its 28 players' registry club fields included. Plain team IDs also appear in team lists
+(competition entries). [file]
+
+- Putting the clubs back into FL27's database (Sider livecpk Team.bin = FL27's 745 + FL26's
+  records): one club (Dender) shows its name and crest; **any table over 751 records
+  crashes the game when a career loads** (751 loads, 752 crashes; clubs 1–6 and 7–12 each
+  load alone, together they crash). FL27 has room for 6. [game]
+- Swap instead (`migrate.apply_club_swap`): each club FL27 lacks takes the ID of a club FL27
+  added (by name first, 11 were only re-IDed; else the same competition), exact keys
+  everywhere plus team-list entries, sorted lists re-sorted. Slot 3: loads; Dender's block
+  is KV Kortrijk with name, crest and Dender's squad; the Jupiler and Premier League tables
+  show Kortrijk 15th, Bolton (was Leicester) 17th and Cardiff (was Oxford) 20th with their
+  records. Matches between swapped clubs not played yet. National teams FL27 dropped
+  (Timor-Leste) are left as they are. [game]
 
 ## Season rollover — SURVIVES (E13)
 
@@ -325,4 +343,5 @@ the second copy. Impact in game unknown.
 | E24 | Brazil call-up: 2 out, 2 Cruzeiro players in | shown in game; replaced at the next call-up; an edit after the call-up is used in the friendly |
 | E25 | FL26 2030 career into FL27: FL27 envelope + FL27 stamp | **loads in FL27**; FL26's own encryption header or stamp is refused |
 | E26 | slot 3 = copy of the FL26 career; 1,666 players FL27 lacks re-pointed (33 re-ID, 1,633 renamed spares) | **all named, cards and faces right**; clubs FL27 lacks stay blank |
+| E27 | clubs FL27 lacks: back into Team.bin via livecpk / swapped to clubs FL27 added | Team.bin > 751 records crashes on career load; **swap: names, crests, tables right** |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |

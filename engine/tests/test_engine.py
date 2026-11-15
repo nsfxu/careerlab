@@ -408,3 +408,27 @@ def test_repair_names_every_player_fl27_lacks():
     assert {reg2.pid(i) for i in range(reg2.count)} >= set(plan["spare"].values())
     spare = next(iter(plan["spare"].items()))
     assert edit.find(spare[1]) is not None
+
+
+@needs_db27
+def test_club_swap_gives_every_dropped_club_an_fl27_identity():
+    """Clubs FL27 lacks become clubs FL27 added (the same club when only its ID changed);
+    national teams stay; every reference uses the swapped key; nothing new for the validator."""
+    import numpy as np
+    from fl26 import migrate
+    from fl26.database import Database, competition_teams
+    c = Career.load(USER_BL1)
+    reg = Registry(c)
+    db27, db26 = Database(DUMP27, None), Database(TESTDATA / "dbdump", None)
+    plan = migrate.plan_club_swap(c, db27, db26, competition_teams(TESTDATA / "dbdump"), competition_teams(DUMP27))
+    assert len(plan) > 40
+    assert all(new in db27.team_names and old not in db26.national for old, new in plan.values())
+    assert len({new for _, new in plan.values()}) == len(plan)
+    keys = migrate.club_keys(c)
+    before = validate.check(c)
+    migrate.apply_club_swap(c, reg, plan)
+    assert not validate.new_problems(before, validate.check(c))
+    after = migrate.club_keys(c)
+    a = np.frombuffer(bytes(c.d[:len(c.d) // 4 * 4]), dtype="<u4")
+    for k, (old, new) in plan.items():
+        assert after[k] == (new << 14) | k and not (a == keys[k]).any()

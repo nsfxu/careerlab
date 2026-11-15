@@ -6,6 +6,9 @@
   (shown as "Jogadores" in a career brought from FL26) an ID FL27 has: their new FL27 ID
   when FL27 kept them, else a clubless spare renamed in the option file. Verified in game on
   a copy of a 2030 career (1,666 players). Not in the app yet.
+- Engine: `migrate.plan_club_swap` / `apply_club_swap` turn the clubs FL27 dropped (no
+  name, no crest) into clubs FL27 added, the same club when FL27 only changed its ID.
+  Verified in game on the same copy (53 clubs). Not in the app yet.
 - `harness/game.py` drives whichever game CareerLab is set to.
 
 ## 2.6.0 — 2026-11-02
