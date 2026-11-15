@@ -2,13 +2,16 @@
 
 ## Unreleased
 
-- Engine: `migrate.plan_repair` / `apply_repair` give the players FL27's database dropped
-  (shown as "Jogadores" in a career brought from FL26) an ID FL27 has: their new FL27 ID
-  when FL27 kept them, else a clubless spare renamed in the option file. Verified in game on
-  a copy of a 2030 career (1,666 players). Not in the app yet.
-- Engine: `migrate.plan_club_swap` / `apply_club_swap` turn the clubs FL27 dropped (no
-  name, no crest) into clubs FL27 added, the same club when FL27 only changed its ID.
-  Verified in game on the same copy (53 clubs). Not in the app yet.
+- **Players and clubs FL27 lacks** (a career brought from FL2026): a notice above the
+  squad says how many, and *Fix…* stages one edit you review and apply as usual (backed up):
+  - players FL27's database dropped (shown as "Jogadores" in game) get an ID FL27 has: their
+    new FL27 ID when FL27 kept them, else an obscure FL27 free agent's, renamed to them in
+    the option file with their own face and data; ratings and career stay;
+  - clubs FL27 dropped (no name, no crest) become clubs FL27 added, from the same league
+    where possible, or themselves when FL27 only changed their ID; squad and results stay.
+  Verified in game on a copy of a 2030 career (1,666 players, 53 clubs). A second career
+  brought from the same FL26 save reuses the same renamed free agents. CareerLab keeps a
+  copy of FL26's database for this while FL26 is installed.
 - `harness/game.py` drives whichever game CareerLab is set to.
 
 ## 2.6.0 — 2026-11-02

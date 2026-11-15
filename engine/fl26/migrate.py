@@ -121,8 +121,12 @@ def missing_players(career, db):
                    if p < CREATED_ID_MIN and p not in db.player_names})
 
 
-def plan_repair(career, registry, db, src_db, other_squads=()):
-    """{"reid": {old: new}, "spare": {old: spare}} for every squad player `db` lacks."""
+def plan_repair(career, registry, db, src_db, other_squads=(), reuse=None):
+    """{"reid": {old: new}, "spare": {old: spare}} for every squad player `db` lacks.
+
+    `reuse` ({old: spare} from earlier repairs, e.g. another career brought from the same
+    FL26 save) is honoured first: that spare is already renamed to him in the option file,
+    so the same player keeps one ID and no second free agent is renamed."""
     import collections
     from .career import CREATED_ID_MIN
     rec_of = {registry.pid(i): i for i in range(registry.count)}
@@ -139,7 +143,15 @@ def plan_repair(career, registry, db, src_db, other_squads=()):
             reid[m] = cands[0]
         else:
             rest.append(m)
-    busy = in_squad | set(other_squads) | set(reid.values())
+    spare, rest_new = {}, []
+    for m in rest:
+        s = (reuse or {}).get(m)
+        if s and s in db.player_names and s not in in_squad and s not in spare.values() and s not in reid.values():
+            spare[m] = s
+        else:
+            rest_new.append(m)
+    rest = rest_new
+    busy = in_squad | set(other_squads) | set(reid.values()) | set(spare.values())
     pool = [p for p in db.player_names
             if p < CREATED_ID_MIN and p not in db.player_teams and p not in busy
             and sum(idx.get(p, {}).values()) <= 1]
@@ -147,12 +159,16 @@ def plan_repair(career, registry, db, src_db, other_squads=()):
     pool.sort(key=lambda p: (p in rec_of, p))
     if len(pool) < len(rest):
         raise ValueError(tr("err.noSpare"))
-    return {"reid": reid, "spare": dict(zip(rest, pool))}
+    spare.update(zip(rest, pool))
+    return {"reid": reid, "spare": spare}
 
 
 def apply_repair(career, registry, edit, plan, src_db, src_players, src_faces):
     """Carry out `plan_repair`'s plan on the career (registry and handle pairs) and the
-    option file. Caller validates and writes both. Returns the number of pairs rewritten."""
+    option file. Caller validates and writes both. Returns the number of pairs rewritten.
+
+    The registry is committed first: recompressing it changes its length, which moves
+    everything after it, so the pairs are rewritten on the final layout."""
     from .registry import OFF_PID, REC
     import struct
     rec_of = {registry.pid(i): i for i in range(registry.count)}
@@ -167,10 +183,13 @@ def apply_repair(career, registry, edit, plan, src_db, src_players, src_faces):
 
     for old, new in plan["reid"].items():
         repoint(old, new)
+    renamed = {struct.unpack_from("<I", edit.d, 0x7C + k * 0x138)[0] for k in range(edit.count)}
     for old, spare in plan["spare"].items():
         if spare in rec_of:                      # the spare's own record takes the old ID
             repoint(spare, old)
         repoint(old, spare)
+        if spare in renamed:                     # reused: already renamed to him
+            continue
         rec = src_players[old]
         name = src_db.player_names[old]
         printed = bytes(rec[0x81:0x81 + 61]).split(b"\0")[0].decode("utf-8", "replace") or name.upper()
@@ -239,7 +258,8 @@ def plan_club_swap(career, db, src_db, src_comps, dst_comps):
 
 
 def apply_club_swap(career, registry, plan):
-    """Swap each planned club's key and team-list entries. Caller validates and writes.
+    """Swap each planned club's key and team-list entries (registry committed first, as in
+    `apply_repair`). Caller validates and writes.
     Returns {"keys": n, "lists": n} rewritten."""
     import numpy as np
     keys = club_keys(career)

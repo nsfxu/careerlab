@@ -30,6 +30,18 @@ CREATED_SKILL_ALIASES = {"dipping_shot": "dipping_shots"}
 
 def spares_file():
     return config.data_dir() / "spares.json"
+
+
+def repair_spares_file():
+    """{FL26 ID: FL27 spare} the FL27 repair renamed (migrate.plan_repair `reuse`)."""
+    return config.data_dir() / "fl27-spares.json"
+
+
+def load_repair_spares():
+    try:
+        return {int(k): v for k, v in json.loads(repair_spares_file().read_text(encoding="utf-8")).items()}
+    except (OSError, ValueError):
+        return {}
 FACE_DONOR = 169270          # fallback face (young Brazilian) when no same-nationality donor
 
 
@@ -786,8 +798,14 @@ class Session:
         pid = op.get("pid")
         if kind not in ("move", "release", "add", "attr", "created", "manager_swap",
                         "manager_set", "tactics_copy", "shirt", "new", "renumber", "captain",
-                        "dedupe", "callup", "drop"):
+                        "dedupe", "callup", "drop", "fl27_repair"):
             raise EditError(tr("err.unknownEdit", kind=kind))
+        if kind == "fl27_repair":
+            if config.source_dump() is None:
+                raise EditError(tr("err.noSourceDb"))
+            if any(o["op"] == kind for o in self.staged):
+                raise EditError(tr("err.alreadyStaged"))
+            return
         if kind in ("callup", "drop"):
             return self._check_national(op)
         if kind in ("move", "release", "add") and pid and pid >= CREATED_ID_MIN:
@@ -1060,8 +1078,74 @@ class Session:
                 cl = c.club(op["block"])
                 if pid in cl.pids:
                     mgr.set_captain(op["block"], cl.pids.index(pid))
+        if any(o["op"] == "fl27_repair" for o in self.staged):
+            self._fl27_repair(c, reg, edit)          # last: the other edits see the old IDs
         reg.commit()
         return new_spares
+
+    # ------------------------------------------------------------------ FL26 career in FL27
+
+    def _sources(self):
+        """FL26's database, player tables and competitions (migrate.py needs them)."""
+        d = config.source_dump()
+        if d is None:
+            raise EditError(tr("err.noSourceDb"))
+        if getattr(self, "_src", None) is None or self._src[0] != d:
+            from .database import competition_teams
+            self._src = (d, Database(d, None), *load_db_tables(d), competition_teams(d))
+        return self._src[1:]
+
+    def _other_squads(self):
+        """Players in the squads of the other careers in this folder (spares avoid them)."""
+        out = set()
+        for p in self.path.parent.glob("BL*"):
+            if p != self.path and p.is_file():
+                try:
+                    out |= {pid for cl in Career.load(p).clubs() for _, pid in cl.members}
+                except Exception:
+                    continue
+        return out
+
+    def _fl27_repair(self, c, reg, edit):
+        from . import migrate
+        from .database import competition_teams
+        if edit is None:
+            raise EditError(tr("err.needsEdit"))
+        src_db, players, faces, src_comps = self._sources()
+        plan = migrate.plan_repair(c, reg, self.db, src_db, self._other_squads(), load_repair_spares())
+        migrate.apply_repair(c, reg, edit, plan, src_db, players, faces)
+        self._repaired = plan["spare"]               # remembered once the apply is written
+        clubs = migrate.plan_club_swap(c, self.db, src_db, src_comps, competition_teams(DEFAULT_DUMP))
+        migrate.apply_club_swap(c, reg, clubs)
+
+    def missing_report(self, detail=False):
+        """Players and clubs of this career the game's database lacks (a career brought
+        from FL26): counts, and with `detail` what the repair would do."""
+        from . import migrate
+        players = migrate.missing_players(self.c, self.db)
+        keys = migrate.club_keys(self.c)
+        clubs = [k for k, key in enumerate(keys)
+                 if key >> 14 != migrate.NO_TEAM and key >> 14 not in self.db.team_names
+                 and key >> 14 not in self.db.national]
+        source_ok = config.source_dump() is not None
+        if source_ok and clubs:
+            src_national = self._sources()[0].national
+            clubs = [k for k in clubs if keys[k] >> 14 not in src_national]
+        out = {"players": len(players), "clubs": len(clubs), "sourceOk": source_ok,
+               "staged": any(o["op"] == "fl27_repair" for o in self.staged)}
+        if detail and out["sourceOk"] and (players or clubs):
+            from .database import competition_teams
+            src_db, _, _, src_comps = self._sources()
+            plan = migrate.plan_repair(self.c, self.reg, self.db, src_db, self._other_squads(), load_repair_spares())
+            swap = migrate.plan_club_swap(self.c, self.db, src_db, src_comps, competition_teams(DEFAULT_DUMP))
+            out["reid"] = len(plan["reid"])
+            out["spare"] = len(plan["spare"])
+            out["examples"] = [src_db.player_names.get(p, f"#{p}") for p in players[:6]]
+            out["swaps"] = sorted(({"block": k, "from": src_db.team_names.get(old, f"#{old}"),
+                                    "fromId": old, "to": self.db.team_names.get(new, f"#{new}"), "toId": new,
+                                    "same": migrate._norm(src_db.team_names.get(old)) == migrate._norm(self.db.team_names.get(new))}
+                                   for k, (old, new) in swap.items()), key=lambda x: x["from"])
+        return out
 
     @staticmethod
     def _expand_moves(ops):
@@ -1102,7 +1186,9 @@ class Session:
         c = Career.load(self.path)
         edit = self._edit_file()
         before = validate.check(c)
+        edit_count = edit.count if edit else 0
         new_spares = self._apply_ops(c, Registry(c), Managers(c), edit)
+        edit_changed = bool(edit) and edit.count != edit_count
         progress.emit("check")
         new = validate.new_problems(before, validate.check(c))
         if new:
@@ -1110,8 +1196,8 @@ class Session:
                             + "; ".join(str(p) for p in new[:5]))
         label = f"careerlab-{len(self.staged)}-edits"
         meta = self.describe()
-        if new_spares:            # option file first: a renamed spare is harmless on its own
-            safewrite.write_file(edit, label, meta={**meta, "title": tr("desc.optionFile", n=len(new_spares), title=meta["title"])})
+        if edit_changed:          # option file first: a renamed spare is harmless on its own
+            safewrite.write_file(edit, label, meta={**meta, "title": tr("desc.optionFile", n=edit.count - edit_count, title=meta["title"])})
         progress.emit("write")
         backup = safewrite.write(c, label, meta=meta)
         progress.emit("reload")
@@ -1119,6 +1205,13 @@ class Session:
             m = load_spares()
             m.update(new_spares)
             save_spares(m)
+        if getattr(self, "_repaired", None):
+            m = load_repair_spares()
+            m.update(self._repaired)
+            repair_spares_file().parent.mkdir(parents=True, exist_ok=True)
+            repair_spares_file().write_text(json.dumps({str(k): v for k, v in m.items()}), encoding="utf-8")
+            self._repaired = None
+        if edit_changed:
             self.db = Database(DEFAULT_DUMP, self.path.parent / "EDIT00000000")
         n = len(self.staged)
         self.staged = []

@@ -150,6 +150,36 @@ def dump_dir():
     return g / "SiderAddons" / "dbdump" if g else None
 
 
+SOURCE_DUMP = HOME / "fl26-dbdump"     # FL26's database, kept for careers brought to FL27
+
+
+def keep_source_dump():
+    """Copy FL26's database dump into CareerLab's folder while FL26 is installed: the
+    FL27 repair needs FL26's player and club records after FL26 is gone."""
+    g = detect_game_dir(FL26)
+    src = g / "SiderAddons" / "dbdump" if g else None
+    if not src or not dump_ok(src):
+        return
+    SOURCE_DUMP.mkdir(parents=True, exist_ok=True)
+    for name in TABLES + ("competitionentry",):
+        try:
+            f = table_file(name, src)
+        except FileNotFoundError:
+            continue
+        dest = SOURCE_DUMP / f"{name}.raw"
+        if not dest.exists() or dest.stat().st_mtime < f.stat().st_mtime:
+            shutil.copy2(f, dest)
+
+
+def source_dump():
+    """FL26's database dump: the installed game's, else the copy CareerLab kept; None."""
+    g = detect_game_dir(FL26)
+    for d in ((g / "SiderAddons" / "dbdump") if g else None, SOURCE_DUMP):
+        if d and dump_ok(d):
+            return d
+    return None
+
+
 # ------------------------------------------------------------------ save keys
 
 def _key_opens(key, folder):
@@ -301,6 +331,7 @@ def status():
     cur = game()
     g = game_dir()
     keys = register_keys()
+    keep_source_dump()
     if g and module_installed(g) and not (g / "SiderAddons" / "dbdump").exists():
         (g / "SiderAddons" / "dbdump").mkdir()   # installed before install_module made it
     return {"game": cur.id, "gameName": cur.name, "exe": cur.exe,

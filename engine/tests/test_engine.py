@@ -402,6 +402,7 @@ def test_repair_names_every_player_fl27_lacks():
     edit = EditFile(TESTDATA / "EDIT00000000.golden")
     before = validate.check(c)
     migrate.apply_repair(c, reg, edit, plan, db26, *load_db_tables(TESTDATA / "dbdump"))
+    reg.commit()
     assert not validate.new_problems(before, validate.check(c))
     assert migrate.missing_players(c, db27) == []
     reg2 = Registry(c)                                                       # committed
@@ -427,8 +428,30 @@ def test_club_swap_gives_every_dropped_club_an_fl27_identity():
     keys = migrate.club_keys(c)
     before = validate.check(c)
     migrate.apply_club_swap(c, reg, plan)
+    reg.commit()
     assert not validate.new_problems(before, validate.check(c))
     after = migrate.club_keys(c)
     a = np.frombuffer(bytes(c.d[:len(c.d) // 4 * 4]), dtype="<u4")
     for k, (old, new) in plan.items():
         assert after[k] == (new << 14) | k and not (a == keys[k]).any()
+
+
+@needs_db27
+def test_repair_of_a_second_copy_reuses_the_spares():
+    """The same FL26 career repaired twice (two slots) shares its renamed spares."""
+    from fl26 import migrate
+    from fl26.database import Database
+    from fl26.editfile import EditFile, load_db_tables
+    db27, db26 = Database(DUMP27, None), Database(TESTDATA / "dbdump", None)
+    tables = load_db_tables(TESTDATA / "dbdump")
+    edit = EditFile(TESTDATA / "EDIT00000000.golden")
+    a = Career.load(USER_BL1); ra = Registry(a)
+    first = migrate.plan_repair(a, ra, db27, db26)
+    migrate.apply_repair(a, ra, edit, first, db26, *tables)
+    n = edit.count
+    b = Career.load(USER_BL1); rb = Registry(b)
+    squads_a = {p for cl in a.clubs() for _, p in cl.members}
+    second = migrate.plan_repair(b, rb, db27, db26, squads_a, reuse=first["spare"])
+    assert second["spare"] == first["spare"]
+    migrate.apply_repair(b, rb, edit, second, db26, *tables)
+    assert edit.count == n

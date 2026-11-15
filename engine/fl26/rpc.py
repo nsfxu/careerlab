@@ -175,6 +175,9 @@ class Server:
     def free_agents(self, position=None, max_age=None, query=""):
         return self._session().free_agents(position, max_age, query)
 
+    def missing_report(self, detail=False):
+        return self._session().missing_report(bool(detail))
+
     def national_plan(self, block):
         return self._session().national_plan(block)
 

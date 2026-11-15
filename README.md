@@ -20,7 +20,8 @@ doesn't have, edit ratings and skills, change managers, and never lose a career 
 - **Edit your own player**: also height, weight, best foot and injury resistance.
 - **Change a club's manager**, with or without his tactics, or **copy another club's tactics**.
 - **Bring an FL2026 career into FL2027**: pick it from the career menu; it lands in a free FL27
-  slot and your FL26 save is left as it was.
+  slot and your FL26 save is left as it was. Players and clubs FL27's database dropped
+  (shown as "Jogadores" or with no name) can then be fixed in one reviewed edit.
 - **Tools**: export squads to CSV; repair the duplicate entries the game creates at season end.
 - **Portuguese or English**, switched with the flags in Settings; updates itself from GitHub Releases.
 - **The game's own images**: player portraits, club crests and manager photos, read from your

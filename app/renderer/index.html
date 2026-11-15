@@ -79,6 +79,13 @@
     </div>
   </header>
 
+  <div id="gap-banner" class="gap-banner" hidden>
+    <svg class="i"><use href="#i-alert"/></svg>
+    <span id="gap-text"></span>
+    <button id="btn-gap-open" class="primary small" data-i18n="gap.open"></button>
+    <button id="btn-gap-hide" class="ghost icon-only small" data-i18n-title="gap.hide"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+
   <main class="layout">
     <aside class="clubs panel">
       <div class="panel-head">
@@ -222,6 +229,21 @@
     <p class="muted" data-i18n="bk.note"></p>
     <ul id="backup-list" class="pick-list"></ul>
     <div class="dialog-actions"><button id="btn-close-backups" class="ghost" data-i18n="close"></button></div>
+  </dialog>
+
+  <dialog id="dlg-gaps" class="dialog gaps">
+    <h2 tabindex="-1" autofocus><svg class="i"><use href="#i-alert"/></svg><span data-i18n="gap.title"></span></h2>
+    <p class="muted" data-i18n="gap.note"></p>
+    <div class="gap-row"><svg class="i"><use href="#i-user"/></svg>
+      <div><b id="gap-players"></b><div class="muted" id="gap-players-note"></div></div></div>
+    <div class="gap-row"><svg class="i"><use href="#i-shield"/></svg>
+      <div><b id="gap-clubs"></b><div class="muted" data-i18n="gap.clubsNote"></div></div></div>
+    <ul id="gap-swaps" class="gap-swaps"></ul>
+    <p id="gap-warn" class="muted gap-foot"></p>
+    <div class="dialog-actions">
+      <button id="btn-gap-close" class="ghost" data-i18n="cancel"></button>
+      <button id="btn-gap-stage" class="primary"><svg class="i"><use href="#i-check"/></svg><span data-i18n="gap.stage"></span></button>
+    </div>
   </dialog>
 
   <dialog id="dlg-upgrade" class="dialog upgrade">

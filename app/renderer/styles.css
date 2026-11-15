@@ -110,6 +110,26 @@ button.icon-only { padding: 7px 9px; }
 .menu-action:hover { background: var(--panel-3); color: var(--text); }
 .menu-action .i { color: var(--red-glow); }
 
+/* FL26 career in FL27: players and clubs the database lacks */
+.gap-banner { display: flex; align-items: center; gap: 10px; margin: 8px 10px 0; padding: 0 8px 0 12px; height: 38px; border-radius: 8px;
+  border: 1px solid #5a4415; background: #2a2210; color: #f2d48a; font-size: 12.5px; }
+.gap-banner > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+body:has(#gap-banner:not([hidden])) .layout { height: calc(100% - 50px - 46px); }   /* banner 38 + margin 8 */
+.gap-banner > .i { color: #f2b247; flex: none; }
+.dialog.gaps { width: min(640px, 94vw); }
+.gap-row { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; }
+.gap-row > .i { color: var(--muted); margin-top: 2px; }
+.gap-row .muted { font-size: 12px; margin-top: 2px; }
+.gap-swaps { list-style: none; padding: 0; margin: 4px 0; max-height: 260px; overflow: auto; font-size: 12.5px; }
+.gap-swaps li { display: flex; align-items: center; gap: 8px; padding: 4px 10px; }
+.gap-swaps li:nth-child(odd) { background: #ffffff05; }
+.gap-swaps .gap-from { color: var(--muted); min-width: 0; flex: 0 1 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gap-swaps .i { width: 12px; height: 12px; color: var(--dim); flex: none; }
+.gap-swaps .crest-sm { width: 18px; height: 18px; flex: none; }
+.gap-same { margin-left: auto; font-size: 10.5px; font-weight: 700; color: #7fd38b; background: #12261a; padding: 1px 6px; border-radius: 4px; }
+.gap-foot { font-size: 12px; margin-top: 10px; }
+
 .spacer { flex: 1 1 0; min-width: 4px; align-self: stretch; }
 /* game status: a quiet icon when closed, a red label while the game runs (saving blocked) */
 .game-state { position: relative; flex: none; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 8px;

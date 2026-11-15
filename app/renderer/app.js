@@ -202,6 +202,8 @@ async function openSave(path) {
     await restoreTabs(me);
   });
   state.restoring = false;
+  gapsHidden = false;
+  checkGaps();
 }
 
 // ------------------------------------------------------------------ clubs
@@ -1105,6 +1107,7 @@ function updateStaged() {
   $("#btn-review").disabled = state.staged.length === 0;
   renderTabs();
   saveTabs();
+  renderGapBanner();
 }
 
 // What each kind of edit looks like in the review window
@@ -1114,6 +1117,7 @@ const EDIT_KINDS = {
   attr: ["sliders", "player"], created: ["star", "player"], shirt: ["shirt", "squad"], renumber: ["shirt", "squad"],
   captain: ["shield", "squad"], dedupe: ["shield", "squad"], manager_swap: ["whistle", "manager"],
   manager_set: ["whistle", "manager"], tactics_copy: ["tactics", "manager"], callup: ["globe", "national"], drop: ["globe", "national"],
+  fl27_repair: ["sync", "other"],
 };
 const EDIT_CATS = ["transfer", "player", "squad", "manager", "national"];
 
@@ -1251,8 +1255,56 @@ async function applyEdits() {
     renderClubs();
     await reopenActive();
     if (state.player) await openPlayer(state.player.pid);
+    checkGaps();
   });
   setApplying(false);
+}
+
+// ------------------------------------------------------------------ FL26 career in FL27
+// Players and clubs FL27's database lacks show as "Jogadores" / blank in game; one staged
+// edit (engine: migrate.py) gives them IDs FL27 has.
+
+let gapsHidden = false;
+const fmtNum = (n) => Number(n).toLocaleString(LANG === "pt" ? "pt-BR" : "en-US");
+async function checkGaps() {
+  state.gaps = state.save && state.setup?.game === "fl27" ? await call("missing_report").catch(() => null) : null;
+  renderGapBanner();
+}
+
+function renderGapBanner() {
+  const g = state.gaps;
+  const staged = state.staged.some((o) => o.op === "fl27_repair");
+  const show = !!g && (g.players || g.clubs) && !staged && !gapsHidden;
+  $("#gap-banner").hidden = !show;
+  if (show) $("#gap-text").textContent = t("gap.banner", { players: fmtNum(g.players), clubs: g.clubs });
+  if (show) $("#gap-text").title = $("#gap-text").textContent;
+}
+
+async function openGaps() {
+  const g = await guarded(() => call("missing_report", { detail: true }));
+  if (!g) return;
+  $("#gap-players").textContent = t("gap.players", { n: fmtNum(g.players) });
+  $("#gap-players-note").textContent = g.sourceOk ? t("gap.playersNote", { reid: fmtNum(g.reid ?? 0), spare: fmtNum(g.spare ?? 0) }) : "";
+  $("#gap-clubs").textContent = t("gap.clubs", { n: g.clubs });
+  $("#gap-swaps").replaceChildren(...(g.swaps || []).map((s) => el("li", {},
+    el("span", { className: "gap-from", textContent: s.from }), icon("chevron"),
+    gameImg("flag", s.toId, "crest-sm"), el("b", { textContent: s.to }),
+    s.same ? el("span", { className: "gap-same", textContent: t("gap.same") }) : "")));
+  $("#gap-warn").textContent = g.sourceOk ? t("gap.warn") : t("gap.noSource");
+  $("#btn-gap-stage").disabled = !g.sourceOk || g.staged;
+  state.gapDetail = g;
+  if (!$("#dlg-gaps").open) $("#dlg-gaps").showModal();
+}
+
+async function stageGaps() {
+  const g = state.gapDetail;
+  await guarded(async () => {
+    state.staged = await call("stage", { op: { op: "fl27_repair", label: t("lab.fl27Repair", { players: fmtNum(g.players), clubs: g.clubs }) } });
+    updateStaged();
+    $("#dlg-gaps").close();
+    renderGapBanner();
+    toast(t("gap.staged"));
+  });
 }
 
 // ------------------------------------------------------------------ pickers
@@ -2062,6 +2114,10 @@ $("#btn-dedupe").onclick = repairDupes;
 $("#btn-setup-game").onclick = () => chooseFolder("set_game_dir", t("setup.pickGame", { name: state.setup?.gameName, exe: state.setup?.exe }));
 $("#btn-setup-key").onclick = chooseKey;
 $("#btn-upgrade-open").onclick = (e) => { e.stopPropagation(); openUpgrade(); };
+$("#btn-gap-open").onclick = openGaps;
+$("#btn-gap-hide").onclick = () => { gapsHidden = true; renderGapBanner(); };
+$("#btn-gap-close").onclick = () => $("#dlg-gaps").close();
+$("#btn-gap-stage").onclick = stageGaps;
 $("#btn-close-upgrade").onclick = () => $("#dlg-upgrade").close();
 $("#btn-up-file").onclick = async () => {
   const f = await window.cl.pickFile(t("up.pick"), $("#up-dir").title || undefined);
