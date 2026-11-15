@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.0 — 2026-11-15
 
 - **Players and clubs FL27 lacks** (a career brought from FL2026): a notice above the
   squad says how many, and *Fix…* stages one edit you review and apply as usual (backed up):
@@ -9,7 +9,8 @@
     the option file with their own face and data; ratings and career stay;
   - clubs FL27 dropped (no name, no crest) become clubs FL27 added, from the same league
     where possible, or themselves when FL27 only changed their ID; squad and results stay.
-  Verified in game on a copy of a 2030 career (1,666 players, 53 clubs). A second career
+  Verified in game on a 2030 career (1,666 players, 53 clubs): names, cards, faces, crests
+  and league tables right, and the season plays on. A second career
   brought from the same FL26 save reuses the same renamed free agents. CareerLab keeps a
   copy of FL26's database for this while FL26 is installed.
 - `harness/game.py` drives whichever game CareerLab is set to.
