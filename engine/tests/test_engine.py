@@ -334,9 +334,10 @@ def test_fl27_save_opens_with_its_key_and_round_trips(fl27_key):
 
 
 @needs27
-def test_upgrade_wraps_fl26_career_in_fl27_envelope(fl27_key, tmp_path):
+def test_upgrade_wraps_fl26_career_in_fl27_envelope(fl27_key, tmp_path, monkeypatch):
     import shutil
-    from fl26 import migrate
+    from fl26 import migrate, safewrite
+    monkeypatch.setattr(safewrite, "game_running", lambda: False)   # writes only to tmp_path
     shutil.copy(FL27_BL0, tmp_path / "BL00000000")
     shutil.copy(USER_BL1, tmp_path / "src")
     dest = migrate.upgrade(tmp_path / "src", tmp_path)
