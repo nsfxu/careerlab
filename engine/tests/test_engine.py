@@ -376,3 +376,34 @@ def test_legacy_config_moves_into_the_fl26_block(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "_game", None)
     monkeypatch.setattr(config, "detect_game_dir", lambda g=None: Path("X:/g") if g.id == "fl27" else None)
     assert config.game().id == "fl27"                        # ...until FL26 is uninstalled
+
+
+DUMP27 = TESTDATA / "dbdump27"                    # FL27's database (Sider dump), not in git
+needs_db27 = pytest.mark.skipif(not (DUMP27.exists() and (TESTDATA / "dbdump").exists() and USER_BL1.exists()),
+                                reason="FL26/FL27 database dumps not present")
+
+
+@needs_db27
+def test_repair_names_every_player_fl27_lacks():
+    """An FL26 career under FL27's database: each squad player FL27 lacks ends up on an ID
+    FL27 has (his new one, or a clubless spare renamed in the option file)."""
+    from fl26 import migrate
+    from fl26.database import Database
+    from fl26.editfile import EditFile, load_db_tables
+    c = Career.load(USER_BL1)
+    reg = Registry(c)
+    db27, db26 = Database(DUMP27, None), Database(TESTDATA / "dbdump", None)
+    missing = migrate.missing_players(c, db27)
+    assert len(missing) > 1000
+    plan = migrate.plan_repair(c, reg, db27, db26)
+    assert set(plan["reid"]) | set(plan["spare"]) == set(missing)
+    assert not set(plan["spare"].values()) & set(db27.player_teams)          # clubless only
+    edit = EditFile(TESTDATA / "EDIT00000000.golden")
+    before = validate.check(c)
+    migrate.apply_repair(c, reg, edit, plan, db26, *load_db_tables(TESTDATA / "dbdump"))
+    assert not validate.new_problems(before, validate.check(c))
+    assert migrate.missing_players(c, db27) == []
+    reg2 = Registry(c)                                                       # committed
+    assert {reg2.pid(i) for i in range(reg2.count)} >= set(plan["spare"].values())
+    spare = next(iter(plan["spare"].items()))
+    assert edit.find(spare[1]) is not None

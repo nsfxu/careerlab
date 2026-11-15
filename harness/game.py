@@ -1,4 +1,5 @@
-"""Drive Football Life 2026 without a human: launch, look, press keys, quit.
+"""Drive Football Life (the game CareerLab is set to: FL26 or FL27) without a human:
+launch, look, press keys, quit.
 
     python game.py launch            back up saves, start Sider + the game, wait for the window
     python game.py shot [name] [w]   screenshot the game window to shots/<name>.png (width w)
@@ -19,11 +20,16 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-GAME_DIR = Path(r"E:\FL2026")
-GAME_EXE = GAME_DIR / "FL_2026.exe"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "engine"))
+from fl26 import config  # noqa: E402  (the game, its folder and saves follow CareerLab's settings)
+
+GAME = config.game()
+GAME_DIR = config.game_dir() or Path(".")
+GAME_EXE = GAME_DIR / GAME.exe
+EXE = GAME.exe
 SIDER_EXE = GAME_DIR / "SiderAddons" / "sider.exe"
-SAVE_DIR = Path(os.path.expanduser(r"~\Documents\KONAMI\eFootball PES 2021 SEASON UPDATE\2026\save"))
-BACKUP_ROOT = GAME_DIR / "_archive" / "save-snapshots"
+SAVE_DIR = config.save_dir()
+BACKUP_ROOT = config.data_dir() / "save-snapshots"
 SHOTS = Path(__file__).resolve().parent / "shots"
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -39,8 +45,8 @@ def pids(name):
 
 
 def game_window():
-    """Largest visible top-level window owned by FL_2026.exe, or None."""
-    owners = set(pids("FL_2026.exe"))
+    """Largest visible top-level window owned by the game exe, or None."""
+    owners = set(pids(EXE))
     if not owners:
         return None
     found = []
@@ -147,7 +153,7 @@ def snapshot_saves(label="launch"):
 
 
 def cmd_launch():
-    if pids("FL_2026.exe"):
+    if pids(EXE):
         print("already running", game_window())
         return
     print("saves snapshot ->", snapshot_saves())
@@ -424,7 +430,7 @@ def cmd_macro(name, *args):
 
 
 def cmd_status():
-    print("game pids", pids("FL_2026.exe"), "sider pids", pids("sider.exe"))
+    print("game pids", pids(EXE), "sider pids", pids("sider.exe"))
     w = game_window()
     if w:
         print("window", w, "client", client_rect(w[0]), "foreground", user32.GetForegroundWindow() == w[0])
@@ -449,18 +455,18 @@ def protect_check():
 
 
 def cmd_quit():
-    for p in pids("FL_2026.exe"):
+    for p in pids(EXE):
         subprocess.run(["taskkill", "/PID", str(p)], capture_output=True)
     for _ in range(20):
-        if not pids("FL_2026.exe"):
+        if not pids(EXE):
             break
         time.sleep(1)
     else:
-        for p in pids("FL_2026.exe"):
+        for p in pids(EXE):
             subprocess.run(["taskkill", "/F", "/PID", str(p)], capture_output=True)
     for p in pids("sider.exe"):
         subprocess.run(["taskkill", "/F", "/PID", str(p)], capture_output=True)
-    print("game pids", pids("FL_2026.exe"), "sider pids", pids("sider.exe"))
+    print("game pids", pids(EXE), "sider pids", pids("sider.exe"))
     protect_check()
 
 

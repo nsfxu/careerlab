@@ -92,3 +92,87 @@ def upgrade(src_path, folder, source=FL26, target=FL27):
         dest.unlink()
         raise safewrite.WriteRefused(tr("err.notVerified", name=dest.name))
     return dest
+
+
+# ------------------------------------------------------------------ players FL27 lacks
+#
+# FL27's database dropped ~3,100 of FL26's players (retired, lower leagues). A career
+# brought over still lists them; with no database entry their name renders as "Jogadores"
+# (as in E19). The registry record decides who a player is (registry.py), so each one is
+# re-pointed at an ID FL27 has, keeping his own record (ratings, career history):
+#
+# * re-ID: FL27 kept him under a new ID (same name and nationality, age within 2 years,
+#   one candidate, no record of that ID in this career);
+# * spare: else an ID FL27 lists as clubless (a free agent in every FL27 career) that no
+#   squad here or in `other_squads` uses, renamed in the option file to his FL26 identity
+#   (database record and appearance: E20's spare mechanism). The option file is shared by
+#   every career of the game, which is why spares are clubless nobodies.
+
+def _norm(name):
+    import unicodedata
+    return unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().lower().strip()
+
+
+def missing_players(career, db):
+    """Squad players (created character aside) whose ID `db` (the target game's) lacks."""
+    from .career import CREATED_ID_MIN
+    return sorted({p for cl in career.clubs() for _, p in cl.members
+                   if p < CREATED_ID_MIN and p not in db.player_names})
+
+
+def plan_repair(career, registry, db, src_db, other_squads=()):
+    """{"reid": {old: new}, "spare": {old: spare}} for every squad player `db` lacks."""
+    import collections
+    from .career import CREATED_ID_MIN
+    rec_of = {registry.pid(i): i for i in range(registry.count)}
+    in_squad = {p for cl in career.clubs() for _, p in cl.members}
+    idx = career.index()
+    by_key = collections.defaultdict(list)
+    for p, n in db.player_names.items():
+        by_key[(_norm(n), db.player_nat.get(p))].append(p)
+    reid, rest = {}, []
+    for m in missing_players(career, db):
+        cands = [q for q in by_key.get((_norm(src_db.player_names.get(m)), src_db.player_nat.get(m)), [])
+                 if 0 <= db.player_age.get(q, 0) - src_db.player_age.get(m, 0) <= 2]
+        if len(cands) == 1 and cands[0] not in rec_of and cands[0] not in reid.values():
+            reid[m] = cands[0]
+        else:
+            rest.append(m)
+    busy = in_squad | set(other_squads) | set(reid.values())
+    pool = [p for p in db.player_names
+            if p < CREATED_ID_MIN and p not in db.player_teams and p not in busy
+            and sum(idx.get(p, {}).values()) <= 1]
+    # IDs without a record here first: no record of this career has to give his ID up
+    pool.sort(key=lambda p: (p in rec_of, p))
+    if len(pool) < len(rest):
+        raise ValueError(tr("err.noSpare"))
+    return {"reid": reid, "spare": dict(zip(rest, pool))}
+
+
+def apply_repair(career, registry, edit, plan, src_db, src_players, src_faces):
+    """Carry out `plan_repair`'s plan on the career (registry and handle pairs) and the
+    option file. Caller validates and writes both. Returns the number of pairs rewritten."""
+    from .registry import OFF_PID, REC
+    import struct
+    rec_of = {registry.pid(i): i for i in range(registry.count)}
+    idx = career.index()
+    mapping = {}
+
+    def repoint(old, new):
+        i = rec_of[old]
+        struct.pack_into("<I", registry.blob, i * REC + OFF_PID, new)
+        for h in idx.get(old, {}):
+            mapping[(h, old)] = (h, new)
+
+    for old, new in plan["reid"].items():
+        repoint(old, new)
+    for old, spare in plan["spare"].items():
+        if spare in rec_of:                      # the spare's own record takes the old ID
+            repoint(spare, old)
+        repoint(old, spare)
+        rec = src_players[old]
+        name = src_db.player_names[old]
+        printed = bytes(rec[0x81:0x81 + 61]).split(b"\0")[0].decode("utf-8", "replace") or name.upper()
+        edit.add_player(spare, name, printed, rec, src_faces[old])
+    registry.commit()
+    return career.swap_identity(mapping)

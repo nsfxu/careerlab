@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Engine: `migrate.plan_repair` / `apply_repair` give the players FL27's database dropped
+  (shown as "Jogadores" in a career brought from FL26) an ID FL27 has: their new FL27 ID
+  when FL27 kept them, else a clubless spare renamed in the option file. Verified in game on
+  a copy of a 2030 career (1,666 players). Not in the app yet.
+- `harness/game.py` drives whichever game CareerLab is set to.
+
 ## 2.6.0 — 2026-11-02
 
 - **Football Life 2027 support.** Settings has a *Game* switch (FL 2026 | FL 2027); each game

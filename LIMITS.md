@@ -247,6 +247,21 @@ reads an FL27 career (731 club blocks, the created player) as it is. [file]
 - `migrate.upgrade` builds exactly that, borrowing the envelope of the newest FL27-made career
   in the folder; it can't make one from scratch (the header check is not understood). [file]
 
+### Players and clubs FL27 dropped (E26, 2026-11-15)
+
+FL27's database has 26,395 players to FL26's 29,492, and swaps 60 of FL26's clubs for 56
+others (relegations, promotions); 10 club IDs now name another club. A career brought from
+FL26 keeps them all:
+
+- 1,666 squad players (589 of 730 clubs) have IDs FL27 lacks: listed as "Jogadores". [game]
+- Repair on a copy (slot 3): 33 re-pointed to the ID FL27 now gives them (same name,
+  nationality, age within 2), 1,633 to clubless FL27 spares renamed in the option file with
+  their FL26 database record and appearance. Every repaired player shows his name, card,
+  nationality, age, positions, style and face (La Louvière, Nottingham Forest: Luca Netz,
+  Willy Boly). Slot 3 loads. Matches with them not played yet. [game]
+- The 60 clubs FL27 lacks show with no name and no crest (FCV Dender, Leicester City) but
+  keep their squads. Not fixed. [game]
+
 ## Season rollover — SURVIVES (E13)
 
 The test career was simulated from August 2030 into the 2031 pre-season (~30 matches, a
@@ -309,4 +324,5 @@ the second copy. Impact in game unknown.
 | E23 | Giu profile, 22 registry styles, tactics copy | all shown; style names read for the registry numbering |
 | E24 | Brazil call-up: 2 out, 2 Cruzeiro players in | shown in game; replaced at the next call-up; an edit after the call-up is used in the friendly |
 | E25 | FL26 2030 career into FL27: FL27 envelope + FL27 stamp | **loads in FL27**; FL26's own encryption header or stamp is refused |
+| E26 | slot 3 = copy of the FL26 career; 1,666 players FL27 lacks re-pointed (33 re-ID, 1,633 renamed spares) | **all named, cards and faces right**; clubs FL27 lacks stay blank |
 | E13 | ~30 skipped matches Aug 2030 → Jan 2031 | all edits survive; game adds 11 duplicates on its own |
